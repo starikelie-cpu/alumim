@@ -228,14 +228,107 @@ function App() {
 
     // ----- Import / Export Handlers -----
     const handleImport = async () => {
-        const result = await loadJsonFile();
-        if (result && result.json) {
+        try {
+            const result = await loadJsonFile();
+            if (!result || !result.json) {
+                message.error('ייבוא בוטל או נכשל');
+                return;
+            }
+
             const data = result.json;
-            if (Array.isArray(data.members)) setMembers(data.members);
-            if (Array.isArray(data.niftarim)) setNiftarim(data.niftarim);
-            message.success('Data imported successfully');
-        } else {
-            message.error('Import cancelled or failed');
+            const fileName = (result.fileName || '').toLowerCase();
+
+            // 1. Check if it's the combined export format: { members, niftarim }
+            if (data && !Array.isArray(data) && (data.members || data.niftarim)) {
+                let successCount = 0;
+                if (Array.isArray(data.members)) {
+                    await fetch('http://localhost:3000/api/members/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data.members)
+                    });
+                    setMembers(data.members);
+                    successCount++;
+                }
+                if (Array.isArray(data.niftarim)) {
+                    await fetch('http://localhost:3000/api/niftarim/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data.niftarim)
+                    });
+                    setNiftarim(data.niftarim);
+                    successCount++;
+                }
+                if (Array.isArray(data.archive)) {
+                    await fetch('http://localhost:3000/api/archive/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data.archive)
+                    });
+                    successCount++;
+                }
+                if (successCount > 0) {
+                    message.success('הנתונים יובאו ונשמרו בהצלחה בשרת');
+                } else {
+                    message.error('לא נמצאו נתונים תקינים לייבוא');
+                }
+                return;
+            }
+
+            // 2. Check if it's a raw array (from backup files: members.json, niftarim.json, archive.json)
+            if (Array.isArray(data)) {
+                const firstItem = data[0] || {};
+                
+                const isNiftarim = fileName.includes('niftarim') || 'death_date' in firstItem || 'addedFromMember' in firstItem;
+                const isArchive = fileName.includes('archive') || 'changeDate' in firstItem || 'archiveId' in firstItem;
+                const isMembers = fileName.includes('members') || 'firstName' in firstItem || 'lastName' in firstItem || 'status' in firstItem;
+
+                if (isNiftarim) {
+                    const response = await fetch('http://localhost:3000/api/niftarim/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    if (response.ok) {
+                        setNiftarim(data);
+                        message.success(`יובאו בהצלחה ${data.length} רשומות נפטרים`);
+                    } else {
+                        throw new Error('שגיאה בשמירה לשרת');
+                    }
+                } else if (isArchive) {
+                    const response = await fetch('http://localhost:3000/api/archive/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    if (response.ok) {
+                        setArchiveRefreshKey(prev => prev + 1);
+                        message.success(`יובאו בהצלחה ${data.length} רשומות ארכיון`);
+                    } else {
+                        throw new Error('שגיאה בשמירה לשרת');
+                    }
+                } else if (isMembers) {
+                    const response = await fetch('http://localhost:3000/api/members/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    if (response.ok) {
+                        setMembers(data);
+                        message.success(`יובאו בהצלחה ${data.length} מתפללים`);
+                    } else {
+                        throw new Error('שגיאה בשמירה לשרת');
+                    }
+                } else {
+                    message.error('סוג הקובץ לא זוהה (מצפה למתפללים, נפטרים או ארכיון)');
+                }
+                return;
+            }
+
+            message.error('מבנה קובץ לא תקין');
+        } catch (error) {
+            console.error('Import failed:', error);
+            message.error('הייבוא נכשל: ' + error.message);
         }
     };
 
