@@ -71,8 +71,8 @@ function createWindow() {
 
 function startServer() {
     return new Promise((resolve, reject) => {
-        // Use local data directory for data persistence
-        const userDataPath = path.join(__dirname, 'data');
+        // Use standard AppData Roaming directory for persistent database storage
+        const userDataPath = path.join(app.getPath('userData'), 'data');
 
         // Use utilityProcess.fork which is optimized for running node scripts in Electron
         const serverPath = path.join(__dirname, 'index.js');
