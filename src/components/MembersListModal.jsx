@@ -40,18 +40,38 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 return (a.firstName || '').localeCompare(b.firstName || '', 'he');
             });
 
+            const todayHebrew = new HDate().renderGematriya(true);
+            const todayGregorian = new Date().toLocaleDateString('he-IL');
+
+            // Divide members into chunks of 28 rows per page
+            const itemsPerPage = 28;
+            const totalPages = Math.ceil(sortedMembers.length / itemsPerPage) || 1;
+            const pages = [];
+            for (let i = 0; i < sortedMembers.length; i += itemsPerPage) {
+                pages.push(sortedMembers.slice(i, i + itemsPerPage));
+            }
+            if (pages.length === 0) {
+                pages.push([]);
+            }
+
             const html = `
                 <html dir="rtl" lang="he">
                 <head>
                     <title>רשימת מתפללים</title>
                     <style>
                         @page { size: A4 portrait; margin: 10mm; }
-                        body { font-family: 'Assistant', sans-serif; padding: 10px; margin: 0; font-size: 14px; }
-                        .header { text-align: center; margin-bottom: 20px; }
-                        .title { font-size: 24px; font-weight: bold; margin: 0; }
-                        .member-row { display: flex; margin: 5px 0; line-height: 1.4; border-bottom: 1px solid #eee; padding-bottom: 3px; }
-                        .member-row-header { display: flex; margin: 5px 0; line-height: 1.4; border-bottom: 2px solid #333; padding-bottom: 3px; font-weight: bold; color: #0066cc; }
-                        .member-row span, .member-row-header span { flex-shrink: 0; padding: 0 4px; box-sizing: border-box; }
+                        body { font-family: 'Assistant', sans-serif; padding: 0; margin: 0; font-size: 13px; }
+                        .page-container { page-break-after: always; box-sizing: border-box; }
+                        .page-container:last-child { page-break-after: auto; }
+                        .print-page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+                        .date-right { font-size: 12px; font-weight: bold; line-height: 1.4; text-align: right; width: 200px; }
+                        .title-center { text-align: center; }
+                        .title { font-size: 20px; font-weight: bold; margin: 0; }
+                        .page-number { font-size: 13px; margin-top: 5px; font-weight: bold; }
+                        .header-left-spacer { width: 200px; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th { border-bottom: 2px solid #333; font-weight: bold; color: #0066cc; text-align: right; padding: 5px 4px; box-sizing: border-box; font-size: 13px; }
+                        td { border-bottom: 1px solid #eee; padding: 5px 4px; box-sizing: border-box; vertical-align: middle; text-align: right; font-size: 13px; }
                         .number { width: 5%; text-align: center; }
                         .letter { width: 6%; }
                         .status { width: 8%; }
@@ -63,29 +83,50 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                     </style>
                 </head>
                 <body>
-                    <div class="header">
-                        <div class="title">רשימת מתפללים מלאה</div>
-                    </div>
-                    <div class="member-row-header">
-                        <span class="number">#</span>
-                        <span class="letter">אות</span>
-                        <span class="status">מעמד</span>
-                        <span class="lastName">שם משפחה</span>
-                        <span class="firstName">שם פרטי</span>
-                        <span class="fatherName">שם האב</span>
-                        <span class="fatherDeathDate">פטירת אב</span>
-                        <span class="motherDeathDate">פטירת אם</span>
-                    </div>
-                    ${sortedMembers.map((m, index) => `
-                        <div class="member-row">
-                            <span class="number">${index + 1}</span>
-                            <span class="letter">${Array.isArray(m.letter) ? m.letter.join(', ') : m.letter || ''}</span>
-                            <span class="status">${m.status || ''}</span>
-                            <span class="lastName">${m.lastName || '-'}</span>
-                            <span class="firstName">${m.firstName || '-'}</span>
-                            <span class="fatherName">${m.fatherName || '-'}</span>
-                            <span class="fatherDeathDate">${m.father_death_date || '-'}</span>
-                            <span class="motherDeathDate">${m.mother_death_date || '-'}</span>
+                    ${pages.map((pageMembers, pageIndex) => `
+                        <div class="page-container">
+                            <div class="print-page-header">
+                                <div class="date-right">
+                                    <div>תאריך עברי: ${todayHebrew}</div>
+                                    <div>תאריך לועזי: ${todayGregorian}</div>
+                                </div>
+                                <div class="title-center">
+                                    <div class="title">רשימת מתפללים מלאה</div>
+                                    <div class="page-number">דף ${pageIndex + 1} מתוך ${totalPages}</div>
+                                </div>
+                                <div class="header-left-spacer"></div>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th class="number">#</th>
+                                        <th class="letter">אות</th>
+                                        <th class="status">מעמד</th>
+                                        <th class="lastName">שם משפחה</th>
+                                        <th class="firstName">שם פרטי</th>
+                                        <th class="fatherName">שם האב</th>
+                                        <th class="fatherDeathDate">פטירת אב</th>
+                                        <th class="motherDeathDate">פטירת אם</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${pageMembers.map((m, index) => {
+                                        const globalIndex = pageIndex * itemsPerPage + index + 1;
+                                        return `
+                                            <tr>
+                                                <td class="number">${globalIndex}</td>
+                                                <td class="letter">${Array.isArray(m.letter) ? m.letter.join(', ') : m.letter || ''}</td>
+                                                <td class="status">${m.status || ''}</td>
+                                                <td class="lastName">${m.lastName || '-'}</td>
+                                                <td class="firstName">${m.firstName || '-'}</td>
+                                                <td class="fatherName">${m.fatherName || '-'}</td>
+                                                <td class="fatherDeathDate">${m.father_death_date || '-'}</td>
+                                                <td class="motherDeathDate">${m.mother_death_date || '-'}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
                         </div>
                     `).join('')}
                 </body>
@@ -223,7 +264,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                             <div class="date-left">${dayInfo.shabbatDateFormatted || dayInfo.shabbatDate}</div>
                             <div class="shmita-right">
                                 ${info.shmitaStatus || ''}<br/>
-                                ${info.nextBirkatHaChama ? `ברכת החמה הבאה: ${info.nextBirkatHaChama}` : ''}
+                                ${info.nextBirkatHaChama ? `ברכת החמה הבאה: ${info.nextBirkatHaChama}` : ''}<br/>
+                                שנים לבריאת העולם: ${dayInfo.date.getFullYear()}
                             </div>
                             <div class="title">רשימת מתפללים - ${dayInfo.parasha}</div>
                             ${dayInfo.pirkeiAvot ? `<div style="color: #0066cc; font-size: 18px; font-weight: bold; margin-bottom: 5px;">${dayInfo.pirkeiAvot.display}</div>` : ''}

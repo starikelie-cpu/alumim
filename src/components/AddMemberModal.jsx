@@ -299,7 +299,7 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                             option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
                                         }
                                         onChange={(val) => {
-                                            form.setFieldsValue({ lastName: val, firstName: '' });
+                                             form.setFieldsValue({ lastName: val });
                                         }}
                                     />
                                 </Form.Item>
