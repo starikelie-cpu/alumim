@@ -9,7 +9,8 @@ import MembersListModal from './components/MembersListModal';
 import ArchiveListModal from './components/ArchiveListModal';
 import AddNiftarModal from './components/AddNiftarModal';
 import NiftarimListModal from './components/NiftarimListModal';
-
+import LoginModal from './components/LoginModal';
+import UserManagementModal from './components/UserManagementModal';
 
 function App() {
     const [members, setMembers] = useState([]);
@@ -27,7 +28,63 @@ function App() {
     const [isNiftarModalVisible, setIsNiftarModalVisible] = useState(false);
     const [editingNiftar, setEditingNiftar] = useState(null);
 
-    React.useEffect(() => {
+    // Authentication and User Roles state
+    const [token, setToken] = useState(localStorage.getItem('token') || null);
+    const [user, setUser] = useState(null);
+    const [isLoginVisible, setIsLoginVisible] = useState(false);
+    const [isUserMgmtVisible, setIsUserMgmtVisible] = useState(false);
+
+    const getHeaders = (extraHeaders = {}) => {
+        const headers = { ...extraHeaders };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        return headers;
+    };
+
+    useEffect(() => {
+        if (token) {
+            fetch('http://localhost:3000/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.loggedIn) {
+                    setUser(data.user);
+                } else {
+                    localStorage.removeItem('token');
+                    setToken(null);
+                    setUser(null);
+                }
+            })
+            .catch(err => {
+                console.error("Auth check failed:", err);
+            });
+        }
+    }, [token]);
+
+    const handleLoginSuccess = (newToken, loggedInUser) => {
+        localStorage.setItem('token', newToken);
+        setToken(newToken);
+        setUser(loggedInUser);
+    };
+
+    const handleLogout = () => {
+        if (token) {
+            fetch('http://localhost:3000/api/auth/logout', {
+                method: 'POST',
+                headers: getHeaders()
+            }).catch(err => console.error(err));
+        }
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+        message.success('התנתקת בהצלחה');
+    };
+
+    const isAdmin = user && user.role === 'admin';
+
+    useEffect(() => {
         fetch('http://localhost:3000/api/members')
             .then(res => res.json())
             .then(data => setMembers(data))
@@ -44,7 +101,7 @@ function App() {
         if (editingMember) {
             return fetch(`http://localhost:3000/api/members/${editingMember.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(newMember),
             })
                 .then(res => res.json())
@@ -73,7 +130,7 @@ function App() {
                         };
                         fetch('http://localhost:3000/api/archive', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: getHeaders({ 'Content-Type': 'application/json' }),
                             body: JSON.stringify(archivePayload)
                         })
                             .then(res => res.json())
@@ -97,7 +154,7 @@ function App() {
         if (editingArchiveRecord) {
             return fetch(`http://localhost:3000/api/archive/${editingArchiveRecord.archiveId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(newMember),
             })
                 .then(res => res.json())
@@ -117,7 +174,7 @@ function App() {
         // Otherwise, create new member
         return fetch('http://localhost:3000/api/members', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(newMember),
         })
             .then(res => res.json())
@@ -139,7 +196,10 @@ function App() {
     };
 
     const handleDelete = (memberId) => {
-        fetch(`http://localhost:3000/api/members/${memberId}`, { method: 'DELETE' })
+        fetch(`http://localhost:3000/api/members/${memberId}`, { 
+            method: 'DELETE',
+            headers: getHeaders()
+        })
             .then(res => res.json())
             .then(() => {
                 console.log('Member Deleted:', memberId);
@@ -170,7 +230,10 @@ function App() {
     };
 
     const handleArchiveDelete = (archiveId) => {
-        fetch(`http://localhost:3000/api/archive/${archiveId}`, { method: 'DELETE' })
+        fetch(`http://localhost:3000/api/archive/${archiveId}`, { 
+            method: 'DELETE',
+            headers: getHeaders()
+        })
             .then(res => res.json())
             .then(() => {
                 console.log('Archive Record Deleted:', archiveId);
@@ -184,7 +247,7 @@ function App() {
         if (editingNiftar) {
             return fetch(`http://localhost:3000/api/niftarim/${editingNiftar.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(niftarData),
             })
                 .then(res => res.json())
@@ -198,7 +261,7 @@ function App() {
 
         return fetch('http://localhost:3000/api/niftarim', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(niftarData),
         })
             .then(res => res.json())
@@ -215,7 +278,10 @@ function App() {
     };
 
     const handleDeleteNiftar = (niftarId) => {
-        fetch(`http://localhost:3000/api/niftarim/${niftarId}`, { method: 'DELETE' })
+        fetch(`http://localhost:3000/api/niftarim/${niftarId}`, { 
+            method: 'DELETE',
+            headers: getHeaders()
+        })
             .then(res => res.json())
             .then(() => setNiftarim(prev => prev.filter(n => n.id !== niftarId)))
             .catch(err => console.error("Failed to delete niftar:", err));
@@ -244,7 +310,7 @@ function App() {
                 if (Array.isArray(data.members)) {
                     await fetch('http://localhost:3000/api/members/import', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data.members)
                     });
                     setMembers(data.members);
@@ -253,7 +319,7 @@ function App() {
                 if (Array.isArray(data.niftarim)) {
                     await fetch('http://localhost:3000/api/niftarim/import', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data.niftarim)
                     });
                     setNiftarim(data.niftarim);
@@ -262,7 +328,7 @@ function App() {
                 if (Array.isArray(data.archive)) {
                     await fetch('http://localhost:3000/api/archive/import', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data.archive)
                     });
                     successCount++;
@@ -286,7 +352,7 @@ function App() {
                 if (isNiftarim) {
                     const response = await fetch('http://localhost:3000/api/niftarim/import', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data)
                     });
                     if (response.ok) {
@@ -298,7 +364,7 @@ function App() {
                 } else if (isArchive) {
                     const response = await fetch('http://localhost:3000/api/archive/import', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data)
                     });
                     if (response.ok) {
@@ -310,7 +376,7 @@ function App() {
                 } else if (isMembers) {
                     const response = await fetch('http://localhost:3000/api/members/import', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data)
                     });
                     if (response.ok) {
@@ -345,14 +411,43 @@ function App() {
                 fontFamily: 'Assistant, sans-serif',
             },
         }}>
-            <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '14px', color: '#888', fontWeight: 'bold' }}>
-                v{pkg.version}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '12px 24px', borderBottom: '1px solid #e8e8e8', background: '#fafafa', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold' }}>
+                    בית כנסת - ניהול מתפללים v{pkg.version}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    {user ? (
+                        <>
+                            <span style={{ fontSize: '15px' }}>
+                                שלום, <strong>{user.username}</strong> ({user.role === 'admin' ? 'מנהל' : 'צופה'})
+                            </span>
+                            {isAdmin && (
+                                <Button type="default" onClick={() => setIsUserMgmtVisible(true)}>
+                                    ניהול משתמשים
+                                </Button>
+                            )}
+                            <Button type="primary" danger size="small" onClick={handleLogout}>
+                                התנתק
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <span style={{ fontSize: '15px', color: '#666' }}>חיבור: <strong>אורח (צופה בלבד)</strong></span>
+                            <Button type="primary" size="small" onClick={() => setIsLoginVisible(true)}>
+                                התחבר כמנהל
+                            </Button>
+                        </>
+                    )}
+                </div>
             </div>
-            <div style={{ padding: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+
+            <div style={{ padding: '40px 50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
                 <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    <Button type="primary" size="large" onClick={() => setIsModalVisible(true)}>
-                        הוסף מתפלל חדש
-                    </Button>
+                    {isAdmin && (
+                        <Button type="primary" size="large" onClick={() => setIsModalVisible(true)}>
+                            הוסף מתפלל חדש
+                        </Button>
+                    )}
                     <Button size="large" onClick={() => setIsListVisible(true)}>
                         הצג רשימת מתפללים
                     </Button>
@@ -375,8 +470,6 @@ function App() {
                     editingMember={editingMember || editingArchiveRecord}
                     members={members}
                 />
-                {/* Import/Export Handlers */}
-                {/* These functions are defined below */}
 
                 <MembersListModal
                     visible={isListVisible}
@@ -386,6 +479,7 @@ function App() {
                     onDelete={handleDelete}
                     onViewHistory={handleViewHistory}
                     onAddNew={() => setIsModalVisible(true)}
+                    isAdmin={isAdmin}
                 />
 
                 <ArchiveListModal
@@ -395,6 +489,7 @@ function App() {
                     onEdit={handleArchiveEdit}
                     onDelete={handleArchiveDelete}
                     refreshKey={archiveRefreshKey}
+                    isAdmin={isAdmin}
                 />
 
                 <NiftarimListModal
@@ -407,6 +502,7 @@ function App() {
                         setEditingNiftar(null);
                         setIsNiftarModalVisible(true);
                     }}
+                    isAdmin={isAdmin}
                 />
 
                 <AddNiftarModal
@@ -414,6 +510,18 @@ function App() {
                     onCancel={handleNiftarModalCancel}
                     onSave={handleSaveNiftar}
                     editingNiftar={editingNiftar}
+                />
+
+                <LoginModal
+                    visible={isLoginVisible}
+                    onCancel={() => setIsLoginVisible(false)}
+                    onLoginSuccess={handleLoginSuccess}
+                />
+
+                <UserManagementModal
+                    visible={isUserMgmtVisible}
+                    onCancel={() => setIsUserMgmtVisible(false)}
+                    token={token}
                 />
             </div>
         </ConfigProvider>

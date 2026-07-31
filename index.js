@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { HDate, HebrewCalendar, flags } from '@hebcal/core';
 import fs from 'fs/promises';
 import fsSync from 'fs';
+import crypto from 'crypto';
 import {
     connectDB,
     getMembers,
@@ -22,7 +23,12 @@ import {
     addNiftar,
     updateNiftar,
     deleteNiftar,
-    importNiftarim
+    importNiftarim,
+    authenticateUser,
+    getUsers,
+    addUser,
+    updateUser,
+    deleteUser
 } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -110,6 +116,114 @@ async function ensureDataDir() {
 ensureDataDir();
 await connectDB();
 
+// === Active Sessions memory storage ===
+const activeSessions = new Map(); // token -> { username, role }
+
+// === Middleware to require Admin role ===
+function requireAdmin(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.warn(`[AUTH] Unauthorized write attempt: ${req.method} ${req.path} - No Bearer token`);
+        return res.status(401).json({ error: 'Unauthorized. Admin credentials required.' });
+    }
+    const token = authHeader.substring(7);
+    const session = activeSessions.get(token);
+    if (!session || session.role !== 'admin') {
+        console.warn(`[AUTH] Unauthorized write attempt: ${req.method} ${req.path} - Invalid session or not admin`);
+        return res.status(401).json({ error: 'Unauthorized. Admin credentials required.' });
+    }
+    req.currentUser = session;
+    next();
+}
+
+// === Authentication APIs ===
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required' });
+        }
+        const user = await authenticateUser(username, password);
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
+        const token = crypto.randomBytes(32).toString('hex');
+        activeSessions.set(token, user);
+        res.json({ success: true, token, user });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.post('/api/auth/logout', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        activeSessions.delete(token);
+    }
+    res.json({ success: true });
+});
+
+app.get('/api/auth/me', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const session = activeSessions.get(token);
+        if (session) {
+            return res.json({ loggedIn: true, user: session });
+        }
+    }
+    res.json({ loggedIn: false });
+});
+
+// === User Management APIs (Admin Only) ===
+app.get('/api/users', requireAdmin, async (req, res) => {
+    try {
+        const users = await getUsers();
+        res.json(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
+app.post('/api/users', requireAdmin, async (req, res) => {
+    try {
+        const newUser = await addUser(req.body);
+        res.json(newUser);
+    } catch (error) {
+        console.error('Error adding user:', error);
+        res.status(400).json({ error: error.message || 'Failed to add user' });
+    }
+});
+
+app.put('/api/users/:username', requireAdmin, async (req, res) => {
+    try {
+        const updated = await updateUser(req.params.username, req.body);
+        if (!updated) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json(updated);
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ error: 'Failed to update user' });
+    }
+});
+
+app.delete('/api/users/:username', requireAdmin, async (req, res) => {
+    try {
+        const success = await deleteUser(req.params.username);
+        if (!success) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(400).json({ error: error.message || 'Failed to delete user' });
+    }
+});
+
 // Get all members
 app.get('/api/members', async (req, res) => {
     try {
@@ -122,7 +236,7 @@ app.get('/api/members', async (req, res) => {
 });
 
 // Add new member
-app.post('/api/members', async (req, res) => {
+app.post('/api/members', requireAdmin, async (req, res) => {
     try {
         const newMember = { ...req.body, id: Date.now() }; // Add simple ID
         const saved = await addMember(newMember);
@@ -134,7 +248,7 @@ app.post('/api/members', async (req, res) => {
 });
 
 // Update existing member
-app.put('/api/members/:id', async (req, res) => {
+app.put('/api/members/:id', requireAdmin, async (req, res) => {
     try {
         const memberId = parseInt(req.params.id);
         const members = await getMembers();
@@ -213,7 +327,7 @@ app.put('/api/members/:id', async (req, res) => {
 });
 
 // Delete member
-app.delete('/api/members/:id', async (req, res) => {
+app.delete('/api/members/:id', requireAdmin, async (req, res) => {
     try {
         const memberId = parseInt(req.params.id);
         const success = await deleteMember(memberId);
@@ -251,7 +365,7 @@ app.get('/api/archive/:memberId', async (req, res) => {
 });
 
 // Update archive record
-app.put('/api/archive/:archiveId', async (req, res) => {
+app.put('/api/archive/:archiveId', requireAdmin, async (req, res) => {
     try {
         const archiveId = parseInt(req.params.archiveId);
         const updated = await updateArchiveRecord(archiveId, req.body);
@@ -266,7 +380,7 @@ app.put('/api/archive/:archiveId', async (req, res) => {
 });
 
 // Delete archive record
-app.delete('/api/archive/:archiveId', async (req, res) => {
+app.delete('/api/archive/:archiveId', requireAdmin, async (req, res) => {
     try {
         const archiveId = parseInt(req.params.archiveId);
         const success = await deleteArchiveRecord(archiveId);
@@ -281,7 +395,7 @@ app.delete('/api/archive/:archiveId', async (req, res) => {
 });
 
 // Import Members (Restore/Replace)
-app.post('/api/members/import', async (req, res) => {
+app.post('/api/members/import', requireAdmin, async (req, res) => {
     try {
         const newMembers = req.body;
         if (!Array.isArray(newMembers)) {
@@ -296,7 +410,7 @@ app.post('/api/members/import', async (req, res) => {
 });
 
 // Import Archive (Restore/Replace)
-app.post('/api/archive/import', async (req, res) => {
+app.post('/api/archive/import', requireAdmin, async (req, res) => {
     try {
         const newArchive = req.body;
         if (!Array.isArray(newArchive)) {
@@ -324,7 +438,7 @@ app.get('/api/niftarim', async (req, res) => {
 });
 
 // Add new niftar
-app.post('/api/niftarim', async (req, res) => {
+app.post('/api/niftarim', requireAdmin, async (req, res) => {
     try {
         const newNiftar = { ...req.body, id: Date.now() };
         const saved = await addNiftar(newNiftar);
@@ -336,7 +450,7 @@ app.post('/api/niftarim', async (req, res) => {
 });
 
 // Update existing niftar
-app.put('/api/niftarim/:id', async (req, res) => {
+app.put('/api/niftarim/:id', requireAdmin, async (req, res) => {
     try {
         const niftarId = parseInt(req.params.id);
         const updated = await updateNiftar(niftarId, req.body);
@@ -351,7 +465,7 @@ app.put('/api/niftarim/:id', async (req, res) => {
 });
 
 // Delete niftar
-app.delete('/api/niftarim/:id', async (req, res) => {
+app.delete('/api/niftarim/:id', requireAdmin, async (req, res) => {
     try {
         const niftarId = parseInt(req.params.id);
         const success = await deleteNiftar(niftarId);
@@ -366,7 +480,7 @@ app.delete('/api/niftarim/:id', async (req, res) => {
 });
 
 // Import Niftarim (Restore/Replace)
-app.post('/api/niftarim/import', async (req, res) => {
+app.post('/api/niftarim/import', requireAdmin, async (req, res) => {
     try {
         const newNiftarim = req.body;
         if (!Array.isArray(newNiftarim)) {

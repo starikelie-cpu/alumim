@@ -6,7 +6,7 @@ import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 
 
-const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, memberId = null }) => {
+const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, memberId = null, isAdmin }) => {
     const [archiveData, setArchiveData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
@@ -439,7 +439,7 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
             width: 100,
             onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
             onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } }),
-            render: (_, record) => (
+            render: (_, record) => isAdmin ? (
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <Button
                         type="link"
@@ -461,9 +461,9 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                         />
                     </Popconfirm>
                 </div>
-            )
+            ) : null
         }
-    ], [selectedLastName, selectedFirstName, uniqueLastNames, filteredFirstNames, dateSortOrder, onEdit, onDelete]);
+    ], [selectedLastName, selectedFirstName, uniqueLastNames, filteredFirstNames, dateSortOrder, onEdit, onDelete, isAdmin]);
 
     const filteredData = useMemo(() => {
         return archiveData.filter(item => {

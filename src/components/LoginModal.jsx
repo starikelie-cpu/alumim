@@ -1,0 +1,78 @@
+import React, { useState } from 'react';
+import { Modal, Form, Input, Button, message } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
+
+const LoginModal = ({ visible, onCancel, onLoginSuccess }) => {
+    const [loading, setLoading] = useState(false);
+    const [form] = Form.useForm();
+
+    const handleLogin = async (values) => {
+        setLoading(true);
+        try {
+            const response = await fetch('http://localhost:3000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(values)
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'ההתחברות נכשלה');
+            }
+
+            message.success(`ברוך הבא, ${data.user.username}!`);
+            onLoginSuccess(data.token, data.user);
+            form.resetFields();
+            onCancel();
+        } catch (error) {
+            console.error('Login error:', error);
+            message.error(error.message || 'שם משתמש או סיסמה שגויים');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Modal
+            open={visible}
+            title="התחברות מנהל מערכת"
+            okText="התחבר"
+            cancelText="ביטול"
+            onCancel={onCancel}
+            footer={null}
+            destroyOnClose
+            width={400}
+        >
+            <Form
+                form={form}
+                name="login_form"
+                onFinish={handleLogin}
+                layout="vertical"
+            >
+                <Form.Item
+                    name="username"
+                    label="שם משתמש"
+                    rules={[{ required: true, message: 'נא להזין שם משתמש!' }]}
+                >
+                    <Input prefix={<UserOutlined />} placeholder="שם משתמש" size="large" />
+                </Form.Item>
+
+                <Form.Item
+                    name="password"
+                    label="סיסמה"
+                    rules={[{ required: true, message: 'נא להזין סיסמה!' }]}
+                >
+                    <Input.Password prefix={<LockOutlined />} placeholder="סיסמה" size="large" />
+                </Form.Item>
+
+                <Form.Item style={{ marginTop: '24px', marginBottom: 0 }}>
+                    <Button type="primary" htmlType="submit" size="large" block loading={loading}>
+                        התחבר
+                    </Button>
+                </Form.Item>
+            </Form>
+        </Modal>
+    );
+};
+
+export default LoginModal;

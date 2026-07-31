@@ -2,6 +2,7 @@ import { MongoClient } from 'mongodb';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,6 +10,9 @@ const DATA_DIR = process.env.APP_DATA_PATH || path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'members.json');
 const ARCHIVE_FILE = path.join(DATA_DIR, 'archive.json');
 const NIFTARIM_FILE = path.join(DATA_DIR, 'niftarim.json');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+
+const DEFAULT_MONGODB_URI = 'mongodb+srv://Alumim:alumim99@cluster0.i8jyvvd.mongodb.net/?appName=Cluster0';
 
 let useMongoDB = false;
 let client = null;
@@ -32,6 +36,42 @@ async function writeLocalFile(filePath, data) {
     await fs.writeFile(filePath, JSON.stringify(data, null, 2));
 }
 
+export function hashPassword(password) {
+    if (!password) return '';
+    return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+// Initialize default admin user if none exist
+export async function initializeUsers() {
+    const defaultAdmin = {
+        username: 'admin',
+        password: hashPassword('1234'),
+        role: 'admin'
+    };
+
+    if (useMongoDB) {
+        try {
+            const count = await db.collection('users').countDocuments();
+            if (count === 0) {
+                await db.collection('users').insertOne(defaultAdmin);
+                console.log('[DB] Created default admin user in MongoDB.');
+            }
+        } catch (error) {
+            console.error('[DB] Failed to initialize users in MongoDB:', error.message);
+        }
+    } else {
+        try {
+            const users = await readLocalFile(USERS_FILE);
+            if (users.length === 0) {
+                await writeLocalFile(USERS_FILE, [defaultAdmin]);
+                console.log('[DB] Created default admin user in local JSON database.');
+            }
+        } catch (error) {
+            console.error('[DB] Failed to initialize local users:', error.message);
+        }
+    }
+}
+
 export async function connectDB() {
     let mongoUri = process.env.MONGODB_URI;
     if (!mongoUri) {
@@ -46,9 +86,8 @@ export async function connectDB() {
     }
 
     if (!mongoUri) {
-        console.warn('[DB] MONGODB_URI not found. Using local JSON database.');
-        useMongoDB = false;
-        return false;
+        console.log('[DB] MONGODB_URI not found in env/config. Using default remote database: mongodb+srv://Alumim:***@cluster0...');
+        mongoUri = DEFAULT_MONGODB_URI;
     }
 
     try {
@@ -60,10 +99,12 @@ export async function connectDB() {
         await db.command({ ping: 1 });
         useMongoDB = true;
         console.log('[DB] Connected successfully to MongoDB Atlas database: Alumim');
+        await initializeUsers();
         return true;
     } catch (error) {
         console.error('[DB] Failed to connect to MongoDB. Falling back to local JSON database.', error.message);
         useMongoDB = false;
+        await initializeUsers();
         return false;
     }
 }
@@ -71,6 +112,110 @@ export async function connectDB() {
 export function isUsingMongoDB() {
     return useMongoDB;
 }
+
+// === Users API ===
+export async function authenticateUser(username, password) {
+    const hashed = hashPassword(password);
+    if (useMongoDB) {
+        const user = await db.collection('users').findOne({ username: username });
+        if (user && user.password === hashed) {
+            return { username: user.username, role: user.role };
+        }
+    } else {
+        const users = await readLocalFile(USERS_FILE);
+        const user = users.find(u => u.username === username);
+        if (user && user.password === hashed) {
+            return { username: user.username, role: user.role };
+        }
+    }
+    return null;
+}
+
+export async function getUsers() {
+    if (useMongoDB) {
+        return await db.collection('users').find({}, { projection: { password: 0 } }).toArray();
+    } else {
+        const users = await readLocalFile(USERS_FILE);
+        return users.map(u => {
+            const { password, ...rest } = u;
+            return rest;
+        });
+    }
+}
+
+export async function addUser(user) {
+    const doc = {
+        username: user.username,
+        password: hashPassword(user.password),
+        role: user.role || 'viewer'
+    };
+
+    if (useMongoDB) {
+        const existing = await db.collection('users').findOne({ username: doc.username });
+        if (existing) throw new Error('User already exists');
+        
+        await db.collection('users').insertOne(doc);
+        delete doc.password;
+        delete doc._id;
+        return doc;
+    } else {
+        const users = await readLocalFile(USERS_FILE);
+        const existing = users.some(u => u.username === doc.username);
+        if (existing) throw new Error('User already exists');
+        
+        users.push(doc);
+        await writeLocalFile(USERS_FILE, users);
+        delete doc.password;
+        return doc;
+    }
+}
+
+export async function updateUser(username, userData) {
+    const updateDoc = {};
+    if (userData.role) updateDoc.role = userData.role;
+    if (userData.password) updateDoc.password = hashPassword(userData.password);
+
+    if (useMongoDB) {
+        const result = await db.collection('users').findOneAndUpdate(
+            { username: username },
+            { $set: updateDoc },
+            { returnDocument: 'after', projection: { password: 0 } }
+        );
+        const updated = result && result.value ? result.value : result;
+        if (updated && updated._id) delete updated._id;
+        return updated;
+    } else {
+        const users = await readLocalFile(USERS_FILE);
+        const index = users.findIndex(u => u.username === username);
+        if (index === -1) return null;
+        
+        users[index] = { ...users[index], ...updateDoc };
+        await writeLocalFile(USERS_FILE, users);
+        
+        const { password, ...rest } = users[index];
+        return rest;
+    }
+}
+
+export async function deleteUser(username) {
+    if (username === 'admin') {
+        throw new Error('Cannot delete primary admin user');
+    }
+    
+    if (useMongoDB) {
+        const result = await db.collection('users').deleteOne({ username: username });
+        return result.deletedCount > 0;
+    } else {
+        const users = await readLocalFile(USERS_FILE);
+        const index = users.findIndex(u => u.username === username);
+        if (index === -1) return false;
+        
+        users.splice(index, 1);
+        await writeLocalFile(USERS_FILE, users);
+        return true;
+    }
+}
+
 
 // === Members API ===
 export async function getMembers() {

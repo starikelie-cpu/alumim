@@ -5,7 +5,7 @@ import { getDaysSinceAliyah, getYahrzeitIfInCurrentWeek, getYahrzeitIfWithin30Da
 import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 
-const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew }) => {
+const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin }) => {
     const [searchText, setSearchText] = useState('');
     const [daysLimit, setDaysLimit] = useState(localStorage.getItem('printDaysLimit') || '');
     const [timeAlefLimit, setTimeAlefLimit] = useState(localStorage.getItem('printTimeAlefLimit') || '');
@@ -588,31 +588,35 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         title="היסטוריית שינויים"
                         style={{ color: '#1890ff' }}
                     />
-                    <Button
-                        type="link"
-                        icon={<EditOutlined />}
-                        onClick={() => onEdit(record)}
-                        title="עריכה"
-                        style={{ padding: '4px' }}
-                    />
-                    <Popconfirm
-                        title="האם למחוק מתפלל זה?"
-                        onConfirm={() => onDelete(record.id)}
-                        okText="כן"
-                        cancelText="לא"
-                    >
+                    {isAdmin && (
                         <Button
                             type="link"
-                            danger
-                            icon={<DeleteOutlined />}
-                            title="מחיקה"
+                            icon={<EditOutlined />}
+                            onClick={() => onEdit(record)}
+                            title="עריכה"
                             style={{ padding: '4px' }}
                         />
-                    </Popconfirm>
+                    )}
+                    {isAdmin && (
+                        <Popconfirm
+                            title="האם למחוק מתפלל זה?"
+                            onConfirm={() => onDelete(record.id)}
+                            okText="כן"
+                            cancelText="לא"
+                        >
+                            <Button
+                                type="link"
+                                danger
+                                icon={<DeleteOutlined />}
+                                title="מחיקה"
+                                style={{ padding: '4px' }}
+                            />
+                        </Popconfirm>
+                    )}
                 </div>
             ),
         }
-    ], [onViewHistory, onEdit, onDelete]);
+    ], [onViewHistory, onEdit, onDelete, isAdmin]);
 
     return (
         <Modal
@@ -631,17 +635,19 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                     }}>רשימת מתפללים</span>
                     {/* Buttons on the left (opposite side in RTL) */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
-                        <Button
-                            onClick={onAddNew}
-                            style={{
-                                background: '#e6f7ff',
-                                color: '#003a8c',
-                                borderColor: '#91d5ff',
-                                fontWeight: 'bold'
-                            }}
-                        >
-                            הוספת מתפלל
-                        </Button>
+                        {isAdmin && (
+                            <Button
+                                onClick={onAddNew}
+                                style={{
+                                    background: '#e6f7ff',
+                                    color: '#003a8c',
+                                    borderColor: '#91d5ff',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                הוספת מתפלל
+                            </Button>
+                        )}
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',

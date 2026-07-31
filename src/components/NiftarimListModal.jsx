@@ -3,7 +3,7 @@ import { Modal, Table, Button, Popconfirm, Input, Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined, SearchOutlined, PrinterOutlined, DownloadOutlined, UploadOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 
-const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAddNew }) => {
+const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAddNew, isAdmin }) => {
     const [searchText, setSearchText] = useState('');
     // Safety: ensure niftarim is always an array
     const safeNiftarim = Array.isArray(niftarim) ? niftarim : [];
@@ -147,7 +147,7 @@ const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAd
             key: 'actions',
             width: 90,
             onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            render: (_, record) => (
+            render: (_, record) => isAdmin ? (
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                     <Button
                         type="link"
@@ -169,7 +169,7 @@ const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAd
                         />
                     </Popconfirm>
                 </div>
-            ),
+            ) : null,
         },
     ];
 
@@ -188,17 +188,19 @@ const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAd
                         pointerEvents: 'none'
                     }}>רשימת נפטרים</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
-                        <Button
-                            onClick={onAddNew}
-                            style={{
-                                background: '#e6f7ff',
-                                color: '#003a8c',
-                                borderColor: '#91d5ff',
-                                fontWeight: 'bold'
-                            }}
-                        >
-                            הוספת נפטר
-                        </Button>
+                        {isAdmin && (
+                            <Button
+                                onClick={onAddNew}
+                                style={{
+                                    background: '#e6f7ff',
+                                    color: '#003a8c',
+                                    borderColor: '#91d5ff',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                הוספת נפטר
+                            </Button>
+                        )}
                         <Button
                             type="primary"
                             icon={<PrinterOutlined />}
