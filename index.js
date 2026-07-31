@@ -1,9 +1,29 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { HDate, HebrewCalendar, flags } from '@hebcal/core';
 import fs from 'fs/promises';
 import fsSync from 'fs';
+import {
+    connectDB,
+    getMembers,
+    addMember,
+    updateMember,
+    deleteMember,
+    importMembers,
+    getArchive,
+    getArchiveForMember,
+    addArchiveRecord,
+    updateArchiveRecord,
+    deleteArchiveRecord,
+    importArchive,
+    getNiftarim,
+    addNiftar,
+    updateNiftar,
+    deleteNiftar,
+    importNiftarim
+} from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -88,42 +108,25 @@ async function ensureDataDir() {
     }
 }
 ensureDataDir();
+await connectDB();
 
 // Get all members
 app.get('/api/members', async (req, res) => {
     try {
-        const data = await fs.readFile(DATA_FILE, 'utf8');
-        res.json(JSON.parse(data));
+        const members = await getMembers();
+        res.json(members);
     } catch (error) {
-        if (error.code === 'ENOENT') {
-            res.json([]);
-        } else {
-            console.error('Error reading members:', error);
-            res.status(500).json({ error: 'Failed to read members' });
-        }
+        console.error('Error reading members:', error);
+        res.status(500).json({ error: 'Failed to read members' });
     }
 });
 
 // Add new member
 app.post('/api/members', async (req, res) => {
     try {
-        let members = [];
-        try {
-            const data = await fs.readFile(DATA_FILE, 'utf8');
-            members = JSON.parse(data);
-        } catch (error) {
-            if (error.code !== 'ENOENT') throw error;
-        }
-
         const newMember = { ...req.body, id: Date.now() }; // Add simple ID
-        members.push(newMember);
-
-        await fs.writeFile(DATA_FILE, JSON.stringify(members, null, 2));
-
-        // Archive creation removed as per user request (only updates should be archived)
-
-
-        res.json(newMember);
+        const saved = await addMember(newMember);
+        res.json(saved);
     } catch (error) {
         console.error('Error saving member:', error);
         res.status(500).json({ error: 'Failed to save member' });
@@ -133,50 +136,16 @@ app.post('/api/members', async (req, res) => {
 // Update existing member
 app.put('/api/members/:id', async (req, res) => {
     try {
-        const data = await fs.readFile(DATA_FILE, 'utf8');
-        let members = JSON.parse(data);
-
         const memberId = parseInt(req.params.id);
-        const memberIndex = members.findIndex(m => m.id === memberId);
+        const members = await getMembers();
+        const oldMember = members.find(m => m.id === memberId);
 
-        if (memberIndex === -1) {
+        if (!oldMember) {
             return res.status(404).json({ error: 'Member not found' });
         }
 
-        const oldMember = members[memberIndex];
-
-        // Update member while preserving ID
         const updatedMember = { ...req.body, id: memberId };
-        members[memberIndex] = updatedMember;
-
-        await fs.writeFile(DATA_FILE, JSON.stringify(members, null, 2));
-
-        // Archive the change ONLY if aliyah_date changed and is not empty
-        if (updatedMember.aliyah_date && oldMember.aliyah_date !== updatedMember.aliyah_date) {
-            try {
-                console.log('Archiving change for member:', memberId);
-                let archives = [];
-                try {
-                    const archiveData = await fs.readFile(ARCHIVE_FILE, 'utf8');
-                    archives = JSON.parse(archiveData);
-                } catch (error) {
-                    if (error.code !== 'ENOENT') throw error;
-                    console.log('Archive file not found, creating new one.');
-                }
-                archives.push({
-                    ...updatedMember,
-                    memberId: memberId,
-                    changeDate: new Date().toISOString(),
-                    archiveId: Date.now()
-                });
-                await fs.writeFile(ARCHIVE_FILE, JSON.stringify(archives, null, 2));
-                console.log('Successfully archived change.');
-            } catch (archiveError) {
-                console.error('Failed to archive member update:', archiveError);
-            }
-        }
-
-        // If letter field was set to "נפ", automatically add to niftarim archive
+        
         const letterVal = updatedMember.letter;
         const isNiftar = Array.isArray(letterVal)
             ? letterVal.includes('נפ')
@@ -185,15 +154,7 @@ app.put('/api/members/:id', async (req, res) => {
         if (isNiftar) {
             try {
                 console.log('Member marked as נפ - adding to niftarim archive:', memberId);
-                let niftarim = [];
-                try {
-                    const niftarimData = await fs.readFile(NIFTARIM_FILE, 'utf8');
-                    niftarim = JSON.parse(niftarimData);
-                } catch (err) {
-                    if (err.code !== 'ENOENT') throw err;
-                }
-
-                // Check if this member is already in the niftarim list (by originalMemberId)
+                const niftarim = await getNiftarim();
                 const alreadyExists = niftarim.some(n => n.originalMemberId === memberId);
                 if (!alreadyExists) {
                     const niftarRecord = {
@@ -211,19 +172,36 @@ app.put('/api/members/:id', async (req, res) => {
                         notes: updatedMember.notes || '',
                         addedFromMember: new Date().toISOString()
                     };
-                    niftarim.push(niftarRecord);
-                    await fs.writeFile(NIFTARIM_FILE, JSON.stringify(niftarim, null, 2));
+                    await addNiftar(niftarRecord);
                     console.log('Successfully added to niftarim archive.');
 
                     // Remove from active members list
-                    members.splice(memberIndex, 1);
-                    await fs.writeFile(DATA_FILE, JSON.stringify(members, null, 2));
+                    await deleteMember(memberId);
                     console.log('Successfully removed member from active members list.');
                 } else {
                     console.log('Member already exists in niftarim archive, skipping.');
                 }
             } catch (niftarError) {
                 console.error('Failed to add member to niftarim archive:', niftarError);
+            }
+        } else {
+            await updateMember(memberId, updatedMember);
+        }
+
+        // Archive the change ONLY if aliyah_date changed and is not empty
+        if (updatedMember.aliyah_date && oldMember.aliyah_date !== updatedMember.aliyah_date) {
+            try {
+                console.log('Archiving change for member:', memberId);
+                const archivePayload = {
+                    ...updatedMember,
+                    memberId: memberId,
+                    changeDate: new Date().toISOString(),
+                    archiveId: Date.now()
+                };
+                await addArchiveRecord(archivePayload);
+                console.log('Successfully archived change.');
+            } catch (archiveError) {
+                console.error('Failed to archive member update:', archiveError);
             }
         }
 
@@ -237,19 +215,11 @@ app.put('/api/members/:id', async (req, res) => {
 // Delete member
 app.delete('/api/members/:id', async (req, res) => {
     try {
-        const data = await fs.readFile(DATA_FILE, 'utf8');
-        let members = JSON.parse(data);
-
         const memberId = parseInt(req.params.id);
-        const memberIndex = members.findIndex(m => m.id === memberId);
-
-        if (memberIndex === -1) {
+        const success = await deleteMember(memberId);
+        if (!success) {
             return res.status(404).json({ error: 'Member not found' });
         }
-
-        members.splice(memberIndex, 1);
-
-        await fs.writeFile(DATA_FILE, JSON.stringify(members, null, 2));
         res.json({ success: true, id: memberId });
     } catch (error) {
         console.error('Error deleting member:', error);
@@ -260,52 +230,35 @@ app.delete('/api/members/:id', async (req, res) => {
 // Get archive list
 app.get('/api/archive', async (req, res) => {
     try {
-        const data = await fs.readFile(ARCHIVE_FILE, 'utf8');
-        res.json(JSON.parse(data));
+        const archives = await getArchive();
+        res.json(archives);
     } catch (error) {
-        if (error.code === 'ENOENT') {
-            res.json([]);
-        } else {
-            console.error('Error reading archive:', error);
-            res.status(500).json({ error: 'Failed to read archive' });
-        }
+        console.error('Error reading archive:', error);
+        res.status(500).json({ error: 'Failed to read archive' });
     }
 });
 
 // Get archive for specific member
 app.get('/api/archive/:memberId', async (req, res) => {
     try {
-        const data = await fs.readFile(ARCHIVE_FILE, 'utf8');
-        const archives = JSON.parse(data);
         const memberId = parseInt(req.params.memberId);
-        const memberHistory = archives.filter(a => a.memberId === memberId);
+        const memberHistory = await getArchiveForMember(memberId);
         res.json(memberHistory);
     } catch (error) {
-        if (error.code === 'ENOENT') {
-            res.json([]);
-        } else {
-            console.error('Error reading archive for member:', error);
-            res.status(500).json({ error: 'Failed to read member history' });
-        }
+        console.error('Error reading archive for member:', error);
+        res.status(500).json({ error: 'Failed to read member history' });
     }
 });
 
 // Update archive record
 app.put('/api/archive/:archiveId', async (req, res) => {
     try {
-        const data = await fs.readFile(ARCHIVE_FILE, 'utf8');
-        let archives = JSON.parse(data);
         const archiveId = parseInt(req.params.archiveId);
-        const index = archives.findIndex(a => a.archiveId === archiveId);
-
-        if (index === -1) {
+        const updated = await updateArchiveRecord(archiveId, req.body);
+        if (!updated) {
             return res.status(404).json({ error: 'Archive record not found' });
         }
-
-        // Update preserving original IDs and other fields
-        archives[index] = { ...archives[index], ...req.body, archiveId: archiveId };
-        await fs.writeFile(ARCHIVE_FILE, JSON.stringify(archives, null, 2));
-        res.json(archives[index]);
+        res.json(updated);
     } catch (error) {
         console.error('Error updating archive:', error);
         res.status(500).json({ error: 'Failed to update archive record' });
@@ -315,17 +268,11 @@ app.put('/api/archive/:archiveId', async (req, res) => {
 // Delete archive record
 app.delete('/api/archive/:archiveId', async (req, res) => {
     try {
-        const data = await fs.readFile(ARCHIVE_FILE, 'utf8');
-        let archives = JSON.parse(data);
         const archiveId = parseInt(req.params.archiveId);
-        const index = archives.findIndex(a => a.archiveId === archiveId);
-
-        if (index === -1) {
+        const success = await deleteArchiveRecord(archiveId);
+        if (!success) {
             return res.status(404).json({ error: 'Archive record not found' });
         }
-
-        archives.splice(index, 1);
-        await fs.writeFile(ARCHIVE_FILE, JSON.stringify(archives, null, 2));
         res.json({ success: true });
     } catch (error) {
         console.error('Error deleting archive:', error);
@@ -340,10 +287,7 @@ app.post('/api/members/import', async (req, res) => {
         if (!Array.isArray(newMembers)) {
             return res.status(400).json({ error: 'Invalid data format. Expected an array of members.' });
         }
-
-        // Backup current before replacing? (Optional, skipping for now as per plan)
-
-        await fs.writeFile(DATA_FILE, JSON.stringify(newMembers, null, 2));
+        await importMembers(newMembers);
         res.json({ success: true, count: newMembers.length });
     } catch (error) {
         console.error('Error importing members:', error);
@@ -358,8 +302,7 @@ app.post('/api/archive/import', async (req, res) => {
         if (!Array.isArray(newArchive)) {
             return res.status(400).json({ error: 'Invalid data format. Expected an array of archive records.' });
         }
-
-        await fs.writeFile(ARCHIVE_FILE, JSON.stringify(newArchive, null, 2));
+        await importArchive(newArchive);
         res.json({ success: true, count: newArchive.length });
     } catch (error) {
         console.error('Error importing archive:', error);
@@ -372,32 +315,20 @@ app.post('/api/archive/import', async (req, res) => {
 // Get all niftarim
 app.get('/api/niftarim', async (req, res) => {
     try {
-        const data = await fs.readFile(NIFTARIM_FILE, 'utf8');
-        res.json(JSON.parse(data));
+        const niftarim = await getNiftarim();
+        res.json(niftarim);
     } catch (error) {
-        if (error.code === 'ENOENT') {
-            res.json([]);
-        } else {
-            console.error('Error reading niftarim:', error);
-            res.status(500).json({ error: 'Failed to read niftarim' });
-        }
+        console.error('Error reading niftarim:', error);
+        res.status(500).json({ error: 'Failed to read niftarim' });
     }
 });
 
 // Add new niftar
 app.post('/api/niftarim', async (req, res) => {
     try {
-        let niftarim = [];
-        try {
-            const data = await fs.readFile(NIFTARIM_FILE, 'utf8');
-            niftarim = JSON.parse(data);
-        } catch (error) {
-            if (error.code !== 'ENOENT') throw error;
-        }
         const newNiftar = { ...req.body, id: Date.now() };
-        niftarim.push(newNiftar);
-        await fs.writeFile(NIFTARIM_FILE, JSON.stringify(niftarim, null, 2));
-        res.json(newNiftar);
+        const saved = await addNiftar(newNiftar);
+        res.json(saved);
     } catch (error) {
         console.error('Error saving niftar:', error);
         res.status(500).json({ error: 'Failed to save niftar' });
@@ -407,16 +338,12 @@ app.post('/api/niftarim', async (req, res) => {
 // Update existing niftar
 app.put('/api/niftarim/:id', async (req, res) => {
     try {
-        const data = await fs.readFile(NIFTARIM_FILE, 'utf8');
-        let niftarim = JSON.parse(data);
         const niftarId = parseInt(req.params.id);
-        const index = niftarim.findIndex(n => n.id === niftarId);
-        if (index === -1) {
+        const updated = await updateNiftar(niftarId, req.body);
+        if (!updated) {
             return res.status(404).json({ error: 'Niftar not found' });
         }
-        niftarim[index] = { ...req.body, id: niftarId };
-        await fs.writeFile(NIFTARIM_FILE, JSON.stringify(niftarim, null, 2));
-        res.json(niftarim[index]);
+        res.json(updated);
     } catch (error) {
         console.error('Error updating niftar:', error);
         res.status(500).json({ error: 'Failed to update niftar' });
@@ -426,15 +353,11 @@ app.put('/api/niftarim/:id', async (req, res) => {
 // Delete niftar
 app.delete('/api/niftarim/:id', async (req, res) => {
     try {
-        const data = await fs.readFile(NIFTARIM_FILE, 'utf8');
-        let niftarim = JSON.parse(data);
         const niftarId = parseInt(req.params.id);
-        const index = niftarim.findIndex(n => n.id === niftarId);
-        if (index === -1) {
+        const success = await deleteNiftar(niftarId);
+        if (!success) {
             return res.status(404).json({ error: 'Niftar not found' });
         }
-        niftarim.splice(index, 1);
-        await fs.writeFile(NIFTARIM_FILE, JSON.stringify(niftarim, null, 2));
         res.json({ success: true, id: niftarId });
     } catch (error) {
         console.error('Error deleting niftar:', error);
@@ -449,7 +372,7 @@ app.post('/api/niftarim/import', async (req, res) => {
         if (!Array.isArray(newNiftarim)) {
             return res.status(400).json({ error: 'Invalid data format. Expected an array.' });
         }
-        await fs.writeFile(NIFTARIM_FILE, JSON.stringify(newNiftarim, null, 2));
+        await importNiftarim(newNiftarim);
         res.json({ success: true, count: newNiftarim.length });
     } catch (error) {
         console.error('Error importing niftarim:', error);

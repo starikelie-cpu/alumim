@@ -6,3 +6,4 @@ data/
 *.exe
 *.log
 .DS_Store
+.env
