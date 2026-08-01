@@ -15,6 +15,20 @@ function log(msg) {
     fs.appendFileSync(logPath, entry);
 }
 
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+    app.quit();
+    process.exit(0);
+}
+
+app.on('second-instance', (event, commandLine, workingDirectory) => {
+    log('Second instance detected, focusing main window...');
+    if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+    }
+});
+
 log('Application starting...');
 log(`isPackaged: ${app.isPackaged}`);
 
@@ -87,7 +101,15 @@ function startServer() {
                 NODE_ENV: 'production',
                 APP_DATA_PATH: userDataPath
             },
-            stdio: 'inherit'
+            stdio: 'pipe'
+        });
+
+        serverProcess.stdout.on('data', (data) => {
+            log(`[SERVER-OUT] ${data.toString().trim()}`);
+        });
+
+        serverProcess.stderr.on('data', (data) => {
+            log(`[SERVER-ERR] ${data.toString().trim()}`);
         });
 
         serverProcess.on('spawn', () => {

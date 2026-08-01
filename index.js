@@ -62,6 +62,14 @@ function log(msg) {
     }
 }
 
+process.on('uncaughtException', (err) => {
+    log(`CRITICAL UNCAUGHT EXCEPTION: ${err.message}\n${err.stack}`);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    log(`CRITICAL UNHANDLED REJECTION: ${reason}`);
+});
+
 log('Server starting...');
 log(`__dirname: ${__dirname}`);
 log(`Port: ${port}`);
