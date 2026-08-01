@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Modal, Table, Button, Popconfirm, Input, Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined, SearchOutlined, PrinterOutlined, DownloadOutlined, UploadOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
+import { API_BASE } from '../config';
 
 const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAddNew, isAdmin }) => {
     const [searchText, setSearchText] = useState('');
@@ -240,7 +241,7 @@ const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAd
                                 const { json } = result;
                                 if (confirm(`האם אתה בטוח שברצונך לייבא ${json.length} נפטרים? פעולה זו תחליף את הרשימה הקיימת!`)) {
                                     try {
-                                        const response = await fetch('http://localhost:3000/api/niftarim/import', {
+                                        const response = await fetch(`${API_BASE}/api/niftarim/import`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify(json)

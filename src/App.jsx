@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
-import { Button, ConfigProvider, theme, message } from 'antd';
+import { Button, ConfigProvider, theme, message, Modal } from 'antd';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
 import pkg from '../package.json';
@@ -11,6 +11,7 @@ import AddNiftarModal from './components/AddNiftarModal';
 import NiftarimListModal from './components/NiftarimListModal';
 import LoginModal from './components/LoginModal';
 import UserManagementModal from './components/UserManagementModal';
+import { API_BASE } from './config';
 
 function App() {
     const [members, setMembers] = useState([]);
@@ -34,6 +35,11 @@ function App() {
     const [isLoginVisible, setIsLoginVisible] = useState(false);
     const [isUserMgmtVisible, setIsUserMgmtVisible] = useState(false);
 
+    // Database connection status state
+    const [dbStatus, setDbStatus] = useState({ useMongoDB: false, error: null, mongoUri: '' });
+    const [isDbStatusModalVisible, setIsDbStatusModalVisible] = useState(false);
+    const [serverLogs, setServerLogs] = useState('');
+
     const getHeaders = (extraHeaders = {}) => {
         const headers = { ...extraHeaders };
         if (token) {
@@ -44,7 +50,7 @@ function App() {
 
     useEffect(() => {
         if (token) {
-            fetch('http://localhost:3000/api/auth/me', {
+            fetch(`${API_BASE}/api/auth/me`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
             .then(res => res.json())
@@ -71,7 +77,7 @@ function App() {
 
     const handleLogout = () => {
         if (token) {
-            fetch('http://localhost:3000/api/auth/logout', {
+            fetch(`${API_BASE}/api/auth/logout`, {
                 method: 'POST',
                 headers: getHeaders()
             }).catch(err => console.error(err));
@@ -84,22 +90,38 @@ function App() {
 
     const isAdmin = user && user.role === 'admin';
 
+    const fetchDbStatus = () => {
+        fetch(`${API_BASE}/api/db-status`)
+            .then(res => res.json())
+            .then(data => setDbStatus(data))
+            .catch(err => console.error("Failed to fetch DB status:", err));
+    };
+
+    const fetchLogs = () => {
+        fetch(`${API_BASE}/api/logs`)
+            .then(res => res.text())
+            .then(data => setServerLogs(data))
+            .catch(err => console.error("Failed to fetch logs:", err));
+    };
+
     useEffect(() => {
-        fetch('http://localhost:3000/api/members')
+        fetch(`${API_BASE}/api/members`)
             .then(res => res.json())
             .then(data => setMembers(data))
             .catch(err => console.error("Failed to fetch members:", err));
 
-        fetch('http://localhost:3000/api/niftarim')
+        fetch(`${API_BASE}/api/niftarim`)
             .then(res => res.json())
             .then(data => setNiftarim(Array.isArray(data) ? data : []))
             .catch(err => console.error("Failed to fetch niftarim:", err));
+
+        fetchDbStatus();
     }, []);
 
     const handleSave = (newMember) => {
         // If editing, update existing member
         if (editingMember) {
-            return fetch(`http://localhost:3000/api/members/${editingMember.id}`, {
+            return fetch(`${API_BASE}/api/members/${editingMember.id}`, {
                 method: 'PUT',
                 headers: getHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(newMember),
@@ -116,7 +138,7 @@ function App() {
                     if (isNiftar) {
                         setMembers(prev => prev.filter(m => m.id !== updatedMember.id));
                         // Refresh niftarim list
-                        fetch('http://localhost:3000/api/niftarim')
+                        fetch(`${API_BASE}/api/niftarim`)
                             .then(res => res.json())
                             .then(data => setNiftarim(Array.isArray(data) ? data : []))
                             .catch(err => console.error('Failed to refresh niftarim:', err));
@@ -128,7 +150,7 @@ function App() {
                             changeDate: new Date().toISOString(),
                             parasha: getParashaForDate(updatedMember.aliyah_date)
                         };
-                        fetch('http://localhost:3000/api/archive', {
+                        fetch(`${API_BASE}/api/archive`, {
                             method: 'POST',
                             headers: getHeaders({ 'Content-Type': 'application/json' }),
                             body: JSON.stringify(archivePayload)
@@ -152,7 +174,7 @@ function App() {
         }
 
         if (editingArchiveRecord) {
-            return fetch(`http://localhost:3000/api/archive/${editingArchiveRecord.archiveId}`, {
+            return fetch(`${API_BASE}/api/archive/${editingArchiveRecord.archiveId}`, {
                 method: 'PUT',
                 headers: getHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(newMember),
@@ -172,7 +194,7 @@ function App() {
         }
 
         // Otherwise, create new member
-        return fetch('http://localhost:3000/api/members', {
+        return fetch(`${API_BASE}/api/members`, {
             method: 'POST',
             headers: getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(newMember),
@@ -196,7 +218,7 @@ function App() {
     };
 
     const handleDelete = (memberId) => {
-        fetch(`http://localhost:3000/api/members/${memberId}`, { 
+        fetch(`${API_BASE}/api/members/${memberId}`, { 
             method: 'DELETE',
             headers: getHeaders()
         })
@@ -230,7 +252,7 @@ function App() {
     };
 
     const handleArchiveDelete = (archiveId) => {
-        fetch(`http://localhost:3000/api/archive/${archiveId}`, { 
+        fetch(`${API_BASE}/api/archive/${archiveId}`, { 
             method: 'DELETE',
             headers: getHeaders()
         })
@@ -245,7 +267,7 @@ function App() {
     // -------- Niftarim handlers --------
     const handleSaveNiftar = (niftarData) => {
         if (editingNiftar) {
-            return fetch(`http://localhost:3000/api/niftarim/${editingNiftar.id}`, {
+            return fetch(`${API_BASE}/api/niftarim/${editingNiftar.id}`, {
                 method: 'PUT',
                 headers: getHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(niftarData),
@@ -259,7 +281,7 @@ function App() {
                 });
         }
 
-        return fetch('http://localhost:3000/api/niftarim', {
+        return fetch(`${API_BASE}/api/niftarim`, {
             method: 'POST',
             headers: getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(niftarData),
@@ -278,7 +300,7 @@ function App() {
     };
 
     const handleDeleteNiftar = (niftarId) => {
-        fetch(`http://localhost:3000/api/niftarim/${niftarId}`, { 
+        fetch(`${API_BASE}/api/niftarim/${niftarId}`, { 
             method: 'DELETE',
             headers: getHeaders()
         })
@@ -308,7 +330,7 @@ function App() {
             if (data && !Array.isArray(data) && (data.members || data.niftarim)) {
                 let successCount = 0;
                 if (Array.isArray(data.members)) {
-                    await fetch('http://localhost:3000/api/members/import', {
+                    await fetch(`${API_BASE}/api/members/import`, {
                         method: 'POST',
                         headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data.members)
@@ -317,7 +339,7 @@ function App() {
                     successCount++;
                 }
                 if (Array.isArray(data.niftarim)) {
-                    await fetch('http://localhost:3000/api/niftarim/import', {
+                    await fetch(`${API_BASE}/api/niftarim/import`, {
                         method: 'POST',
                         headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data.niftarim)
@@ -326,7 +348,7 @@ function App() {
                     successCount++;
                 }
                 if (Array.isArray(data.archive)) {
-                    await fetch('http://localhost:3000/api/archive/import', {
+                    await fetch(`${API_BASE}/api/archive/import`, {
                         method: 'POST',
                         headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data.archive)
@@ -350,7 +372,7 @@ function App() {
                 const isMembers = fileName.includes('members') || 'firstName' in firstItem || 'lastName' in firstItem || 'status' in firstItem;
 
                 if (isNiftarim) {
-                    const response = await fetch('http://localhost:3000/api/niftarim/import', {
+                    const response = await fetch(`${API_BASE}/api/niftarim/import`, {
                         method: 'POST',
                         headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data)
@@ -362,7 +384,7 @@ function App() {
                         throw new Error('שגיאה בשמירה לשרת');
                     }
                 } else if (isArchive) {
-                    const response = await fetch('http://localhost:3000/api/archive/import', {
+                    const response = await fetch(`${API_BASE}/api/archive/import`, {
                         method: 'POST',
                         headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data)
@@ -374,7 +396,7 @@ function App() {
                         throw new Error('שגיאה בשמירה לשרת');
                     }
                 } else if (isMembers) {
-                    const response = await fetch('http://localhost:3000/api/members/import', {
+                    const response = await fetch(`${API_BASE}/api/members/import`, {
                         method: 'POST',
                         headers: getHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(data)
@@ -412,8 +434,41 @@ function App() {
             },
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '12px 24px', borderBottom: '1px solid #e8e8e8', background: '#fafafa', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold' }}>
-                    בית כנסת - ניהול מתפללים v{pkg.version}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold' }}>
+                        בית כנסת - ניהול מתפללים v{pkg.version}
+                    </div>
+                    <div 
+                        onClick={() => {
+                            fetchDbStatus();
+                            fetchLogs();
+                            setIsDbStatusModalVisible(true);
+                        }}
+                        title="לחץ להצגת פרטי החיבור והלוגים"
+                        style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '6px', 
+                            fontSize: '12px', 
+                            cursor: 'pointer',
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            background: dbStatus.useMongoDB ? '#e6f7ff' : '#fff2e8',
+                            border: `1px solid ${dbStatus.useMongoDB ? '#91d5ff' : '#ffbb96'}`,
+                            color: dbStatus.useMongoDB ? '#0050b3' : '#ad2102',
+                            fontWeight: 'bold',
+                            userSelect: 'none'
+                        }}
+                    >
+                        <span style={{ 
+                            width: '8px', 
+                            height: '8px', 
+                            borderRadius: '50%', 
+                            background: dbStatus.useMongoDB ? '#52c41a' : '#f5222d',
+                            display: 'inline-block'
+                        }} />
+                        {dbStatus.useMongoDB ? 'מחובר לענן' : 'עבודה מקומית'}
+                    </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     {user ? (
@@ -523,6 +578,61 @@ function App() {
                     onCancel={() => setIsUserMgmtVisible(false)}
                     token={token}
                 />
+
+                <Modal
+                    title="סטטוס חיבור לבסיס הנתונים ולוגים"
+                    open={isDbStatusModalVisible}
+                    onCancel={() => setIsDbStatusModalVisible(false)}
+                    footer={[
+                        <Button key="refresh" onClick={() => { fetchDbStatus(); fetchLogs(); }}>רענן</Button>,
+                        <Button key="close" type="primary" onClick={() => setIsDbStatusModalVisible(false)}>סגור</Button>
+                    ]}
+                    width={800}
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', direction: 'rtl', marginTop: '16px' }}>
+                        <div>
+                            <strong>סוג בסיס הנתונים בשימוש: </strong>
+                            <span style={{ 
+                                fontWeight: 'bold', 
+                                color: dbStatus.useMongoDB ? '#52c41a' : '#f5222d' 
+                            }}>
+                                {dbStatus.useMongoDB ? 'MongoDB Atlas (ענן)' : 'מקומי (קבצי JSON)'}
+                            </span>
+                        </div>
+                        <div>
+                            <strong>כתובת שרת הענן: </strong>
+                            <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px', wordBreak: 'break-all', direction: 'ltr', display: 'inline-block' }}>
+                                {dbStatus.mongoUri || 'לא מוגדרת'}
+                            </code>
+                        </div>
+                        {dbStatus.error && (
+                            <div style={{ color: '#f5222d', background: '#fff1f0', border: '1px solid #ffa39e', padding: '12px', borderRadius: '4px' }}>
+                                <strong>שגיאת החיבור לענן שדווחה: </strong>
+                                <pre style={{ margin: '8px 0 0 0', whiteSpace: 'pre-wrap', fontSize: '12px', direction: 'ltr', textAlign: 'left' }}>
+                                    {dbStatus.error}
+                                </pre>
+                            </div>
+                        )}
+                        <div>
+                            <strong>לוגים של השרת האחרונים (app.log):</strong>
+                            <pre style={{ 
+                                background: '#1e1e1e', 
+                                color: '#d4d4d4', 
+                                padding: '12px', 
+                                borderRadius: '4px', 
+                                maxHeight: '300px', 
+                                overflowY: 'auto',
+                                direction: 'ltr',
+                                textAlign: 'left',
+                                fontSize: '11px',
+                                fontFamily: 'monospace',
+                                marginTop: '6px'
+                            }}>
+                                {serverLogs || 'אין לוגים זמינים כעת.'}
+                            </pre>
+                        </div>
+                    </div>
+                </Modal>
             </div>
         </ConfigProvider>
     );

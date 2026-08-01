@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Form, Input, Button, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { API_BASE } from '../config';
 
 const LoginModal = ({ visible, onCancel, onLoginSuccess }) => {
     const [loading, setLoading] = useState(false);
@@ -9,7 +10,7 @@ const LoginModal = ({ visible, onCancel, onLoginSuccess }) => {
     const handleLogin = async (values) => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:3000/api/auth/login', {
+            const response = await fetch(`${API_BASE}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(values)

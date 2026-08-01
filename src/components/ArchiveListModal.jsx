@@ -4,6 +4,7 @@ import { SearchOutlined, HistoryOutlined, EditOutlined, DeleteOutlined, PrinterO
 import { parseHebrewDate, getHebrewMonthNumber, yearToGematria, translateParashaName, formatHebrewDateToTextual, getShmitaYearStatus, getUpcomingShabbatInfo, getDaysSinceAliyah, getAbsDate } from '../utils/hebrewDateUtils';
 import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
+import { API_BASE } from '../config';
 
 
 const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, memberId = null, isAdmin }) => {
@@ -27,8 +28,8 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
             // Add timestamp to prevent caching
             const timestamp = new Date().getTime();
             const url = memberId
-                ? `http://localhost:3000/api/archive/${memberId}?t=${timestamp}`
-                : `http://localhost:3000/api/archive?t=${timestamp}`;
+                ? `${API_BASE}/api/archive/${memberId}?t=${timestamp}`
+                : `${API_BASE}/api/archive?t=${timestamp}`;
             const response = await fetch(url);
             const data = await response.json();
             // Pre-calculate absolute dates and sorting values
@@ -586,7 +587,7 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                             const { json } = result;
                             if (confirm(`האם אתה בטוח שברצונך לייבא ${json.length} רשומות ארכיון? פעולה זו תחליף את הארכיון הקיים!`)) {
                                 try {
-                                    const response = await fetch('http://localhost:3000/api/archive/import', {
+                                    const response = await fetch(`${API_BASE}/api/archive/import`, {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify(json)

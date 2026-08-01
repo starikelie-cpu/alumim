@@ -28,14 +28,27 @@ import {
     getUsers,
     addUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    getConnectionStatus
 } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
+
+// CORS Middleware to allow requests from the frontend (Vite/Electron)
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 
 // Logging setup for production debugging
 const logPath = process.env.APP_DATA_PATH ? path.join(path.dirname(process.env.APP_DATA_PATH), 'app.log') : null;
@@ -175,6 +188,24 @@ app.get('/api/auth/me', (req, res) => {
         }
     }
     res.json({ loggedIn: false });
+});
+
+// === Database Status and Logs APIs ===
+app.get('/api/db-status', (req, res) => {
+    res.json(getConnectionStatus());
+});
+
+app.get('/api/logs', async (req, res) => {
+    try {
+        if (logPath && fsSync.existsSync(logPath)) {
+            const logs = await fs.readFile(logPath, 'utf8');
+            res.send(logs);
+        } else {
+            res.send('קובץ הלוג לא נמצא במערכת.');
+        }
+    } catch (error) {
+        res.status(500).send('שגיאה בקריאת הלוגים: ' + error.message);
+    }
 });
 
 // === User Management APIs (Admin Only) ===
@@ -494,16 +525,19 @@ app.post('/api/niftarim/import', requireAdmin, async (req, res) => {
     }
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+const staticPath = fsSync.existsSync(path.join(__dirname, 'dist')) 
+    ? path.join(__dirname, 'dist') 
+    : path.join(__dirname, 'public');
+
+app.use(express.static(staticPath));
 
 // Fallback to index.html for SPA - Use app.use at the end to catch all remaining GET requests
 app.use((req, res) => {
-    const indexPath = path.join(__dirname, 'public', 'index.html');
-
-    // Log if file exists - but only for GET requests to avoid catching failed POSTs etc.
     if (req.method !== 'GET') {
         return res.status(404).send('Not Found');
     }
+
+    const indexPath = path.join(staticPath, 'index.html');
 
     if (!fsSync.existsSync(indexPath)) {
         log(`CRITICAL: index.html not found at ${indexPath}`);

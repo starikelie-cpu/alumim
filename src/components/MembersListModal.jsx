@@ -4,6 +4,7 @@ import { EditOutlined, DeleteOutlined, SearchOutlined, HistoryOutlined, PrinterO
 import { getDaysSinceAliyah, getYahrzeitIfInCurrentWeek, getYahrzeitIfWithin30Days, getUpcomingShabbatInfo, parseHebrewDate, getHebrewMonthNumber, getShmitaYearStatus, getAbsDate } from '../utils/hebrewDateUtils';
 import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
+import { API_BASE } from '../config';
 
 const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin }) => {
     const [searchText, setSearchText] = useState('');
@@ -154,7 +155,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
             // Fetch archive to find the absolutely latest aliyah_date for each member
             let archiveRecords = [];
             try {
-                const archRes = await fetch('http://localhost:3000/api/archive');
+                const archRes = await fetch(`${API_BASE}/api/archive`);
                 archiveRecords = await archRes.json();
             } catch (e) {
                 console.error("Failed to fetch archive for print sync:", e);
@@ -765,7 +766,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 const { json } = result;
                                 if (confirm(`האם אתה בטוח שברצונך לייבא ${json.length} מתפללים? פעולה זו תחליף את הרשימה הקיימת!`)) {
                                     try {
-                                        const response = await fetch('http://localhost:3000/api/members/import', {
+                                        const response = await fetch(`${API_BASE}/api/members/import`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify(json)

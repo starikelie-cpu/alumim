@@ -4,6 +4,7 @@ import { HDate } from '@hebcal/core';
 import { CalendarOutlined, SearchOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { HebrewCalendarComponent } from './HebrewCalendarComponent';
 import { formatHebrewDateToNumeric, formatHebrewDateToTextual, calculateAliyahInfo, getHebrewMonthNumber, gematriaToNum } from '../utils/hebrewDateUtils';
+import { API_BASE } from '../config';
 
 const { Option } = Select;
 
@@ -21,7 +22,7 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
     const [parashot, setParashot] = useState([]);
 
     React.useEffect(() => {
-        fetch('http://localhost:3000/api/parshot')
+        fetch(`${API_BASE}/api/parshot`)
             .then(res => res.json())
             .then(data => setParashot(data))
             .catch(err => console.error("Failed to fetch parashot:", err));

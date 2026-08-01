@@ -1,5 +1,6 @@
 import { MongoClient } from 'mongodb';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
@@ -12,11 +13,32 @@ const ARCHIVE_FILE = path.join(DATA_DIR, 'archive.json');
 const NIFTARIM_FILE = path.join(DATA_DIR, 'niftarim.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
+const logPath = process.env.APP_DATA_PATH ? path.join(path.dirname(process.env.APP_DATA_PATH), 'app.log') : null;
+function log(msg) {
+    const entry = `[${new Date().toISOString()}] [DB] ${msg}\n`;
+    console.log(entry.trim());
+    if (logPath) {
+        try {
+            fsSync.appendFileSync(logPath, entry);
+        } catch (e) { }
+    }
+}
+
 const DEFAULT_MONGODB_URI = 'mongodb+srv://Alumim:alumim99@cluster0.i8jyvvd.mongodb.net/?appName=Cluster0';
 
 let useMongoDB = false;
 let client = null;
 let db = null;
+let lastConnectionError = null;
+let currentMongoUri = '';
+
+export function getConnectionStatus() {
+    return {
+        useMongoDB,
+        error: lastConnectionError ? lastConnectionError.message : null,
+        mongoUri: currentMongoUri ? currentMongoUri.replace(/:([^@]+)@/, ':****@') : ''
+    };
+}
 
 // Helpers to read/write local files
 async function readLocalFile(filePath) {
@@ -54,20 +76,20 @@ export async function initializeUsers() {
             const count = await db.collection('users').countDocuments();
             if (count === 0) {
                 await db.collection('users').insertOne(defaultAdmin);
-                console.log('[DB] Created default admin user in MongoDB.');
+                log('Created default admin user in MongoDB.');
             }
         } catch (error) {
-            console.error('[DB] Failed to initialize users in MongoDB:', error.message);
+            log(`Failed to initialize users in MongoDB: ${error.message}`);
         }
     } else {
         try {
             const users = await readLocalFile(USERS_FILE);
             if (users.length === 0) {
                 await writeLocalFile(USERS_FILE, [defaultAdmin]);
-                console.log('[DB] Created default admin user in local JSON database.');
+                log('Created default admin user in local JSON database.');
             }
         } catch (error) {
-            console.error('[DB] Failed to initialize local users:', error.message);
+            log(`Failed to initialize local users: ${error.message}`);
         }
     }
 }
@@ -86,24 +108,27 @@ export async function connectDB() {
     }
 
     if (!mongoUri) {
-        console.log('[DB] MONGODB_URI not found in env/config. Using default remote database: mongodb+srv://Alumim:***@cluster0...');
+        log('MONGODB_URI not found in env/config. Using default remote database: mongodb+srv://Alumim:***@cluster0...');
         mongoUri = DEFAULT_MONGODB_URI;
     }
+    currentMongoUri = mongoUri;
 
     try {
-        console.log('[DB] Connecting to MongoDB Atlas...');
+        log('Connecting to MongoDB Atlas...');
         client = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 5000 });
         await client.connect();
         db = client.db('Alumim');
         // Ping database to confirm connection
         await db.command({ ping: 1 });
         useMongoDB = true;
-        console.log('[DB] Connected successfully to MongoDB Atlas database: Alumim');
+        lastConnectionError = null;
+        log('Connected successfully to MongoDB Atlas database: Alumim');
         await initializeUsers();
         return true;
     } catch (error) {
-        console.error('[DB] Failed to connect to MongoDB. Falling back to local JSON database.', error.message);
+        log(`Failed to connect to MongoDB. Falling back to local JSON database. Error: ${error.message}`);
         useMongoDB = false;
+        lastConnectionError = error;
         await initializeUsers();
         return false;
     }

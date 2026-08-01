@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Table, Button, Form, Input, Select, Popconfirm, Space, message, Tag } from 'antd';
 import { PlusOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
+import { API_BASE } from '../config';
 
 const UserManagementModal = ({ visible, onCancel, token }) => {
     const [users, setUsers] = useState([]);
@@ -16,7 +17,7 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:3000/api/users', {
+            const response = await fetch(`${API_BASE}/api/users`, {
                 headers: fetchHeaders
             });
             if (!response.ok) throw new Error('Failed to fetch users');
@@ -38,7 +39,7 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
 
     const handleCreateUser = async (values) => {
         try {
-            const response = await fetch('http://localhost:3000/api/users', {
+            const response = await fetch(`${API_BASE}/api/users`, {
                 method: 'POST',
                 headers: fetchHeaders,
                 body: JSON.stringify(values)
@@ -58,7 +59,7 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
 
     const handleDeleteUser = async (username) => {
         try {
-            const response = await fetch(`http://localhost:3000/api/users/${username}`, {
+            const response = await fetch(`${API_BASE}/api/users/${username}`, {
                 method: 'DELETE',
                 headers: fetchHeaders
             });
@@ -83,7 +84,7 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
         }
 
         try {
-            const response = await fetch(`http://localhost:3000/api/users/${username}`, {
+            const response = await fetch(`${API_BASE}/api/users/${username}`, {
                 method: 'PUT',
                 headers: fetchHeaders,
                 body: JSON.stringify({ password: newPassword })
@@ -98,7 +99,7 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
 
     const handleChangeRole = async (username, newRole) => {
         try {
-            const response = await fetch(`http://localhost:3000/api/users/${username}`, {
+            const response = await fetch(`${API_BASE}/api/users/${username}`, {
                 method: 'PUT',
                 headers: fetchHeaders,
                 body: JSON.stringify({ role: newRole })
