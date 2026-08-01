@@ -426,6 +426,26 @@ function App() {
         message.success('Data exported successfully');
     };
 
+    const dbStatusText = dbStatus.isConnecting 
+        ? 'מתחבר לענן...' 
+        : (dbStatus.useMongoDB ? 'מחובר לענן' : 'עבודה מקומית');
+
+    const dbStatusColor = dbStatus.isConnecting
+        ? '#1890ff' 
+        : (dbStatus.useMongoDB ? '#52c41a' : '#f5222d'); 
+
+    const dbStatusBg = dbStatus.isConnecting
+        ? '#e6f7ff'
+        : (dbStatus.useMongoDB ? '#f6ffed' : '#fff2e8');
+
+    const dbStatusBorder = dbStatus.isConnecting
+        ? '#91d5ff'
+        : (dbStatus.useMongoDB ? '#b7eb8f' : '#ffbb96');
+
+    const dbStatusTextColor = dbStatus.isConnecting
+        ? '#0050b3'
+        : (dbStatus.useMongoDB ? '#389e0d' : '#ad2102');
+
     return (
         <ConfigProvider locale={heIL} direction="rtl" theme={{
             algorithm: theme.defaultAlgorithm,
@@ -453,9 +473,9 @@ function App() {
                             cursor: 'pointer',
                             padding: '3px 8px',
                             borderRadius: '4px',
-                            background: dbStatus.useMongoDB ? '#e6f7ff' : '#fff2e8',
-                            border: `1px solid ${dbStatus.useMongoDB ? '#91d5ff' : '#ffbb96'}`,
-                            color: dbStatus.useMongoDB ? '#0050b3' : '#ad2102',
+                            background: dbStatusBg,
+                            border: `1px solid ${dbStatusBorder}`,
+                            color: dbStatusTextColor,
                             fontWeight: 'bold',
                             userSelect: 'none'
                         }}
@@ -464,10 +484,10 @@ function App() {
                             width: '8px', 
                             height: '8px', 
                             borderRadius: '50%', 
-                            background: dbStatus.useMongoDB ? '#52c41a' : '#f5222d',
+                            background: dbStatusColor,
                             display: 'inline-block'
                         }} />
-                        {dbStatus.useMongoDB ? 'מחובר לענן' : 'עבודה מקומית'}
+                        {dbStatusText}
                     </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -594,9 +614,11 @@ function App() {
                             <strong>סוג בסיס הנתונים בשימוש: </strong>
                             <span style={{ 
                                 fontWeight: 'bold', 
-                                color: dbStatus.useMongoDB ? '#52c41a' : '#f5222d' 
+                                color: dbStatusColor 
                             }}>
-                                {dbStatus.useMongoDB ? 'MongoDB Atlas (ענן)' : 'מקומי (קבצי JSON)'}
+                                {dbStatus.isConnecting 
+                                    ? 'מתחבר ל-MongoDB Atlas (ענן)...' 
+                                    : (dbStatus.useMongoDB ? 'MongoDB Atlas (ענן)' : 'מקומי (קבצי JSON)')}
                             </span>
                         </div>
                         <div>

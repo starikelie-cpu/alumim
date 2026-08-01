@@ -135,7 +135,8 @@ async function ensureDataDir() {
     }
 }
 ensureDataDir();
-await connectDB();
+// Start database connection in the background so it doesn't block server startup
+connectDB().catch(err => log(`Error in connectDB: ${err.message}`));
 
 // === Active Sessions memory storage ===
 const activeSessions = new Map(); // token -> { username, role }

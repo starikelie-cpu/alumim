@@ -31,10 +31,12 @@ let client = null;
 let db = null;
 let lastConnectionError = null;
 let currentMongoUri = '';
+let isConnecting = false;
 
 export function getConnectionStatus() {
     return {
         useMongoDB,
+        isConnecting,
         error: lastConnectionError ? lastConnectionError.message : null,
         mongoUri: currentMongoUri ? currentMongoUri.replace(/:([^@]+)@/, ':****@') : ''
     };
@@ -95,6 +97,7 @@ export async function initializeUsers() {
 }
 
 export async function connectDB() {
+    isConnecting = true;
     let mongoUri = process.env.MONGODB_URI;
     if (!mongoUri) {
         try {
@@ -131,6 +134,8 @@ export async function connectDB() {
         lastConnectionError = error;
         await initializeUsers();
         return false;
+    } finally {
+        isConnecting = false;
     }
 }
 
