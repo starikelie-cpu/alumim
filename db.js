@@ -118,7 +118,12 @@ export async function connectDB() {
 
     try {
         log('Connecting to MongoDB Atlas...');
-        client = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 5000 });
+        client = new MongoClient(mongoUri, { 
+            serverSelectionTimeoutMS: 8000,
+            connectTimeoutMS: 10000,
+            tls: true,
+            tlsAllowInvalidCertificates: true
+        });
         await client.connect();
         db = client.db('Alumim');
         // Ping database to confirm connection
