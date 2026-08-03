@@ -24,7 +24,8 @@ function log(msg) {
     }
 }
 
-const DEFAULT_MONGODB_URI = 'mongodb+srv://Alumim:alumim99@cluster0.i8jyvvd.mongodb.net/?appName=Cluster0';
+const DIRECT_SEEDLIST_URI = 'mongodb://Alumim:alumim99@ac-4k3phjs-shard-00-00.i8jyvvd.mongodb.net:27017,ac-4k3phjs-shard-00-01.i8jyvvd.mongodb.net:27017,ac-4k3phjs-shard-00-02.i8jyvvd.mongodb.net:27017/Alumim?ssl=true&replicaSet=atlas-ala4zb-shard-0&authSource=admin';
+const DEFAULT_MONGODB_URI = DIRECT_SEEDLIST_URI;
 
 let useMongoDB = false;
 let client = null;
@@ -126,7 +127,7 @@ export async function connectDB() {
     }
 
     if (!mongoUri) {
-        log('MONGODB_URI not found in env/config. Using default remote database: mongodb+srv://Alumim:***@cluster0...');
+        log('MONGODB_URI not found in env/config. Using default remote direct seedlist database...');
         mongoUri = DEFAULT_MONGODB_URI;
         try {
             const configPath = path.join(DATA_DIR, 'db_config.json');
@@ -154,6 +155,29 @@ export async function connectDB() {
         await initializeUsers();
         return true;
     } catch (error) {
+        log(`Primary connection attempt failed: ${error.message}. Retrying with direct seedlist URI...`);
+        if (mongoUri !== DIRECT_SEEDLIST_URI) {
+            try {
+                mongoUri = DIRECT_SEEDLIST_URI;
+                currentMongoUri = mongoUri;
+                client = new MongoClient(mongoUri, {
+                    serverSelectionTimeoutMS: 8000,
+                    connectTimeoutMS: 10000,
+                    tls: true,
+                    tlsAllowInvalidCertificates: true
+                });
+                await client.connect();
+                db = client.db('Alumim');
+                await db.command({ ping: 1 });
+                useMongoDB = true;
+                lastConnectionError = null;
+                log('Connected successfully to MongoDB Atlas via Direct Seedlist URI!');
+                await initializeUsers();
+                return true;
+            } catch (fallbackErr) {
+                error = fallbackErr;
+            }
+        }
         log(`Failed to connect to MongoDB. Falling back to local JSON database. Error: ${error.message}`);
         useMongoDB = false;
         lastConnectionError = error;
