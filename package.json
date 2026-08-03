@@ -21,7 +21,7 @@
         "preview": "vite preview",
         "start": "electron .",
         "dist": "npm run build && electron-builder && npm run postdist",
-        "postdist": "node -e \"const fs = require('fs'); const version = require('./package.json').version; fs.copyFileSync('build-output/Nihul Beit Cnecet Setup ' + version + '.exe', 'dist/Nihul Beit Cnecet Setup ' + version + '.exe')\""
+        "postdist": "node -e \"const fs = require('fs'); const version = require('./package.json').version; fs.copyFileSync('build-output/Nihul Beit Cnecet Setup ' + version + '.exe', 'dist/Nihul Beit Cnecet Setup ' + version + '.exe'); fs.copyFileSync('build-output/Nihul Beit Cnecet Setup ' + version + '.exe', './Nihul Beit Cnecet Setup ' + version + '.exe')\""
     },
     "dependencies": {
         "@hebcal/core": "^6.0.8",
