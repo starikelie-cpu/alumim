@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
-import { Button, ConfigProvider, theme, message, Modal } from 'antd';
+import { Button, ConfigProvider, theme, message, Modal, Input } from 'antd';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
 import pkg from '../package.json';
@@ -39,6 +39,8 @@ function App() {
     const [dbStatus, setDbStatus] = useState({ useMongoDB: false, error: null, mongoUri: '' });
     const [isDbStatusModalVisible, setIsDbStatusModalVisible] = useState(false);
     const [serverLogs, setServerLogs] = useState('');
+    const [customUriInput, setCustomUriInput] = useState('');
+    const [isConnectingDb, setIsConnectingDb] = useState(false);
 
     const getHeaders = (extraHeaders = {}) => {
         const headers = { ...extraHeaders };
@@ -93,8 +95,54 @@ function App() {
     const fetchDbStatus = () => {
         fetch(`${API_BASE}/api/db-status`)
             .then(res => res.json())
-            .then(data => setDbStatus(data))
+            .then(data => {
+                setDbStatus(data);
+                if (data.rawMongoUri && !customUriInput) {
+                    setCustomUriInput(data.rawMongoUri);
+                }
+            })
             .catch(err => console.error("Failed to fetch DB status:", err));
+    };
+
+    const handleReconnect = () => {
+        setIsConnectingDb(true);
+        fetch(`${API_BASE}/api/db-reconnect`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                setDbStatus(data.status);
+                fetchLogs();
+                if (data.success) {
+                    message.success('התחבר בהצלחה לבסיס הנתונים בענן!');
+                } else {
+                    message.error('התחברות לענן נכשלה. נבדקו הלוגים המעודכנים.');
+                }
+            })
+            .catch(err => message.error('שגיאה בחיבור: ' + err.message))
+            .finally(() => setIsConnectingDb(false));
+    };
+
+    const handleSaveUri = () => {
+        if (!customUriInput) {
+            return message.error('נא להזין מחרוזת חיבור תקינה');
+        }
+        setIsConnectingDb(true);
+        fetch(`${API_BASE}/api/db-config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mongoUri: customUriInput })
+        })
+            .then(res => res.json())
+            .then(data => {
+                setDbStatus(data.status);
+                fetchLogs();
+                if (data.success) {
+                    message.success('הגדרת הכתובת נשמרה והתחברה לענן בהצלחה!');
+                } else {
+                    message.warning('הכתובת נשמרה אך החיבור לענן נכשל. הוחזר למצב מקומי.');
+                }
+            })
+            .catch(err => message.error('שגיאה בשמירת הגדרת הענן: ' + err.message))
+            .finally(() => setIsConnectingDb(false));
     };
 
     const fetchLogs = () => {
@@ -604,6 +652,7 @@ function App() {
                     open={isDbStatusModalVisible}
                     onCancel={() => setIsDbStatusModalVisible(false)}
                     footer={[
+                        <Button key="reconnect" loading={isConnectingDb} onClick={handleReconnect}>ניסיון חיבור מחדש</Button>,
                         <Button key="refresh" onClick={() => { fetchDbStatus(); fetchLogs(); }}>רענן</Button>,
                         <Button key="close" type="primary" onClick={() => setIsDbStatusModalVisible(false)}>סגור</Button>
                     ]}
@@ -616,17 +665,33 @@ function App() {
                                 fontWeight: 'bold', 
                                 color: dbStatusColor 
                             }}>
-                                {dbStatus.isConnecting 
+                                {dbStatus.isConnecting || isConnectingDb
                                     ? 'מתחבר ל-MongoDB Atlas (ענן)...' 
                                     : (dbStatus.useMongoDB ? 'MongoDB Atlas (ענן)' : 'מקומי (קבצי JSON)')}
                             </span>
                         </div>
                         <div>
-                            <strong>כתובת שרת הענן: </strong>
+                            <strong>כתובת שרת הענן הנוכחית: </strong>
                             <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px', wordBreak: 'break-all', direction: 'ltr', display: 'inline-block' }}>
                                 {dbStatus.mongoUri || 'לא מוגדרת'}
                             </code>
                         </div>
+
+                        <div style={{ background: '#fafafa', padding: '12px', borderRadius: '6px', border: '1px solid #f0f0f0' }}>
+                            <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>עריכת/הגדרת מחרוזת החיבור לענן (MONGODB_URI):</div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <Input 
+                                    value={customUriInput} 
+                                    onChange={(e) => setCustomUriInput(e.target.value)} 
+                                    placeholder="mongodb+srv://user:pass@cluster..."
+                                    style={{ direction: 'ltr', textAlign: 'left' }}
+                                />
+                                <Button type="primary" loading={isConnectingDb} onClick={handleSaveUri}>
+                                    שמור וחבר
+                                </Button>
+                            </div>
+                        </div>
+
                         {dbStatus.error && (
                             <div style={{ color: '#f5222d', background: '#fff1f0', border: '1px solid #ffa39e', padding: '12px', borderRadius: '4px' }}>
                                 <strong>שגיאת החיבור לענן שדווחה: </strong>

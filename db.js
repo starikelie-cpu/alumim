@@ -30,16 +30,31 @@ let useMongoDB = false;
 let client = null;
 let db = null;
 let lastConnectionError = null;
-let currentMongoUri = '';
+let currentMongoUri = DEFAULT_MONGODB_URI;
 let isConnecting = false;
 
 export function getConnectionStatus() {
+    const rawUri = currentMongoUri || DEFAULT_MONGODB_URI;
     return {
         useMongoDB,
         isConnecting,
         error: lastConnectionError ? lastConnectionError.message : null,
-        mongoUri: currentMongoUri ? currentMongoUri.replace(/:([^@]+)@/, ':****@') : ''
+        mongoUri: rawUri.replace(/:([^@]+)@/, ':****@'),
+        rawMongoUri: rawUri
     };
+}
+
+export async function saveMongoConfig(newUri) {
+    if (client) {
+        try { await client.close(); } catch (e) {}
+        client = null;
+    }
+    const configPath = path.join(DATA_DIR, 'db_config.json');
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    await fs.writeFile(configPath, JSON.stringify({ MONGODB_URI: newUri }, null, 2));
+    process.env.MONGODB_URI = newUri;
+    currentMongoUri = newUri;
+    return await connectDB();
 }
 
 // Helpers to read/write local files
@@ -113,6 +128,11 @@ export async function connectDB() {
     if (!mongoUri) {
         log('MONGODB_URI not found in env/config. Using default remote database: mongodb+srv://Alumim:***@cluster0...');
         mongoUri = DEFAULT_MONGODB_URI;
+        try {
+            const configPath = path.join(DATA_DIR, 'db_config.json');
+            await fs.mkdir(DATA_DIR, { recursive: true });
+            await fs.writeFile(configPath, JSON.stringify({ MONGODB_URI: DEFAULT_MONGODB_URI }, null, 2));
+        } catch (e) {}
     }
     currentMongoUri = mongoUri;
 

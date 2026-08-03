@@ -29,7 +29,8 @@ import {
     addUser,
     updateUser,
     deleteUser,
-    getConnectionStatus
+    getConnectionStatus,
+    saveMongoConfig
 } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -202,6 +203,26 @@ app.get('/api/auth/me', (req, res) => {
 // === Database Status and Logs APIs ===
 app.get('/api/db-status', (req, res) => {
     res.json(getConnectionStatus());
+});
+
+app.post('/api/db-config', async (req, res) => {
+    try {
+        const { mongoUri } = req.body;
+        if (!mongoUri) return res.status(400).json({ error: 'MongoDB URI is required' });
+        const success = await saveMongoConfig(mongoUri);
+        res.json({ success, status: getConnectionStatus() });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/db-reconnect', async (req, res) => {
+    try {
+        const success = await connectDB();
+        res.json({ success, status: getConnectionStatus() });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.get('/api/logs', async (req, res) => {
