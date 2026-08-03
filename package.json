@@ -10,7 +10,7 @@
             "node18-win-x64"
         ]
     },
-    "version": "1.3.4",
+    "version": "1.3.6",
     "description": "Synagogue Management Application",
     "author": "Synagogue Management Team",
     "main": "electron.cjs",
@@ -62,7 +62,8 @@
             "index.js",
             "electron.cjs",
             "package.json",
-            "data/**/*"
+            "data/**/*",
+            ".env"
         ],
         "win": {
             "target": "nsis",

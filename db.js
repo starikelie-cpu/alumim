@@ -24,8 +24,12 @@ function log(msg) {
     }
 }
 
+const PRIMARY_MONGODB_URI = 'mongodb+srv://Alumim:alumim99@cluster0.i8jyvvd.mongodb.net/?appName=Cluster0';
 const DIRECT_SEEDLIST_URI = 'mongodb://Alumim:alumim99@ac-4k3phjs-shard-00-00.i8jyvvd.mongodb.net:27017,ac-4k3phjs-shard-00-01.i8jyvvd.mongodb.net:27017,ac-4k3phjs-shard-00-02.i8jyvvd.mongodb.net:27017/Alumim?ssl=true&replicaSet=atlas-ala4zb-shard-0&authSource=admin';
-const DEFAULT_MONGODB_URI = DIRECT_SEEDLIST_URI;
+const DIRECT_SHARD0_URI = 'mongodb://Alumim:alumim99@ac-4k3phjs-shard-00-00.i8jyvvd.mongodb.net:27017/Alumim?ssl=true&authSource=admin&directConnection=true';
+const DIRECT_SHARD1_URI = 'mongodb://Alumim:alumim99@ac-4k3phjs-shard-00-01.i8jyvvd.mongodb.net:27017/Alumim?ssl=true&authSource=admin&directConnection=true';
+const DIRECT_SHARD2_URI = 'mongodb://Alumim:alumim99@ac-4k3phjs-shard-00-02.i8jyvvd.mongodb.net:27017/Alumim?ssl=true&authSource=admin&directConnection=true';
+const DEFAULT_MONGODB_URI = PRIMARY_MONGODB_URI;
 
 let useMongoDB = false;
 let client = null;
@@ -33,6 +37,7 @@ let db = null;
 let lastConnectionError = null;
 let currentMongoUri = DEFAULT_MONGODB_URI;
 let isConnecting = false;
+let autoReconnectTimer = null;
 
 export function getConnectionStatus() {
     const rawUri = currentMongoUri || DEFAULT_MONGODB_URI;
@@ -114,78 +119,92 @@ export async function initializeUsers() {
 
 export async function connectDB() {
     isConnecting = true;
-    let mongoUri = process.env.MONGODB_URI;
-    if (!mongoUri) {
-        try {
-            const configPath = path.join(DATA_DIR, 'db_config.json');
-            const configData = await fs.readFile(configPath, 'utf8');
-            const config = JSON.parse(configData);
-            mongoUri = config.MONGODB_URI;
-        } catch (e) {
-            // config file doesn't exist
-        }
-    }
-
-    if (!mongoUri) {
-        log('MONGODB_URI not found in env/config. Using default remote direct seedlist database...');
-        mongoUri = DEFAULT_MONGODB_URI;
-        try {
-            const configPath = path.join(DATA_DIR, 'db_config.json');
-            await fs.mkdir(DATA_DIR, { recursive: true });
-            await fs.writeFile(configPath, JSON.stringify({ MONGODB_URI: DEFAULT_MONGODB_URI }, null, 2));
-        } catch (e) {}
-    }
-    currentMongoUri = mongoUri;
-
+    let savedUri = null;
     try {
-        log('Connecting to MongoDB Atlas...');
-        client = new MongoClient(mongoUri, { 
-            serverSelectionTimeoutMS: 8000,
-            connectTimeoutMS: 10000,
-            tls: true,
-            tlsAllowInvalidCertificates: true
-        });
-        await client.connect();
-        db = client.db('Alumim');
-        // Ping database to confirm connection
-        await db.command({ ping: 1 });
-        useMongoDB = true;
-        lastConnectionError = null;
-        log('Connected successfully to MongoDB Atlas database: Alumim');
-        await initializeUsers();
-        return true;
-    } catch (error) {
-        log(`Primary connection attempt failed: ${error.message}. Retrying with direct seedlist URI...`);
-        if (mongoUri !== DIRECT_SEEDLIST_URI) {
-            try {
-                mongoUri = DIRECT_SEEDLIST_URI;
-                currentMongoUri = mongoUri;
-                client = new MongoClient(mongoUri, {
-                    serverSelectionTimeoutMS: 8000,
-                    connectTimeoutMS: 10000,
-                    tls: true,
-                    tlsAllowInvalidCertificates: true
-                });
-                await client.connect();
-                db = client.db('Alumim');
-                await db.command({ ping: 1 });
-                useMongoDB = true;
-                lastConnectionError = null;
-                log('Connected successfully to MongoDB Atlas via Direct Seedlist URI!');
-                await initializeUsers();
-                return true;
-            } catch (fallbackErr) {
-                error = fallbackErr;
-            }
-        }
-        log(`Failed to connect to MongoDB. Falling back to local JSON database. Error: ${error.message}`);
-        useMongoDB = false;
-        lastConnectionError = error;
-        await initializeUsers();
-        return false;
-    } finally {
-        isConnecting = false;
+        const configPath = path.join(DATA_DIR, 'db_config.json');
+        const configData = await fs.readFile(configPath, 'utf8');
+        const config = JSON.parse(configData);
+        savedUri = config.MONGODB_URI;
+    } catch (e) {
+        // config file doesn't exist
     }
+
+    const envUri = process.env.MONGODB_URI;
+
+    // Build ordered list of candidate URIs to try
+    const candidates = [];
+    if (envUri && !candidates.includes(envUri)) candidates.push(envUri);
+    if (savedUri && !candidates.includes(savedUri)) candidates.push(savedUri);
+    if (!candidates.includes(PRIMARY_MONGODB_URI)) candidates.push(PRIMARY_MONGODB_URI);
+    if (!candidates.includes(DIRECT_SEEDLIST_URI)) candidates.push(DIRECT_SEEDLIST_URI);
+    if (!candidates.includes(DIRECT_SHARD0_URI)) candidates.push(DIRECT_SHARD0_URI);
+    if (!candidates.includes(DIRECT_SHARD1_URI)) candidates.push(DIRECT_SHARD1_URI);
+    if (!candidates.includes(DIRECT_SHARD2_URI)) candidates.push(DIRECT_SHARD2_URI);
+
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+    const mongoOptions = { 
+        serverSelectionTimeoutMS: 8000,
+        connectTimeoutMS: 10000,
+        tls: true,
+        tlsAllowInvalidCertificates: true,
+        tlsAllowInvalidHostnames: true
+    };
+
+    let lastErr = null;
+
+    for (const uri of candidates) {
+        try {
+            log(`Attempting connection to MongoDB Atlas with URI: ${uri.replace(/:([^@]+)@/, ':****@')}`);
+            if (client) {
+                try { await client.close(); } catch (e) {}
+                client = null;
+            }
+            client = new MongoClient(uri, mongoOptions);
+            await client.connect();
+            db = client.db('Alumim');
+            await db.command({ ping: 1 });
+            useMongoDB = true;
+            lastConnectionError = null;
+            currentMongoUri = uri;
+            process.env.MONGODB_URI = uri;
+
+            // Save working URI to db_config.json
+            try {
+                const configPath = path.join(DATA_DIR, 'db_config.json');
+                await fs.mkdir(DATA_DIR, { recursive: true });
+                await fs.writeFile(configPath, JSON.stringify({ MONGODB_URI: uri }, null, 2));
+            } catch (e) {}
+
+            if (autoReconnectTimer) {
+                clearTimeout(autoReconnectTimer);
+                autoReconnectTimer = null;
+            }
+            log(`Connected successfully to MongoDB Atlas database! Working URI: ${uri.replace(/:([^@]+)@/, ':****@')}`);
+            await initializeUsers();
+            isConnecting = false;
+            return true;
+        } catch (err) {
+            log(`Connection attempt failed for candidate: ${err.message}`);
+            lastErr = err;
+        }
+    }
+
+    log(`Failed to connect to MongoDB with all candidates. Falling back to local JSON database. Last Error: ${lastErr ? lastErr.message : 'Unknown'}`);
+    useMongoDB = false;
+    lastConnectionError = lastErr;
+    await initializeUsers();
+
+    if (!autoReconnectTimer) {
+        autoReconnectTimer = setTimeout(() => {
+            autoReconnectTimer = null;
+            log('Attempting automatic background reconnection to MongoDB Atlas...');
+            connectDB().catch(e => log(`Auto-reconnect error: ${e.message}`));
+        }, 30000);
+    }
+
+    isConnecting = false;
+    return false;
 }
 
 export function isUsingMongoDB() {
