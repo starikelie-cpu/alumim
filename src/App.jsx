@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
 import { Button, ConfigProvider, theme, message, Modal, Input } from 'antd';
+import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
 import pkg from '../package.json';
@@ -364,6 +365,9 @@ function App() {
 
     // ----- Import / Export Handlers -----
     const handleImport = async () => {
+        if (!isAdmin) {
+            return message.error('נדרשת התחברות כמנהל (admin) כדי לייבא גיבוי נתונים');
+        }
         try {
             const result = await loadJsonFile();
             if (!result || !result.json) {
@@ -373,14 +377,15 @@ function App() {
 
             const data = result.json;
             const fileName = (result.fileName || '').toLowerCase();
+            const headers = getHeaders({ 'Content-Type': 'application/json' });
 
-            // 1. Check if it's the combined export format: { members, niftarim }
-            if (data && !Array.isArray(data) && (data.members || data.niftarim)) {
+            // 1. Check if it's the combined export format: { members, niftarim, archive }
+            if (data && !Array.isArray(data) && (data.members || data.niftarim || data.archive)) {
                 let successCount = 0;
                 if (Array.isArray(data.members)) {
                     await fetch(`${API_BASE}/api/members/import`, {
                         method: 'POST',
-                        headers: getHeaders({ 'Content-Type': 'application/json' }),
+                        headers,
                         body: JSON.stringify(data.members)
                     });
                     setMembers(data.members);
@@ -389,7 +394,7 @@ function App() {
                 if (Array.isArray(data.niftarim)) {
                     await fetch(`${API_BASE}/api/niftarim/import`, {
                         method: 'POST',
-                        headers: getHeaders({ 'Content-Type': 'application/json' }),
+                        headers,
                         body: JSON.stringify(data.niftarim)
                     });
                     setNiftarim(data.niftarim);
@@ -398,20 +403,21 @@ function App() {
                 if (Array.isArray(data.archive)) {
                     await fetch(`${API_BASE}/api/archive/import`, {
                         method: 'POST',
-                        headers: getHeaders({ 'Content-Type': 'application/json' }),
+                        headers,
                         body: JSON.stringify(data.archive)
                     });
+                    setArchiveRefreshKey(prev => prev + 1);
                     successCount++;
                 }
                 if (successCount > 0) {
-                    message.success('הנתונים יובאו ונשמרו בהצלחה בשרת');
+                    message.success('הגיבוי המלא (מתפללים, נפטרים וארכיון) יובא ונשמר בהצלחה במערכת!');
                 } else {
-                    message.error('לא נמצאו נתונים תקינים לייבוא');
+                    message.error('לא נמצאו נתונים תקינים לייבוא בתוך הקובץ');
                 }
                 return;
             }
 
-            // 2. Check if it's a raw array (from backup files: members.json, niftarim.json, archive.json)
+            // 2. Check if it's a raw array (from single file backups: members.json, niftarim.json, archive.json)
             if (Array.isArray(data)) {
                 const firstItem = data[0] || {};
                 
@@ -422,38 +428,41 @@ function App() {
                 if (isNiftarim) {
                     const response = await fetch(`${API_BASE}/api/niftarim/import`, {
                         method: 'POST',
-                        headers: getHeaders({ 'Content-Type': 'application/json' }),
+                        headers,
                         body: JSON.stringify(data)
                     });
                     if (response.ok) {
                         setNiftarim(data);
                         message.success(`יובאו בהצלחה ${data.length} רשומות נפטרים`);
                     } else {
-                        throw new Error('שגיאה בשמירה לשרת');
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || 'שגיאה בשמירה לשרת');
                     }
                 } else if (isArchive) {
                     const response = await fetch(`${API_BASE}/api/archive/import`, {
                         method: 'POST',
-                        headers: getHeaders({ 'Content-Type': 'application/json' }),
+                        headers,
                         body: JSON.stringify(data)
                     });
                     if (response.ok) {
                         setArchiveRefreshKey(prev => prev + 1);
                         message.success(`יובאו בהצלחה ${data.length} רשומות ארכיון`);
                     } else {
-                        throw new Error('שגיאה בשמירה לשרת');
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || 'שגיאה בשמירה לשרת');
                     }
                 } else if (isMembers) {
                     const response = await fetch(`${API_BASE}/api/members/import`, {
                         method: 'POST',
-                        headers: getHeaders({ 'Content-Type': 'application/json' }),
+                        headers,
                         body: JSON.stringify(data)
                     });
                     if (response.ok) {
                         setMembers(data);
                         message.success(`יובאו בהצלחה ${data.length} מתפללים`);
                     } else {
-                        throw new Error('שגיאה בשמירה לשרת');
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || 'שגיאה בשמירה לשרת');
                     }
                 } else {
                     message.error('סוג הקובץ לא זוהה (מצפה למתפללים, נפטרים או ארכיון)');
@@ -469,9 +478,18 @@ function App() {
     };
 
     const handleExport = async () => {
-        const data = { members, niftarim };
-        await saveJsonFile(data, 'export.json');
-        message.success('Data exported successfully');
+        try {
+            const archiveRes = await fetch(`${API_BASE}/api/archive`).then(r => r.json()).catch(() => []);
+            const data = { 
+                members, 
+                niftarim, 
+                archive: Array.isArray(archiveRes) ? archiveRes : [] 
+            };
+            await saveJsonFile(data, 'synagogue_full_backup.json');
+            message.success('הגיבוי המלא (מתפללים, נפטרים וארכיון) יוצא בהצלחה!');
+        } catch (err) {
+            message.error('שגיאה ביצוא הגיבוי: ' + err.message);
+        }
     };
 
     const dbStatusText = dbStatus.isConnecting 
@@ -584,6 +602,26 @@ function App() {
                     >
                         נפטרים
                     </Button>
+                    {isAdmin && (
+                        <>
+                            <Button
+                                size="large"
+                                icon={<DownloadOutlined />}
+                                style={{ background: '#ffe7ba', borderColor: '#ffbb96', color: '#873800', fontWeight: 'bold' }}
+                                onClick={handleExport}
+                            >
+                                ייצוא גיבוי מלא
+                            </Button>
+                            <Button
+                                size="large"
+                                icon={<UploadOutlined />}
+                                style={{ background: '#efdbff', borderColor: '#b37feb', color: '#391085', fontWeight: 'bold' }}
+                                onClick={handleImport}
+                            >
+                                ייבוא גיבוי מלא
+                            </Button>
+                        </>
+                    )}
                 </div>
 
                 <AddMemberModal
@@ -603,6 +641,7 @@ function App() {
                     onViewHistory={handleViewHistory}
                     onAddNew={() => setIsModalVisible(true)}
                     isAdmin={isAdmin}
+                    token={token}
                 />
 
                 <ArchiveListModal
@@ -613,6 +652,7 @@ function App() {
                     onDelete={handleArchiveDelete}
                     refreshKey={archiveRefreshKey}
                     isAdmin={isAdmin}
+                    token={token}
                 />
 
                 <NiftarimListModal
@@ -626,6 +666,7 @@ function App() {
                         setIsNiftarModalVisible(true);
                     }}
                     isAdmin={isAdmin}
+                    token={token}
                 />
 
                 <AddNiftarModal

@@ -4,7 +4,7 @@ import { EditOutlined, DeleteOutlined, SearchOutlined, PrinterOutlined, Download
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 import { API_BASE } from '../config';
 
-const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAddNew, isAdmin }) => {
+const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAddNew, isAdmin, token }) => {
     const [searchText, setSearchText] = useState('');
     // Safety: ensure niftarim is always an array
     const safeNiftarim = Array.isArray(niftarim) ? niftarim : [];
@@ -236,14 +236,20 @@ const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAd
                         <Button
                             icon={<UploadOutlined />}
                             onClick={async () => {
+                                if (!isAdmin) {
+                                    alert('נדרשת התחברות כמנהל (admin) כדי לייבא גיבוי נתונים. אנא התחבר כמנהל בראש המסך ונסה שוב.');
+                                    return;
+                                }
                                 const result = await loadJsonFile('niftarim-import-handle');
                                 if (!result) return;
                                 const { json } = result;
                                 if (confirm(`האם אתה בטוח שברצונך לייבא ${json.length} נפטרים? פעולה זו תחליף את הרשימה הקיימת!`)) {
                                     try {
+                                        const headers = { 'Content-Type': 'application/json' };
+                                        if (token) headers['Authorization'] = `Bearer ${token}`;
                                         const response = await fetch(`${API_BASE}/api/niftarim/import`, {
                                             method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
+                                            headers: headers,
                                             body: JSON.stringify(json)
                                         });
                                         if (!response.ok) {
