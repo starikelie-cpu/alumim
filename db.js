@@ -137,7 +137,7 @@ export async function ensureLocalAdmin() {
         } catch (e) {
             // File doesn't exist yet — that's ok
         }
-        const adminExists = users.some(u => u.username === 'admin');
+        const adminExists = users.some(u => u.role === 'admin');
         if (!adminExists) {
             users.unshift(defaultAdmin);
             await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
@@ -311,8 +311,18 @@ export async function updateUser(username, userData) {
     const updateDoc = {};
     if (userData.role) updateDoc.role = userData.role;
     if (userData.password) updateDoc.password = hashPassword(userData.password);
+    const requestedUsername = userData.username ? String(userData.username).trim() : '';
+    if (requestedUsername) {
+        updateDoc.username = requestedUsername;
+    }
 
     if (useMongoDB) {
+        if (updateDoc.username && updateDoc.username !== username) {
+            const existing = await db.collection('users').findOne({ username: updateDoc.username });
+            if (existing) {
+                throw new Error('Username already exists');
+            }
+        }
         const result = await db.collection('users').findOneAndUpdate(
             { username: username },
             { $set: updateDoc },
@@ -325,6 +335,13 @@ export async function updateUser(username, userData) {
         const users = await readLocalFile(USERS_FILE);
         const index = users.findIndex(u => u.username === username);
         if (index === -1) return null;
+
+        if (updateDoc.username && updateDoc.username !== username) {
+            const exists = users.some(u => u.username === updateDoc.username);
+            if (exists) {
+                throw new Error('Username already exists');
+            }
+        }
         
         users[index] = { ...users[index], ...updateDoc };
         await writeLocalFile(USERS_FILE, users);
@@ -335,17 +352,28 @@ export async function updateUser(username, userData) {
 }
 
 export async function deleteUser(username) {
-    if (username === 'admin') {
-        throw new Error('Cannot delete primary admin user');
-    }
-    
     if (useMongoDB) {
+        const userToDelete = await db.collection('users').findOne({ username: username });
+        if (!userToDelete) return false;
+        if (userToDelete.role === 'admin') {
+            const adminsCount = await db.collection('users').countDocuments({ role: 'admin' });
+            if (adminsCount <= 1) {
+                throw new Error('Cannot delete the last admin user');
+            }
+        }
         const result = await db.collection('users').deleteOne({ username: username });
         return result.deletedCount > 0;
     } else {
         const users = await readLocalFile(USERS_FILE);
         const index = users.findIndex(u => u.username === username);
         if (index === -1) return false;
+
+        if (users[index].role === 'admin') {
+            const adminsCount = users.filter(u => u.role === 'admin').length;
+            if (adminsCount <= 1) {
+                throw new Error('Cannot delete the last admin user');
+            }
+        }
         
         users.splice(index, 1);
         await writeLocalFile(USERS_FILE, users);

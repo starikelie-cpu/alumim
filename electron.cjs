@@ -1,8 +1,9 @@
-const { app, BrowserWindow, dialog, utilityProcess } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const net = require('net');
+const { fork } = require('child_process');
 
 // Load .env file if present (for dev mode)
 try {
@@ -117,7 +118,7 @@ function selectBackendPort(preferredPort = 3000) {
 }
 
 // ── HTTP health probe ─────────────────────────────────────────────────────────
-function waitForHttpServerReady(url, timeoutMs = 15000, intervalMs = 500) {
+function waitForHttpServerReady(url, timeoutMs = 30000, intervalMs = 500) {
     const start = Date.now();
     return new Promise((resolve, reject) => {
         const tryOnce = () => {
@@ -160,9 +161,8 @@ function startServer(backendPort) {
             if (ok) resolve(); else reject(err);
         };
 
-        // utilityProcess.fork — Electron's native API for Node.js helper scripts.
-        // Supports ES modules (type:module) and uses process.parentPort for IPC.
-        serverProcess = utilityProcess.fork(serverPath, [], {
+        // child_process.fork is more compatible with installed environments.
+        serverProcess = fork(serverPath, [], {
             cwd: __dirname,
             env: {
                 ...process.env,
@@ -171,7 +171,7 @@ function startServer(backendPort) {
                 PORT:          String(backendPort),
                 MONGODB_URI:   process.env.MONGODB_URI || MONGODB_URI
             },
-            stdio: 'pipe'
+            stdio: ['ignore', 'pipe', 'pipe', 'ipc']
         });
 
         serverProcess.stdout.on('data', d => log(`[SERVER] ${d.toString().trim()}`));
@@ -190,22 +190,21 @@ function startServer(backendPort) {
             }
         });
 
-        // utilityProcess uses process.parentPort.postMessage on the child side
         serverProcess.on('message', (msg) => {
-            if (msg === 'server-ready') {
-                log('Server signaled READY via parentPort');
+            if (msg === 'server-ready' || (msg && msg.type === 'server-ready')) {
+                log('Server signaled READY');
                 finish(true);
             }
         });
 
-        // Fallback: if no ready signal in 10s, probe HTTP before giving up
+        // Fallback: if no ready signal in time, probe HTTP before giving up
         startupTimer = setTimeout(() => {
             if (settled) return;
             log('No ready signal — probing HTTP health endpoint');
-            waitForHttpServerReady(`http://localhost:${backendPort}/api/db-status`, 5000, 500)
+            waitForHttpServerReady(`http://localhost:${backendPort}/api/db-status`, 15000, 500)
                 .then(() => { log('HTTP healthy; continuing.'); finish(true); })
                 .catch(() => finish(false, new Error('Server did not respond in time')));
-        }, 10000);
+        }, 30000);
     });
 }
 
@@ -222,7 +221,7 @@ app.whenReady().then(async () => {
 
         // 3. Wait until HTTP is confirmed listening (proven server readiness)
         await waitForHttpServerReady(
-            `http://localhost:${backendPort}/api/db-status`, 15000, 500
+            `http://localhost:${backendPort}/api/db-status`, 30000, 500
         );
         log('HTTP server confirmed ready');
 
