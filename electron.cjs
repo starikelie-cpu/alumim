@@ -56,7 +56,7 @@ function createWindow(backendPort) {
             nodeIntegration: false,
             contextIsolation: true,
         },
-        icon: path.join(__dirname, 'build', 'prague_synagogue_icon.ico'),
+        icon: path.join(__dirname, 'prague_synagogue_icon.ico'),
     });
 
     // OPEN DEVTOOLS FOR DEBUGGING WHITE SCREEN ONLY IN DEV

@@ -187,9 +187,7 @@ export async function connectDB() {
         socketTimeoutMS: 30000,
         tls: true,
         tlsAllowInvalidCertificates: true,
-        tlsAllowInvalidHostnames: true,
-        retryWrites: true,
-        retryReads: true
+        tlsAllowInvalidHostnames: true
     };
 
     let lastErr = null;

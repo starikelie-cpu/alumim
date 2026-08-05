@@ -64,6 +64,7 @@
             "db.js",
             "electron.cjs",
             "package.json",
+            "prague_synagogue_icon.ico",
             "data/**/*",
             ".env"
         ],
