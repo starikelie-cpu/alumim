@@ -24,8 +24,10 @@ function log(msg) {
     }
 }
 
-const PRIMARY_MONGODB_URI = 'mongodb+srv://Alumim:alumim99@cluster0.i8jyvvd.mongodb.net/?appName=Cluster0';
-const DIRECT_SEEDLIST_URI = 'mongodb://Alumim:alumim99@ac-4k3phjs-shard-00-00.i8jyvvd.mongodb.net:27017,ac-4k3phjs-shard-00-01.i8jyvvd.mongodb.net:27017,ac-4k3phjs-shard-00-02.i8jyvvd.mongodb.net:27017/Alumim?ssl=true&replicaSet=atlas-ala4zb-shard-0&authSource=admin';
+// Primary SRV URI - Cluster1 (hardcoded, does not depend on .env)
+const PRIMARY_MONGODB_URI = 'mongodb+srv://Alumim:alumim99@cluster1.i8jyvvd.mongodb.net/Alumim?retryWrites=true&w=majority&appName=Cluster1';
+// Direct seedlist fallback (bypasses DNS SRV lookup)
+const DIRECT_SEEDLIST_URI = 'mongodb://Alumim:alumim99@ac-4k3phjs-shard-00-00.i8jyvvd.mongodb.net:27017,ac-4k3phjs-shard-00-01.i8jyvvd.mongodb.net:27017,ac-4k3phjs-shard-00-02.i8jyvvd.mongodb.net:27017/Alumim?ssl=true&replicaSet=atlas-ala4zb-shard-0&authSource=admin&retryWrites=true&w=majority';
 const DIRECT_SHARD0_URI = 'mongodb://Alumim:alumim99@ac-4k3phjs-shard-00-00.i8jyvvd.mongodb.net:27017/Alumim?ssl=true&authSource=admin&directConnection=true';
 const DIRECT_SHARD1_URI = 'mongodb://Alumim:alumim99@ac-4k3phjs-shard-00-01.i8jyvvd.mongodb.net:27017/Alumim?ssl=true&authSource=admin&directConnection=true';
 const DIRECT_SHARD2_URI = 'mongodb://Alumim:alumim99@ac-4k3phjs-shard-00-02.i8jyvvd.mongodb.net:27017/Alumim?ssl=true&authSource=admin&directConnection=true';
@@ -45,7 +47,7 @@ export function getConnectionStatus() {
         useMongoDB,
         isConnecting,
         error: lastConnectionError ? lastConnectionError.message : null,
-        mongoUri: rawUri.replace(/:([^@]+)@/, ':****@'),
+        mongoUri: rawUri,
         rawMongoUri: rawUri
     };
 }
@@ -117,6 +119,37 @@ export async function initializeUsers() {
     }
 }
 
+// CRITICAL: Ensure local admin always exists immediately on startup,
+// regardless of MongoDB connection status. This allows login during
+// the 15-20 seconds MongoDB is still connecting in the background.
+export async function ensureLocalAdmin() {
+    const defaultAdmin = {
+        username: 'admin',
+        password: hashPassword('1234'),
+        role: 'admin'
+    };
+    try {
+        await fs.mkdir(DATA_DIR, { recursive: true });
+        let users = [];
+        try {
+            const data = await fs.readFile(USERS_FILE, 'utf8');
+            users = JSON.parse(data);
+        } catch (e) {
+            // File doesn't exist yet — that's ok
+        }
+        const adminExists = users.some(u => u.username === 'admin');
+        if (!adminExists) {
+            users.unshift(defaultAdmin);
+            await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
+            log('ensureLocalAdmin: Created local admin user in users.json');
+        } else {
+            log('ensureLocalAdmin: Local admin already exists');
+        }
+    } catch (error) {
+        log(`ensureLocalAdmin failed: ${error.message}`);
+    }
+}
+
 export async function connectDB() {
     isConnecting = true;
     let savedUri = null;
@@ -131,31 +164,39 @@ export async function connectDB() {
 
     const envUri = process.env.MONGODB_URI;
 
+    log(`MONGODB_URI from env: ${envUri ? 'SET' : 'NOT SET'}`);
+    log(`Saved URI from config: ${savedUri ? 'SET' : 'NOT SET'}`);
+
     // Build ordered list of candidate URIs to try
+    // PRIMARY always first - hardcoded, no dependency on env
     const candidates = [];
+    if (!candidates.includes(PRIMARY_MONGODB_URI)) candidates.push(PRIMARY_MONGODB_URI);
     if (envUri && !candidates.includes(envUri)) candidates.push(envUri);
     if (savedUri && !candidates.includes(savedUri)) candidates.push(savedUri);
-    if (!candidates.includes(PRIMARY_MONGODB_URI)) candidates.push(PRIMARY_MONGODB_URI);
     if (!candidates.includes(DIRECT_SEEDLIST_URI)) candidates.push(DIRECT_SEEDLIST_URI);
     if (!candidates.includes(DIRECT_SHARD0_URI)) candidates.push(DIRECT_SHARD0_URI);
     if (!candidates.includes(DIRECT_SHARD1_URI)) candidates.push(DIRECT_SHARD1_URI);
     if (!candidates.includes(DIRECT_SHARD2_URI)) candidates.push(DIRECT_SHARD2_URI);
+    log(`Will try ${candidates.length} connection candidates...`);
 
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
     const mongoOptions = { 
-        serverSelectionTimeoutMS: 8000,
-        connectTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 15000,
+        connectTimeoutMS: 20000,
+        socketTimeoutMS: 30000,
         tls: true,
         tlsAllowInvalidCertificates: true,
-        tlsAllowInvalidHostnames: true
+        tlsAllowInvalidHostnames: true,
+        retryWrites: true,
+        retryReads: true
     };
 
     let lastErr = null;
 
     for (const uri of candidates) {
         try {
-            log(`Attempting connection to MongoDB Atlas with URI: ${uri.replace(/:([^@]+)@/, ':****@')}`);
+            log(`Attempting connection to MongoDB Atlas with URI: ${uri}`);
             if (client) {
                 try { await client.close(); } catch (e) {}
                 client = null;
@@ -180,7 +221,7 @@ export async function connectDB() {
                 clearTimeout(autoReconnectTimer);
                 autoReconnectTimer = null;
             }
-            log(`Connected successfully to MongoDB Atlas database! Working URI: ${uri.replace(/:([^@]+)@/, ':****@')}`);
+            log(`Connected successfully to MongoDB Atlas database! Working URI: ${uri}`);
             await initializeUsers();
             isConnecting = false;
             return true;

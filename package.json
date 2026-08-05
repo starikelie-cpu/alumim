@@ -10,7 +10,7 @@
             "node18-win-x64"
         ]
     },
-    "version": "1.3.6",
+    "version": "1.4.6",
     "description": "Synagogue Management Application",
     "author": "Synagogue Management Team",
     "main": "electron.cjs",
@@ -44,6 +44,7 @@
     },
     "build": {
         "artifactName": "Nihul Beit Cnecet Setup ${version}.exe",
+        "compression": "store",
         "extraResources": [
             {
                 "from": "dist",
@@ -60,6 +61,7 @@
             "dist/**/*",
             "public/**/*",
             "index.js",
+            "db.js",
             "electron.cjs",
             "package.json",
             "data/**/*",
@@ -73,7 +75,8 @@
             "oneClick": false,
             "allowToChangeInstallationDirectory": true,
             "createDesktopShortcut": true,
-            "runAfterFinish": true
+            "runAfterFinish": true,
+            "useZip": true
         }
     }
 }

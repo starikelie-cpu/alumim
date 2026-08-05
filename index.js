@@ -30,7 +30,8 @@ import {
     updateUser,
     deleteUser,
     getConnectionStatus,
-    saveMongoConfig
+    saveMongoConfig,
+    ensureLocalAdmin
 } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -136,6 +137,11 @@ async function ensureDataDir() {
     }
 }
 ensureDataDir();
+
+// CRITICAL: Immediately create local admin user so login always works,
+// even during the 15-20 seconds MongoDB is still connecting in background.
+ensureLocalAdmin().catch(err => log(`Error ensuring local admin: ${err.message}`));
+
 // Start database connection in the background so it doesn't block server startup
 connectDB().catch(err => log(`Error in connectDB: ${err.message}`));
 

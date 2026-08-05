@@ -64,12 +64,12 @@
     "firstName": "מרדכי שלמה ",
     "fatherName": "יוסף אליהו",
     "father_death_date": "י״ט שבט תש״כ",
-    "mother_death_date": "כ״ו תשרי תשל״ב",
-    "aliyah_date": "כ״ד ניסן תשפ״ו",
-    "aliyah_parasha": "פָּרָשַׁת שְּׁמִינִי",
-    "days_since_aliyah": 7,
+    "mother_death_date": "ו' אלול תשל\"ב",
+    "aliyah_date": "",
+    "aliyah_parasha": "",
+    "days_since_aliyah": null,
     "id": 1770108264345,
-    "aliyah_type": "לוי"
+    "aliyah_type": ""
   },
   {
     "letter": [],
@@ -190,9 +190,9 @@
     "fatherName": "ישראל משולם זלמן",
     "father_death_date": "י״ט סיון תשל״ג",
     "mother_death_date": "כ״א כסלו תש״מ",
-    "aliyah_date": "כ\"א סיוון תשפ\"ו",
-    "aliyah_parasha": "פָּרָשַׁת שְׁלַח־לְךָ",
-    "days_since_aliyah": 7,
+    "aliyah_date": "י\"ח אב תשפ\"ו",
+    "aliyah_parasha": "פָּרָשַׁת עֵקֶב",
+    "days_since_aliyah": 0,
     "id": 1770286053363,
     "aliyah_type": "",
     "barMitzvahParasha": "נח"
@@ -318,12 +318,12 @@
     "lastName": "מעין",
     "firstName": "משה חיים",
     "fatherName": "משה חיים",
-    "father_death_date": "כ״ד אב תש״ע",
+    "father_death_date": "כ\"ו אב תש\"ע",
     "mother_death_date": "י״א חשון תש״ע",
     "barMitzvahParasha": "ויצא",
-    "aliyah_date": "ה' תמוז תשפ\"ו",
-    "aliyah_parasha": "פָּרָשַׁת חֻקַּת",
-    "days_since_aliyah": 0,
+    "aliyah_date": "",
+    "aliyah_parasha": "",
+    "days_since_aliyah": null,
     "aliyah_type": "",
     "id": 1770366559664
   },
@@ -346,10 +346,10 @@
     "fatherName": "אלעזר משה",
     "father_death_date": "",
     "mother_death_date": "",
-    "aliyah_date": "י\"א אב תשפ\"ו",
-    "aliyah_parasha": "פָּרָשַׁת וָאֶתְחַנַּן / שַׁבַּת נַחֲמוּ",
-    "days_since_aliyah": 7,
-    "aliyah_type": "עשרת הדברות",
+    "aliyah_date": "י\"ח אב תשפ\"ו",
+    "aliyah_parasha": "פָּרָשַׁת עֵקֶב",
+    "days_since_aliyah": 0,
+    "aliyah_type": "",
     "id": 1770485572310
   },
   {
@@ -372,8 +372,8 @@
     "fatherName": "שלום",
     "father_death_date": "",
     "mother_death_date": "",
-    "aliyah_date": "י\"ב תמוז תשפ\"ו",
-    "aliyah_parasha": "פָּרָשַׁת בָּלָק",
+    "aliyah_date": "י\"ח אב תשפ\"ו",
+    "aliyah_parasha": "פָּרָשַׁת עֵקֶב",
     "days_since_aliyah": 0,
     "id": 1770485688027,
     "aliyah_type": "לוי"
@@ -812,13 +812,13 @@
     "lastName": "שפיר",
     "firstName": "דוד יעקב",
     "fatherName": "משה אביגדור",
-    "father_death_date": "כ\"ב אייר תש\"ע",
-    "mother_death_date": "ח' טבת תש\"ע",
+    "father_death_date": "כ״ב אייר תש״ע",
+    "mother_death_date": "ח׳ טבת תש״ע",
     "barMitzvahParasha": "ואתחנן",
-    "aliyah_date": "י״ז ניסן תשפ״ו",
-    "aliyah_parasha": "Pesach Shabbat Chol ha-Moed / פֶּסַח ג׳ (חוה״מ)",
-    "days_since_aliyah": 14,
-    "aliyah_type": "עשרת הדברות",
+    "aliyah_date": "י\"ח אב תשפ\"ו",
+    "aliyah_parasha": "פָּרָשַׁת עֵקֶב",
+    "days_since_aliyah": 0,
+    "aliyah_type": "",
     "id": 1771259813927
   },
   {
@@ -1358,12 +1358,13 @@
     "lastName": "הלינגר",
     "firstName": "גלעד",
     "fatherName": "שלמה פישל",
-    "aliyah_parasha": "פָּרָשַׁת צַו / שַׁבַּת הַגָּדוֹל / יוֹם הַעֲלִיָּה",
-    "days_since_aliyah": 7,
+    "aliyah_parasha": "פָּרָשַׁת עֵקֶב",
+    "days_since_aliyah": 0,
     "id": 1774718101943,
     "father_death_date": "",
     "mother_death_date": "",
-    "aliyah_date": "י׳ ניסן תשפ״ו"
+    "aliyah_date": "י\"ח אב תשפ\"ו",
+    "aliyah_type": ""
   },
   {
     "letter": [
@@ -1611,12 +1612,12 @@
     "lastName": "לוין",
     "firstName": "צבי יעקב ",
     "fatherName": "יוסף",
-    "aliyah_parasha": "פָּרָשַׁת שְׁלַח־לְךָ",
-    "days_since_aliyah": 7,
+    "aliyah_parasha": "פָּרָשַׁת עֵקֶב",
+    "days_since_aliyah": 0,
     "id": 1777144923582,
     "father_death_date": "",
     "mother_death_date": "",
-    "aliyah_date": "כ\"א סיוון תשפ\"ו",
+    "aliyah_date": "י\"ח אב תשפ\"ו",
     "aliyah_type": "מפטיר"
   },
   {
@@ -1624,12 +1625,12 @@
     "firstName": "דביר משה",
     "fatherName": "נפתלי צבי",
     "father_death_date": "כ״א טבת תשע״ט",
-    "aliyah_parasha": "פָּרָשַׁת נָשׂא",
-    "days_since_aliyah": 21,
+    "aliyah_parasha": "פָּרָשַׁת עֵקֶב",
+    "days_since_aliyah": 0,
     "id": 1777201810006,
     "mother_death_date": "",
-    "aliyah_date": "ז' סיוון תשפ\"ו",
-    "aliyah_type": "מפטיר"
+    "aliyah_date": "י\"ח אב תשפ\"ו",
+    "aliyah_type": ""
   },
   {
     "letter": [
@@ -2071,5 +2072,21 @@
     "aliyah_parasha": "",
     "days_since_aliyah": null,
     "id": 1785075102002
+  },
+  {
+    "letter": [
+      "א"
+    ],
+    "status": "כהן",
+    "lastName": "שילדרהאוס",
+    "firstName": "צבי",
+    "fatherName": "מרדכי",
+    "aliyah_parasha": "פָּרָשַׁת עֵקֶב",
+    "days_since_aliyah": 0,
+    "id": 1785607315707,
+    "father_death_date": "",
+    "mother_death_date": "",
+    "aliyah_date": "י\"ח אב תשפ\"ו",
+    "aliyah_type": "כהן"
   }
 ]

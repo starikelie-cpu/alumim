@@ -37,7 +37,7 @@ function App() {
     const [isUserMgmtVisible, setIsUserMgmtVisible] = useState(false);
 
     // Database connection status state
-    const [dbStatus, setDbStatus] = useState({ useMongoDB: false, error: null, mongoUri: '' });
+    const [dbStatus, setDbStatus] = useState({ useMongoDB: false, error: null, mongoUri: 'mongodb+srv://Alumim:alumim99@cluster1.i8jyvvd.mongodb.net/Alumim?retryWrites=true&w=majority&appName=Cluster1' });
     const [isDbStatusModalVisible, setIsDbStatusModalVisible] = useState(false);
     const [serverLogs, setServerLogs] = useState('');
     const [customUriInput, setCustomUriInput] = useState('');
@@ -105,23 +105,6 @@ function App() {
             .catch(err => console.error("Failed to fetch DB status:", err));
     };
 
-    const handleReconnect = () => {
-        setIsConnectingDb(true);
-        fetch(`${API_BASE}/api/db-reconnect`, { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                setDbStatus(data.status);
-                fetchLogs();
-                if (data.success) {
-                    message.success('התחבר בהצלחה לבסיס הנתונים בענן!');
-                } else {
-                    message.error('התחברות לענן נכשלה. נבדקו הלוגים המעודכנים.');
-                }
-            })
-            .catch(err => message.error('שגיאה בחיבור: ' + err.message))
-            .finally(() => setIsConnectingDb(false));
-    };
-
     const handleSaveUri = () => {
         if (!customUriInput) {
             return message.error('נא להזין מחרוזת חיבור תקינה');
@@ -146,6 +129,23 @@ function App() {
             .finally(() => setIsConnectingDb(false));
     };
 
+    const handleReconnect = () => {
+        setIsConnectingDb(true);
+        fetch(`${API_BASE}/api/db-reconnect`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                setDbStatus(data.status);
+                fetchLogs();
+                if (data.success) {
+                    message.success('התחבר בהצלחה לבסיס הנתונים בענן!');
+                } else {
+                    message.error('התחברות לענן נכשלה. נבדקו הלוגים המעודכנים.');
+                }
+            })
+            .catch(err => message.error('שגיאה בחיבור: ' + err.message))
+            .finally(() => setIsConnectingDb(false));
+    };
+
     const fetchLogs = () => {
         fetch(`${API_BASE}/api/logs`)
             .then(res => res.text())
@@ -153,7 +153,7 @@ function App() {
             .catch(err => console.error("Failed to fetch logs:", err));
     };
 
-    useEffect(() => {
+    const fetchAllData = () => {
         fetch(`${API_BASE}/api/members`)
             .then(res => res.json())
             .then(data => setMembers(data))
@@ -165,6 +165,28 @@ function App() {
             .catch(err => console.error("Failed to fetch niftarim:", err));
 
         fetchDbStatus();
+    };
+
+    useEffect(() => {
+        fetchAllData();
+
+        // Periodically check DB status to pick up background auto-reconnections
+        const interval = setInterval(() => {
+            fetch(`${API_BASE}/api/db-status`)
+                .then(res => res.json())
+                .then(data => {
+                    setDbStatus(prevStatus => {
+                        // If status changed to connected, re-fetch data from cloud
+                        if (!prevStatus.useMongoDB && data.useMongoDB) {
+                            fetchAllData();
+                        }
+                        return data;
+                    });
+                })
+                .catch(() => {});
+        }, 15000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const handleSave = (newMember) => {
@@ -714,7 +736,7 @@ function App() {
                         <div>
                             <strong>כתובת שרת הענן הנוכחית: </strong>
                             <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px', wordBreak: 'break-all', direction: 'ltr', display: 'inline-block' }}>
-                                {dbStatus.mongoUri || 'לא מוגדרת'}
+                                {dbStatus.mongoUri || 'mongodb+srv://Alumim:alumim99@cluster1.i8jyvvd.mongodb.net/?appName=Cluster1'}
                             </code>
                         </div>
 
