@@ -593,8 +593,11 @@ app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);
     console.log(`Serving static from: ${path.join(__dirname, 'public')}`);
 
-    // Signal parent (electron.cjs via child_process.fork IPC) that server is ready
-    if (process.send) {
+    // Signal parent Electron process that server is ready.
+    // utilityProcess uses process.parentPort; child_process.fork uses process.send.
+    if (process.parentPort) {
+        process.parentPort.postMessage('server-ready');
+    } else if (process.send) {
         process.send('server-ready');
     }
 });

@@ -1,9 +1,8 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, utilityProcess } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const net = require('net');
-const { fork } = require('child_process');
 
 // Load .env file if present (for dev mode)
 try {
@@ -15,7 +14,7 @@ const MONGODB_URI = 'mongodb+srv://Alumim:alumim99@cluster1.i8jyvvd.mongodb.net/
 
 let mainWindow;
 let serverProcess;
-let currentBackendPort = null;
+let currentBackendPort = 3000;
 
 const isDev = !app.isPackaged;
 
@@ -45,7 +44,7 @@ log('Application starting...');
 log(`isPackaged: ${app.isPackaged}`);
 
 function createWindow(backendPort) {
-    currentBackendPort = backendPort || currentBackendPort;
+    if (backendPort) currentBackendPort = backendPort;
 
     mainWindow = new BrowserWindow({
         width: 1200,
@@ -69,17 +68,16 @@ function createWindow(backendPort) {
         mainWindow.show();
     });
 
-    const devUrl = 'http://localhost:5173';
-    const prodUrl = `http://localhost:${currentBackendPort}`;
-
     if (isDev) {
         // Development: use Vite dev server
+        const devUrl = 'http://localhost:5173';
         log(`Loading dev URL: ${devUrl}`);
         mainWindow.loadURL(devUrl);
     } else {
-        // Production: load via backend static server on the selected port.
-        log(`Loading production URL: ${prodUrl}`);
-        mainWindow.loadURL(prodUrl);
+        // Production: load the built index.html file directly (same as 1.3.6 / 1.4.4)
+        const prodPath = path.join(__dirname, 'dist', 'index.html');
+        log(`Loading production file: ${prodPath}`);
+        mainWindow.loadFile(prodPath);
     }
 
     // Handle load failures
@@ -90,9 +88,9 @@ function createWindow(backendPort) {
             setTimeout(() => {
                 if (!mainWindow || mainWindow.isDestroyed()) return;
                 if (isDev) {
-                    mainWindow.loadURL(devUrl);
+                    mainWindow.loadURL('http://localhost:5173');
                 } else {
-                    mainWindow.loadURL(prodUrl);
+                    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
                 }
             }, 2000);
         }
@@ -103,13 +101,12 @@ function createWindow(backendPort) {
     });
 }
 
-function waitForHttpServerReady(url, timeoutMs = 30000, intervalMs = 500) {
+function waitForHttpServerReady(url, timeoutMs = 15000, intervalMs = 500) {
     const start = Date.now();
 
     return new Promise((resolve, reject) => {
         const tryOnce = () => {
             const req = http.get(url, (res) => {
-                // Any HTTP response means server process is up and listening.
                 res.resume();
                 if (res.statusCode && res.statusCode >= 200 && res.statusCode < 500) {
                     resolve();
@@ -165,7 +162,7 @@ function startServer(backendPort) {
         // Use standard AppData Roaming directory for persistent database storage
         const userDataPath = path.join(app.getPath('userData'), 'data');
 
-        // Use child_process.fork for maximum compatibility across installed environments.
+        // Use utilityProcess.fork — Electron's native API for Node.js helper scripts
         const serverPath = path.join(__dirname, 'index.js');
 
         log(`Starting server at: ${serverPath}`);
@@ -178,24 +175,18 @@ function startServer(backendPort) {
         const finishResolve = () => {
             if (settled) return;
             settled = true;
-            if (startupTimer) {
-                clearTimeout(startupTimer);
-                startupTimer = null;
-            }
+            if (startupTimer) { clearTimeout(startupTimer); startupTimer = null; }
             resolve();
         };
 
         const finishReject = (error) => {
             if (settled) return;
             settled = true;
-            if (startupTimer) {
-                clearTimeout(startupTimer);
-                startupTimer = null;
-            }
+            if (startupTimer) { clearTimeout(startupTimer); startupTimer = null; }
             reject(error);
         };
 
-        serverProcess = fork(serverPath, [], {
+        serverProcess = utilityProcess.fork(serverPath, [], {
             cwd: __dirname,
             env: {
                 ...process.env,
@@ -204,7 +195,7 @@ function startServer(backendPort) {
                 PORT: String(backendPort),
                 MONGODB_URI: process.env.MONGODB_URI || MONGODB_URI
             },
-            stdio: ['ignore', 'pipe', 'pipe', 'ipc']
+            stdio: 'pipe'
         });
 
         serverProcess.stdout.on('data', (data) => {
@@ -219,20 +210,14 @@ function startServer(backendPort) {
             log('Server process spawned successfully');
         });
 
-        serverProcess.on('error', (err) => {
-            log(`Server process error: ${err.message}`);
-            finishReject(new Error(`Server process spawn error: ${err.message}`));
-        });
-
         serverProcess.on('exit', (code) => {
             log(`Server process exited with code: ${code}`);
             if (code !== 0 && code !== null) {
                 log('CRITICAL: Server exited unexpectedly');
-                // In some cases a previous server is already listening on 3000.
-                // If health check passes, continue instead of failing startup.
+                // Probe HTTP in case a previous instance is already up
                 waitForHttpServerReady(`http://localhost:${backendPort}/api/db-status`, 5000, 500)
                     .then(() => {
-                        log('Detected active HTTP server despite child exit; continuing startup.');
+                        log('Active HTTP server detected despite exit; continuing.');
                         finishResolve();
                     })
                     .catch(() => {
@@ -241,7 +226,7 @@ function startServer(backendPort) {
             }
         });
 
-        // Resolve when the server signals it is ready
+        // utilityProcess uses parentPort for IPC
         serverProcess.on('message', (message) => {
             if (message === 'server-ready') {
                 log('Server signaled READY');
@@ -249,19 +234,11 @@ function startServer(backendPort) {
             }
         });
 
-        // Fail fast if no ready signal arrives in time.
+        // Fallback: if no ready signal in 10s, proceed anyway (same as 1.3.6 / 1.4.4)
         startupTimer = setTimeout(() => {
-            if (settled) return;
-            log('Server ready signal timeout - probing HTTP health endpoint before failing');
-            waitForHttpServerReady(`http://localhost:${backendPort}/api/db-status`, 5000, 500)
-                .then(() => {
-                    log('HTTP server is healthy even without ready signal; continuing startup.');
-                    finishResolve();
-                })
-                .catch(() => {
-                    finishReject(new Error('Server did not send ready signal in time and health-check failed'));
-                });
-        }, 30000);
+            log('Server ready signal timeout - proceeding anyway');
+            finishResolve();
+        }, 10000);
     });
 }
 
@@ -271,12 +248,10 @@ app.whenReady().then(async () => {
         currentBackendPort = backendPort;
         log(`Selected backend port: ${backendPort}`);
 
-        // Start the Express server first.
+        // Start the Express server first
         await startServer(backendPort);
 
-        // Confirm HTTP endpoint is actually listening before opening UI.
-        await waitForHttpServerReady(`http://localhost:${backendPort}/api/db-status`, 30000, 500);
-
+        // Create the window (loads dist/index.html directly)
         createWindow(backendPort);
     } catch (err) {
         log(`FATAL startup error: ${err.message}`);
@@ -293,18 +268,15 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-    // Kill the server process
     if (serverProcess) {
         serverProcess.kill();
     }
-
     if (process.platform !== 'darwin') {
         app.quit();
     }
 });
 
 app.on('before-quit', () => {
-    // Ensure server is killed on quit
     if (serverProcess) {
         serverProcess.kill();
     }
