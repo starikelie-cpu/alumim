@@ -206,42 +206,6 @@ app.get('/api/auth/me', (req, res) => {
     res.json({ loggedIn: false });
 });
 
-app.post('/api/auth/change-credentials', requireAdmin, async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const nextUsername = String(username || '').trim();
-        const nextPassword = String(password || '').trim();
-
-        if (!nextUsername || !nextPassword) {
-            return res.status(400).json({ error: 'Username and password are required' });
-        }
-
-        const currentUsername = req.currentUser.username;
-        const updatedUser = await updateUser(currentUsername, {
-            username: nextUsername,
-            password: nextPassword
-        });
-
-        if (!updatedUser) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const authHeader = req.headers.authorization;
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.substring(7);
-            activeSessions.set(token, {
-                username: updatedUser.username,
-                role: updatedUser.role
-            });
-        }
-
-        res.json({ success: true, user: updatedUser });
-    } catch (error) {
-        console.error('Error updating admin credentials:', error);
-        res.status(400).json({ error: error.message || 'Failed to update admin credentials' });
-    }
-});
-
 // === Database Status and Logs APIs ===
 app.get('/api/db-status', (req, res) => {
     res.json(getConnectionStatus());

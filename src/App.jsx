@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
-import { Button, ConfigProvider, theme, message, Modal, Input, Form } from 'antd';
+import { Button, ConfigProvider, theme, message, Modal, Input } from 'antd';
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
@@ -39,11 +39,9 @@ function App() {
     // Database connection status state
     const [dbStatus, setDbStatus] = useState({ useMongoDB: false, error: null, mongoUri: 'mongodb+srv://Alumim:alumim99@cluster1.i8jyvvd.mongodb.net/Alumim?retryWrites=true&w=majority&appName=Cluster1' });
     const [isDbStatusModalVisible, setIsDbStatusModalVisible] = useState(false);
+    const [serverLogs, setServerLogs] = useState('');
     const [customUriInput, setCustomUriInput] = useState('');
     const [isConnectingDb, setIsConnectingDb] = useState(false);
-    const [isAdminCredentialsVisible, setIsAdminCredentialsVisible] = useState(false);
-    const [isSavingAdminCredentials, setIsSavingAdminCredentials] = useState(false);
-    const [adminCredentialsForm] = Form.useForm();
 
     const getHeaders = (extraHeaders = {}) => {
         const headers = { ...extraHeaders };
@@ -78,38 +76,6 @@ function App() {
         localStorage.setItem('token', newToken);
         setToken(newToken);
         setUser(loggedInUser);
-    };
-
-    const handleAdminCredentialsSave = async (values) => {
-        setIsSavingAdminCredentials(true);
-        try {
-            const payload = {
-                username: values.username?.trim(),
-                password: values.password?.trim()
-            };
-            const response = await fetch(`${API_BASE}/api/auth/change-credentials`, {
-                method: 'POST',
-                headers: getHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || 'עדכון פרטי מנהל נכשל');
-            }
-
-            if (data.user) {
-                setUser(data.user);
-            }
-
-            message.success('פרטי המנהל עודכנו בהצלחה');
-            adminCredentialsForm.resetFields();
-            setIsAdminCredentialsVisible(false);
-        } catch (error) {
-            message.error(error.message || 'שגיאה בעדכון פרטי מנהל');
-        } finally {
-            setIsSavingAdminCredentials(false);
-        }
     };
 
     const handleLogout = () => {
@@ -152,6 +118,7 @@ function App() {
             .then(res => res.json())
             .then(data => {
                 setDbStatus(data.status);
+                fetchLogs();
                 if (data.success) {
                     message.success('הגדרת הכתובת נשמרה והתחברה לענן בהצלחה!');
                 } else {
@@ -168,14 +135,22 @@ function App() {
             .then(res => res.json())
             .then(data => {
                 setDbStatus(data.status);
+                fetchLogs();
                 if (data.success) {
                     message.success('התחבר בהצלחה לבסיס הנתונים בענן!');
                 } else {
-                    message.error('התחברות לענן נכשלה. בדוק את פרטי החיבור ונסה שוב.');
+                    message.error('התחברות לענן נכשלה. נבדקו הלוגים המעודכנים.');
                 }
             })
             .catch(err => message.error('שגיאה בחיבור: ' + err.message))
             .finally(() => setIsConnectingDb(false));
+    };
+
+    const fetchLogs = () => {
+        fetch(`${API_BASE}/api/logs`)
+            .then(res => res.text())
+            .then(data => setServerLogs(data))
+            .catch(err => console.error("Failed to fetch logs:", err));
     };
 
     const fetchAllData = () => {
@@ -574,9 +549,10 @@ function App() {
                     <div 
                         onClick={() => {
                             fetchDbStatus();
+                            fetchLogs();
                             setIsDbStatusModalVisible(true);
                         }}
-                        title="לחץ להצגת פרטי החיבור"
+                        title="לחץ להצגת פרטי החיבור והלוגים"
                         style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
@@ -609,11 +585,6 @@ function App() {
                                 שלום, <strong>{user.username}</strong> ({user.role === 'admin' ? 'מנהל' : 'צופה'})
                             </span>
                             {isAdmin && (
-                                <Button size="small" onClick={() => setIsAdminCredentialsVisible(true)}>
-                                    שינוי שם משתמש/סיסמה
-                                </Button>
-                            )}
-                            {isAdmin && (
                                 <Button type="default" onClick={() => setIsUserMgmtVisible(true)}>
                                     ניהול משתמשים
                                 </Button>
@@ -623,12 +594,12 @@ function App() {
                             </Button>
                         </>
                     ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', transform: 'translateX(8px)' }}>
+                        <>
                             <span style={{ fontSize: '15px', color: '#666' }}>חיבור: <strong>אורח (צופה בלבד)</strong></span>
                             <Button type="primary" size="small" onClick={() => setIsLoginVisible(true)}>
                                 התחבר כמנהל
                             </Button>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>
@@ -740,12 +711,12 @@ function App() {
                 />
 
                 <Modal
-                    title="סטטוס חיבור לבסיס הנתונים"
+                    title="סטטוס חיבור לבסיס הנתונים ולוגים"
                     open={isDbStatusModalVisible}
                     onCancel={() => setIsDbStatusModalVisible(false)}
                     footer={[
                         <Button key="reconnect" loading={isConnectingDb} onClick={handleReconnect}>ניסיון חיבור מחדש</Button>,
-                        <Button key="refresh" onClick={() => { fetchDbStatus(); }}>רענן</Button>,
+                        <Button key="refresh" onClick={() => { fetchDbStatus(); fetchLogs(); }}>רענן</Button>,
                         <Button key="close" type="primary" onClick={() => setIsDbStatusModalVisible(false)}>סגור</Button>
                     ]}
                     width={800}
@@ -792,50 +763,25 @@ function App() {
                                 </pre>
                             </div>
                         )}
+                        <div>
+                            <strong>לוגים של השרת האחרונים (app.log):</strong>
+                            <pre style={{ 
+                                background: '#1e1e1e', 
+                                color: '#d4d4d4', 
+                                padding: '12px', 
+                                borderRadius: '4px', 
+                                maxHeight: '300px', 
+                                overflowY: 'auto',
+                                direction: 'ltr',
+                                textAlign: 'left',
+                                fontSize: '11px',
+                                fontFamily: 'monospace',
+                                marginTop: '6px'
+                            }}>
+                                {serverLogs || 'אין לוגים זמינים כעת.'}
+                            </pre>
+                        </div>
                     </div>
-                </Modal>
-
-                <Modal
-                    title="עדכון פרטי מנהל"
-                    open={isAdminCredentialsVisible}
-                    onCancel={() => {
-                        setIsAdminCredentialsVisible(false);
-                        adminCredentialsForm.resetFields();
-                    }}
-                    onOk={() => adminCredentialsForm.submit()}
-                    okText="שמור"
-                    cancelText="ביטול"
-                    confirmLoading={isSavingAdminCredentials}
-                    width={420}
-                    destroyOnClose
-                >
-                    <Form
-                        form={adminCredentialsForm}
-                        layout="vertical"
-                        onFinish={handleAdminCredentialsSave}
-                        initialValues={{ username: user?.username || '' }}
-                    >
-                        <Form.Item
-                            name="username"
-                            label="שם משתמש חדש"
-                            rules={[
-                                { required: true, message: 'נא להזין שם משתמש' },
-                                { min: 3, message: 'שם משתמש חייב להכיל לפחות 3 תווים' }
-                            ]}
-                        >
-                            <Input placeholder="לדוגמה: admin" />
-                        </Form.Item>
-                        <Form.Item
-                            name="password"
-                            label="סיסמה חדשה"
-                            rules={[
-                                { required: true, message: 'נא להזין סיסמה חדשה' },
-                                { min: 4, message: 'סיסמה חייבת להכיל לפחות 4 תווים' }
-                            ]}
-                        >
-                            <Input.Password placeholder="סיסמה חדשה" />
-                        </Form.Item>
-                    </Form>
                 </Modal>
             </div>
         </ConfigProvider>
