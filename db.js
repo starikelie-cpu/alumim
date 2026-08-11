@@ -4,6 +4,7 @@ import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import { normalizeRole, isSuperAdmin, isAdminRole, filterRecordsBySynagogue, filterUsersByAccess } from './accessControl.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +13,7 @@ const DATA_FILE = path.join(DATA_DIR, 'members.json');
 const ARCHIVE_FILE = path.join(DATA_DIR, 'archive.json');
 const NIFTARIM_FILE = path.join(DATA_DIR, 'niftarim.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const SYNAGOGUES_FILE = path.join(DATA_DIR, 'synagogues.json');
 
 const logPath = process.env.APP_DATA_PATH ? path.join(path.dirname(process.env.APP_DATA_PATH), 'app.log') : null;
 function log(msg) {
@@ -88,12 +90,89 @@ export function hashPassword(password) {
     return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// Initialize default admin user if none exist
+async function readJsonFile(filePath, fallback = []) {
+    try {
+        const data = await fs.readFile(filePath, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return fallback;
+        }
+        throw error;
+    }
+}
+
+async function writeJsonFile(filePath, data) {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+}
+
+export async function getSynagogues() {
+    if (useMongoDB) {
+        return await db.collection('synagogues').find({}, { projection: { _id: 0 } }).toArray();
+    }
+    return await readJsonFile(SYNAGOGUES_FILE, []);
+}
+
+export async function addSynagogue(synagogue) {
+    const doc = {
+        id: synagogue.id || `syn-${Date.now()}`,
+        name: synagogue.name || 'בית כנסת חדש',
+        address: synagogue.address || '',
+        phone: synagogue.phone || '',
+        createdAt: new Date().toISOString()
+    };
+    if (useMongoDB) {
+        await db.collection('synagogues').insertOne(doc);
+        return doc;
+    }
+    const synagogues = await readJsonFile(SYNAGOGUES_FILE, []);
+    synagogues.push(doc);
+    await writeJsonFile(SYNAGOGUES_FILE, synagogues);
+    return doc;
+}
+
+export async function updateSynagogue(id, data) {
+    const update = {};
+    if (data.name !== undefined) update.name = data.name;
+    if (data.address !== undefined) update.address = data.address;
+    if (data.phone !== undefined) update.phone = data.phone;
+
+    if (useMongoDB) {
+        const result = await db.collection('synagogues').findOneAndUpdate(
+            { id },
+            { $set: update },
+            { returnDocument: 'after', projection: { _id: 0 } }
+        );
+        return result && result.value ? result.value : result;
+    }
+    const synagogues = await readJsonFile(SYNAGOGUES_FILE, []);
+    const idx = synagogues.findIndex(s => s.id === id);
+    if (idx === -1) return null;
+    synagogues[idx] = { ...synagogues[idx], ...update };
+    await writeJsonFile(SYNAGOGUES_FILE, synagogues);
+    return synagogues[idx];
+}
+
+export async function deleteSynagogue(id) {
+    if (useMongoDB) {
+        const result = await db.collection('synagogues').deleteOne({ id });
+        return result.deletedCount > 0;
+    }
+    const synagogues = await readJsonFile(SYNAGOGUES_FILE, []);
+    const idx = synagogues.findIndex(s => s.id === id);
+    if (idx === -1) return false;
+    synagogues.splice(idx, 1);
+    await writeJsonFile(SYNAGOGUES_FILE, synagogues);
+    return true;
+}
+
 export async function initializeUsers() {
     const defaultAdmin = {
         username: 'admin',
         password: hashPassword('1234'),
-        role: 'admin'
+        role: 'super_admin',
+        synagogueId: null
     };
 
     if (useMongoDB) {
@@ -126,7 +205,8 @@ export async function ensureLocalAdmin() {
     const defaultAdmin = {
         username: 'admin',
         password: hashPassword('1234'),
-        role: 'admin'
+        role: 'super_admin',
+        synagogueId: null
     };
     try {
         await fs.mkdir(DATA_DIR, { recursive: true });
@@ -137,7 +217,7 @@ export async function ensureLocalAdmin() {
         } catch (e) {
             // File doesn't exist yet — that's ok
         }
-        const adminExists = users.some(u => u.username === 'admin');
+        const adminExists = users.some(u => isAdminRole(u.role));
         if (!adminExists) {
             users.unshift(defaultAdmin);
             await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
@@ -256,13 +336,15 @@ export async function authenticateUser(username, password) {
     if (useMongoDB) {
         const user = await db.collection('users').findOne({ username: username });
         if (user && user.password === hashed) {
-            return { username: user.username, role: user.role };
+            const role = normalizeRole(user.role);
+            return { username: user.username, role, synagogueId: user.synagogueId || null };
         }
     } else {
         const users = await readLocalFile(USERS_FILE);
         const user = users.find(u => u.username === username);
         if (user && user.password === hashed) {
-            return { username: user.username, role: user.role };
+            const role = normalizeRole(user.role);
+            return { username: user.username, role, synagogueId: user.synagogueId || null };
         }
     }
     return null;
@@ -275,7 +357,7 @@ export async function getUsers() {
         const users = await readLocalFile(USERS_FILE);
         return users.map(u => {
             const { password, ...rest } = u;
-            return rest;
+            return { ...rest, role: normalizeRole(rest.role) };
         });
     }
 }
@@ -284,7 +366,8 @@ export async function addUser(user) {
     const doc = {
         username: user.username,
         password: hashPassword(user.password),
-        role: user.role || 'viewer'
+        role: normalizeRole(user.role || 'viewer'),
+        synagogueId: user.synagogueId || null
     };
 
     if (useMongoDB) {
@@ -309,10 +392,21 @@ export async function addUser(user) {
 
 export async function updateUser(username, userData) {
     const updateDoc = {};
-    if (userData.role) updateDoc.role = userData.role;
+    if (userData.role) updateDoc.role = normalizeRole(userData.role);
+    if (userData.synagogueId !== undefined) updateDoc.synagogueId = userData.synagogueId || null;
     if (userData.password) updateDoc.password = hashPassword(userData.password);
+    const requestedUsername = userData.username ? String(userData.username).trim() : '';
+    if (requestedUsername) {
+        updateDoc.username = requestedUsername;
+    }
 
     if (useMongoDB) {
+        if (updateDoc.username && updateDoc.username !== username) {
+            const existing = await db.collection('users').findOne({ username: updateDoc.username });
+            if (existing) {
+                throw new Error('Username already exists');
+            }
+        }
         const result = await db.collection('users').findOneAndUpdate(
             { username: username },
             { $set: updateDoc },
@@ -325,6 +419,13 @@ export async function updateUser(username, userData) {
         const users = await readLocalFile(USERS_FILE);
         const index = users.findIndex(u => u.username === username);
         if (index === -1) return null;
+
+        if (updateDoc.username && updateDoc.username !== username) {
+            const exists = users.some(u => u.username === updateDoc.username);
+            if (exists) {
+                throw new Error('Username already exists');
+            }
+        }
         
         users[index] = { ...users[index], ...updateDoc };
         await writeLocalFile(USERS_FILE, users);
@@ -335,17 +436,29 @@ export async function updateUser(username, userData) {
 }
 
 export async function deleteUser(username) {
-    if (username === 'admin') {
-        throw new Error('Cannot delete primary admin user');
-    }
-    
     if (useMongoDB) {
+        const userToDelete = await db.collection('users').findOne({ username: username });
+        if (!userToDelete) return false;
+        if (isAdminRole(userToDelete.role)) {
+            const allUsers = await db.collection('users').find({}).toArray();
+            const adminsCount = allUsers.filter(u => isAdminRole(u.role)).length;
+            if (adminsCount <= 1) {
+                throw new Error('Cannot delete the last admin user');
+            }
+        }
         const result = await db.collection('users').deleteOne({ username: username });
         return result.deletedCount > 0;
     } else {
         const users = await readLocalFile(USERS_FILE);
         const index = users.findIndex(u => u.username === username);
         if (index === -1) return false;
+
+        if (isAdminRole(users[index].role)) {
+            const adminsCount = users.filter(u => isAdminRole(u.role)).length;
+            if (adminsCount <= 1) {
+                throw new Error('Cannot delete the last admin user');
+            }
+        }
         
         users.splice(index, 1);
         await writeLocalFile(USERS_FILE, users);
@@ -355,25 +468,24 @@ export async function deleteUser(username) {
 
 
 // === Members API ===
-export async function getMembers() {
-    if (useMongoDB) {
-        return await db.collection('members').find({}, { projection: { _id: 0 } }).toArray();
-    } else {
-        return await readLocalFile(DATA_FILE);
-    }
+export async function getMembers(user = null) {
+    const records = useMongoDB
+        ? await db.collection('members').find({}, { projection: { _id: 0 } }).toArray()
+        : await readLocalFile(DATA_FILE);
+    return filterRecordsBySynagogue(records, user);
 }
 
 export async function addMember(member) {
+    const doc = { ...member, synagogueId: member.synagogueId || null };
     if (useMongoDB) {
-        const doc = { ...member };
         await db.collection('members').insertOne(doc);
         delete doc._id;
         return doc;
     } else {
         const members = await readLocalFile(DATA_FILE);
-        members.push(member);
+        members.push(doc);
         await writeLocalFile(DATA_FILE, members);
-        return member;
+        return doc;
     }
 }
 
@@ -422,12 +534,11 @@ export async function importMembers(membersList) {
 }
 
 // === Archive API ===
-export async function getArchive() {
-    if (useMongoDB) {
-        return await db.collection('archive').find({}, { projection: { _id: 0 } }).toArray();
-    } else {
-        return await readLocalFile(ARCHIVE_FILE);
-    }
+export async function getArchive(user = null) {
+    const records = useMongoDB
+        ? await db.collection('archive').find({}, { projection: { _id: 0 } }).toArray()
+        : await readLocalFile(ARCHIVE_FILE);
+    return filterRecordsBySynagogue(records, user);
 }
 
 export async function getArchiveForMember(memberId) {
@@ -498,12 +609,11 @@ export async function importArchive(archiveList) {
 }
 
 // === Niftarim API ===
-export async function getNiftarim() {
-    if (useMongoDB) {
-        return await db.collection('niftarim').find({}, { projection: { _id: 0 } }).toArray();
-    } else {
-        return await readLocalFile(NIFTARIM_FILE);
-    }
+export async function getNiftarim(user = null) {
+    const records = useMongoDB
+        ? await db.collection('niftarim').find({}, { projection: { _id: 0 } }).toArray()
+        : await readLocalFile(NIFTARIM_FILE);
+    return filterRecordsBySynagogue(records, user);
 }
 
 export async function addNiftar(niftar) {

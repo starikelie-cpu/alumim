@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Table, Button, Form, Input, Select, Popconfirm, Space, message, Tag } from 'antd';
 import { PlusOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
 import { API_BASE } from '../config';
+import { normalizeRole } from '../../accessControl';
 
-const UserManagementModal = ({ visible, onCancel, token }) => {
+const UserManagementModal = ({ visible, onCancel, token, currentUser }) => {
     const [users, setUsers] = useState([]);
+    const [synagogues, setSynagogues] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isAddUserVisible, setIsAddUserVisible] = useState(false);
+    const [isAddSynagogueVisible, setIsAddSynagogueVisible] = useState(false);
     const [form] = Form.useForm();
+    const [synagogueForm] = Form.useForm();
 
     const fetchHeaders = {
         'Content-Type': 'application/json',
@@ -31,18 +35,34 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
         }
     };
 
+    const fetchSynagogues = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/api/synagogues`, { headers: fetchHeaders });
+            if (!response.ok) throw new Error('Failed to fetch synagogues');
+            const data = await response.json();
+            setSynagogues(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Error fetching synagogues:', error);
+        }
+    };
+
     useEffect(() => {
         if (visible && token) {
             fetchUsers();
+            fetchSynagogues();
         }
     }, [visible, token]);
 
     const handleCreateUser = async (values) => {
         try {
+            const payload = {
+                ...values,
+                synagogueId: values.synagogueId || null
+            };
             const response = await fetch(`${API_BASE}/api/users`, {
                 method: 'POST',
                 headers: fetchHeaders,
-                body: JSON.stringify(values)
+                body: JSON.stringify(payload)
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to create user');
@@ -54,6 +74,25 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
         } catch (error) {
             console.error('Create user error:', error);
             message.error(error.message || 'שגיאה ביצירת משתמש');
+        }
+    };
+
+    const handleCreateSynagogue = async (values) => {
+        try {
+            const response = await fetch(`${API_BASE}/api/synagogues`, {
+                method: 'POST',
+                headers: fetchHeaders,
+                body: JSON.stringify(values)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to create synagogue');
+            message.success('בית כנסת נוצר בהצלחה');
+            synagogueForm.resetFields();
+            setIsAddSynagogueVisible(false);
+            fetchSynagogues();
+        } catch (error) {
+            console.error('Create synagogue error:', error);
+            message.error(error.message || 'שגיאה ביצירת בית כנסת');
         }
     };
 
@@ -128,16 +167,27 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
                 if (record.username === 'admin') {
                     return <Tag color="gold">מנהל על</Tag>;
                 }
+                const normalizedRole = normalizeRole(role);
                 return (
                     <Select
-                        value={role}
+                        value={normalizedRole}
                         onChange={(val) => handleChangeRole(record.username, val)}
-                        style={{ width: 120 }}
+                        style={{ width: 150 }}
                     >
-                        <Select.Option value="admin">מנהל</Select.Option>
+                        <Select.Option value="super_admin">מנהל (admin)</Select.Option>
+                        <Select.Option value="synagogue_admin">מנהל בית כנסת</Select.Option>
                         <Select.Option value="viewer">צופה</Select.Option>
                     </Select>
                 );
+            }
+        },
+        {
+            title: 'בית כנסת',
+            dataIndex: 'synagogueId',
+            key: 'synagogueId',
+            render: (synagogueId) => {
+                const matching = synagogues.find((item) => item.id === synagogueId);
+                return matching ? matching.name : 'כללי';
             }
         },
         {
@@ -175,7 +225,13 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
             width={600}
             destroyOnClose
         >
-            <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <Button 
+                    type="default"
+                    onClick={() => setIsAddSynagogueVisible(!isAddSynagogueVisible)}
+                >
+                    בית כנסת חדש
+                </Button>
                 <Button 
                     type="primary" 
                     icon={<PlusOutlined />} 
@@ -184,6 +240,27 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
                     משתמש חדש
                 </Button>
             </div>
+
+            {isAddSynagogueVisible && (
+                <Form
+                    form={synagogueForm}
+                    layout="inline"
+                    onFinish={handleCreateSynagogue}
+                    style={{ marginBottom: '20px', padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}
+                >
+                    <Form.Item
+                        name="name"
+                        rules={[{ required: true, message: 'הזן שם בית כנסת' }]}
+                    >
+                        <Input placeholder="שם בית כנסת" />
+                    </Form.Item>
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit">
+                            צור
+                        </Button>
+                    </Form.Item>
+                </Form>
+            )}
 
             {isAddUserVisible && (
                 <Form
@@ -204,10 +281,18 @@ const UserManagementModal = ({ visible, onCancel, token }) => {
                     >
                         <Input.Password placeholder="סיסמה" />
                     </Form.Item>
-                    <Form.Item name="role" initialValue="viewer">
-                        <Select style={{ width: 100 }}>
-                            <Select.Option value="admin">מנהל</Select.Option>
+                    <Form.Item name="role" initialValue="synagogue_admin">
+                        <Select style={{ width: 160 }}>
+                            <Select.Option value="super_admin">מנהל (admin)</Select.Option>
+                            <Select.Option value="synagogue_admin">מנהל בית כנסת</Select.Option>
                             <Select.Option value="viewer">צופה</Select.Option>
+                        </Select>
+                    </Form.Item>
+                    <Form.Item name="synagogueId">
+                        <Select style={{ width: 180 }} placeholder="בחר בית כנסת">
+                            {synagogues.map((item) => (
+                                <Select.Option key={item.id} value={item.id}>{item.name}</Select.Option>
+                            ))}
                         </Select>
                     </Form.Item>
                     <Form.Item>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
-import { Button, ConfigProvider, theme, message, Modal, Input } from 'antd';
+import { Button, ConfigProvider, theme, message, Modal, Input, Form } from 'antd';
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
@@ -11,7 +11,7 @@ import ArchiveListModal from './components/ArchiveListModal';
 import AddNiftarModal from './components/AddNiftarModal';
 import NiftarimListModal from './components/NiftarimListModal';
 import LoginModal from './components/LoginModal';
-import UserManagementModal from './components/UserManagementModal';
+import AdminDashboardModal from './components/AdminDashboardModal';
 import { API_BASE } from './config';
 
 function App() {
@@ -35,13 +35,16 @@ function App() {
     const [user, setUser] = useState(null);
     const [isLoginVisible, setIsLoginVisible] = useState(false);
     const [isUserMgmtVisible, setIsUserMgmtVisible] = useState(false);
+    const [synagogues, setSynagogues] = useState([]);
 
     // Database connection status state
     const [dbStatus, setDbStatus] = useState({ useMongoDB: false, error: null, mongoUri: 'mongodb+srv://Alumim:alumim99@cluster1.i8jyvvd.mongodb.net/Alumim?retryWrites=true&w=majority&appName=Cluster1' });
     const [isDbStatusModalVisible, setIsDbStatusModalVisible] = useState(false);
-    const [serverLogs, setServerLogs] = useState('');
     const [customUriInput, setCustomUriInput] = useState('');
     const [isConnectingDb, setIsConnectingDb] = useState(false);
+    const [isAdminCredentialsVisible, setIsAdminCredentialsVisible] = useState(false);
+    const [isSavingAdminCredentials, setIsSavingAdminCredentials] = useState(false);
+    const [adminCredentialsForm] = Form.useForm();
 
     const getHeaders = (extraHeaders = {}) => {
         const headers = { ...extraHeaders };
@@ -78,6 +81,38 @@ function App() {
         setUser(loggedInUser);
     };
 
+    const handleAdminCredentialsSave = async (values) => {
+        setIsSavingAdminCredentials(true);
+        try {
+            const payload = {
+                username: values.username?.trim(),
+                password: values.password?.trim()
+            };
+            const response = await fetch(`${API_BASE}/api/auth/change-credentials`, {
+                method: 'POST',
+                headers: getHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'עדכון פרטי מנהל נכשל');
+            }
+
+            if (data.user) {
+                setUser(data.user);
+            }
+
+            message.success('פרטי המנהל עודכנו בהצלחה');
+            adminCredentialsForm.resetFields();
+            setIsAdminCredentialsVisible(false);
+        } catch (error) {
+            message.error(error.message || 'שגיאה בעדכון פרטי מנהל');
+        } finally {
+            setIsSavingAdminCredentials(false);
+        }
+    };
+
     const handleLogout = () => {
         if (token) {
             fetch(`${API_BASE}/api/auth/logout`, {
@@ -91,7 +126,9 @@ function App() {
         message.success('התנתקת בהצלחה');
     };
 
-    const isAdmin = user && user.role === 'admin';
+    const isAdmin = user && (user.role === 'super_admin' || user.role === 'synagogue_admin' || user.role === 'admin');
+    const isSuperAdmin = user?.role === 'super_admin';
+    const canSeeAdminDashboard = isSuperAdmin || user?.role === 'admin';
 
     const fetchDbStatus = () => {
         fetch(`${API_BASE}/api/db-status`)
@@ -118,7 +155,6 @@ function App() {
             .then(res => res.json())
             .then(data => {
                 setDbStatus(data.status);
-                fetchLogs();
                 if (data.success) {
                     message.success('הגדרת הכתובת נשמרה והתחברה לענן בהצלחה!');
                 } else {
@@ -135,26 +171,19 @@ function App() {
             .then(res => res.json())
             .then(data => {
                 setDbStatus(data.status);
-                fetchLogs();
                 if (data.success) {
                     message.success('התחבר בהצלחה לבסיס הנתונים בענן!');
                 } else {
-                    message.error('התחברות לענן נכשלה. נבדקו הלוגים המעודכנים.');
+                    message.error('התחברות לענן נכשלה. בדוק את פרטי החיבור ונסה שוב.');
                 }
             })
             .catch(err => message.error('שגיאה בחיבור: ' + err.message))
             .finally(() => setIsConnectingDb(false));
     };
 
-    const fetchLogs = () => {
-        fetch(`${API_BASE}/api/logs`)
-            .then(res => res.text())
-            .then(data => setServerLogs(data))
-            .catch(err => console.error("Failed to fetch logs:", err));
-    };
-
     const fetchAllData = () => {
-        fetch(`${API_BASE}/api/members`)
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        fetch(`${API_BASE}/api/members`, { headers })
             .then(res => res.json())
             .then(data => setMembers(data))
             .catch(err => console.error("Failed to fetch members:", err));
@@ -163,6 +192,11 @@ function App() {
             .then(res => res.json())
             .then(data => setNiftarim(Array.isArray(data) ? data : []))
             .catch(err => console.error("Failed to fetch niftarim:", err));
+
+        fetch(`${API_BASE}/api/synagogues`, { headers })
+            .then(res => res.json())
+            .then(data => setSynagogues(Array.isArray(data) ? data : []))
+            .catch(err => console.error('Failed to fetch synagogues:', err));
 
         fetchDbStatus();
     };
@@ -549,10 +583,9 @@ function App() {
                     <div 
                         onClick={() => {
                             fetchDbStatus();
-                            fetchLogs();
                             setIsDbStatusModalVisible(true);
                         }}
-                        title="לחץ להצגת פרטי החיבור והלוגים"
+                        title="לחץ להצגת פרטי החיבור"
                         style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
@@ -582,11 +615,21 @@ function App() {
                     {user ? (
                         <>
                             <span style={{ fontSize: '15px' }}>
-                                שלום, <strong>{user.username}</strong> ({user.role === 'admin' ? 'מנהל' : 'צופה'})
+                                שלום, <strong>{user.username}</strong> ({user.role === 'super_admin' ? 'מנהל על' : user.role === 'synagogue_admin' ? 'מנהל בית כנסת' : 'צופה'})
                             </span>
+                            {user?.synagogueId && (
+                                <span style={{ fontSize: '13px', color: '#666' }}>
+                                    בית כנסת: <strong>{synagogues.find(item => item.id === user.synagogueId)?.name || user.synagogueId}</strong>
+                                </span>
+                            )}
                             {isAdmin && (
+                                <Button size="small" onClick={() => setIsAdminCredentialsVisible(true)}>
+                                    שינוי שם משתמש/סיסמה
+                                </Button>
+                            )}
+                            {canSeeAdminDashboard && (
                                 <Button type="default" onClick={() => setIsUserMgmtVisible(true)}>
-                                    ניהול משתמשים
+                                    לוח בקרה ניהולי
                                 </Button>
                             )}
                             <Button type="primary" danger size="small" onClick={handleLogout}>
@@ -594,21 +637,25 @@ function App() {
                             </Button>
                         </>
                     ) : (
-                        <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', transform: 'translateX(8px)' }}>
                             <span style={{ fontSize: '15px', color: '#666' }}>חיבור: <strong>אורח (צופה בלבד)</strong></span>
                             <Button type="primary" size="small" onClick={() => setIsLoginVisible(true)}>
                                 התחבר כמנהל
                             </Button>
-                        </>
+                        </div>
                     )}
                 </div>
             </div>
 
             <div style={{ padding: '40px 50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
                 <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {isAdmin && (
+                    {isAdmin ? (
                         <Button type="primary" size="large" onClick={() => setIsModalVisible(true)}>
                             הוסף מתפלל חדש
+                        </Button>
+                    ) : (
+                        <Button type="primary" size="large" onClick={() => setIsLoginVisible(true)}>
+                            התחבר כמנהל
                         </Button>
                     )}
                     <Button size="large" onClick={() => setIsListVisible(true)}>
@@ -652,6 +699,8 @@ function App() {
                     onSave={handleSave}
                     editingMember={editingMember || editingArchiveRecord}
                     members={members}
+                    synagogues={synagogues}
+                    currentUser={user}
                 />
 
                 <MembersListModal
@@ -704,19 +753,22 @@ function App() {
                     onLoginSuccess={handleLoginSuccess}
                 />
 
-                <UserManagementModal
+                <AdminDashboardModal
                     visible={isUserMgmtVisible}
                     onCancel={() => setIsUserMgmtVisible(false)}
                     token={token}
+                    currentUser={user}
+                    members={members}
+                    niftarim={niftarim}
                 />
 
                 <Modal
-                    title="סטטוס חיבור לבסיס הנתונים ולוגים"
+                    title="סטטוס חיבור לבסיס הנתונים"
                     open={isDbStatusModalVisible}
                     onCancel={() => setIsDbStatusModalVisible(false)}
                     footer={[
                         <Button key="reconnect" loading={isConnectingDb} onClick={handleReconnect}>ניסיון חיבור מחדש</Button>,
-                        <Button key="refresh" onClick={() => { fetchDbStatus(); fetchLogs(); }}>רענן</Button>,
+                        <Button key="refresh" onClick={() => { fetchDbStatus(); }}>רענן</Button>,
                         <Button key="close" type="primary" onClick={() => setIsDbStatusModalVisible(false)}>סגור</Button>
                     ]}
                     width={800}
@@ -763,25 +815,50 @@ function App() {
                                 </pre>
                             </div>
                         )}
-                        <div>
-                            <strong>לוגים של השרת האחרונים (app.log):</strong>
-                            <pre style={{ 
-                                background: '#1e1e1e', 
-                                color: '#d4d4d4', 
-                                padding: '12px', 
-                                borderRadius: '4px', 
-                                maxHeight: '300px', 
-                                overflowY: 'auto',
-                                direction: 'ltr',
-                                textAlign: 'left',
-                                fontSize: '11px',
-                                fontFamily: 'monospace',
-                                marginTop: '6px'
-                            }}>
-                                {serverLogs || 'אין לוגים זמינים כעת.'}
-                            </pre>
-                        </div>
                     </div>
+                </Modal>
+
+                <Modal
+                    title="עדכון פרטי מנהל"
+                    open={isAdminCredentialsVisible}
+                    onCancel={() => {
+                        setIsAdminCredentialsVisible(false);
+                        adminCredentialsForm.resetFields();
+                    }}
+                    onOk={() => adminCredentialsForm.submit()}
+                    okText="שמור"
+                    cancelText="ביטול"
+                    confirmLoading={isSavingAdminCredentials}
+                    width={420}
+                    destroyOnClose
+                >
+                    <Form
+                        form={adminCredentialsForm}
+                        layout="vertical"
+                        onFinish={handleAdminCredentialsSave}
+                        initialValues={{ username: user?.username || '' }}
+                    >
+                        <Form.Item
+                            name="username"
+                            label="שם משתמש חדש"
+                            rules={[
+                                { required: true, message: 'נא להזין שם משתמש' },
+                                { min: 3, message: 'שם משתמש חייב להכיל לפחות 3 תווים' }
+                            ]}
+                        >
+                            <Input placeholder="לדוגמה: admin" />
+                        </Form.Item>
+                        <Form.Item
+                            name="password"
+                            label="סיסמה חדשה"
+                            rules={[
+                                { required: true, message: 'נא להזין סיסמה חדשה' },
+                                { min: 4, message: 'סיסמה חייבת להכיל לפחות 4 תווים' }
+                            ]}
+                        >
+                            <Input.Password placeholder="סיסמה חדשה" />
+                        </Form.Item>
+                    </Form>
                 </Modal>
             </div>
         </ConfigProvider>

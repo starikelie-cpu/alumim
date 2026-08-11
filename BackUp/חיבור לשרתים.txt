@@ -1,0 +1,95 @@
+
+
+
+
+על איזה שרת יושבים הנתונים
+4:50 PM
+
+
+הנתונים שלך מאוחסנים בענן בשירות MongoDB Atlas (שהוא שירות בסיסי הנתונים המנוהל הרשמי של חברת MongoDB).
+
+להלן הפרטים הטכניים של שרת האחסון כפי שמוגדרים בקובץ 
+.env
+:
+
+סוג השרת: שרת בענן (Cloud Cluster) מסוג MongoDB.
+כתובת השרת ברשת: cluster0.i8jyvvd.mongodb.net
+שם בסיס הנתונים: Alumim (בתוכו נמצאים האוספים members, niftarim ו-archive).
+אחסון פיזי: השרתים של MongoDB Atlas מאוחסנים פיזית על גבי תשתיות הענן הגדולות בעולם (בדרך כלל AWS של אמזון, או Google Cloud) בשרת מאובטח ומגובה באופן אוטומטי.
+
+
+שם המשתמש והסיסמה הראשוניים לצורך כניסה כמנהל מערכת הם:
+
+שם משתמש: admin
+סיסמה: 1234
+TIP
+
+לאחר ההתחברות הראשונית, מומלץ להיכנס למסך "ניהול משתמשים" בסרגל העליון כדי לשנות את סיסמת ה-admin לסיסמה מאובטחת יותר או ליצור משתמשים נוספים בעלי הרשאות מתאימות.
+
+
+
+פרטי המשתמש והסיסמה מוגדרים כך בקוד:
+
+1. חיבור למסד הנתונים MongoDB Atlas (מתוך קובץ ה-
+.env
+):
+שם משתמש (Username): Alumim
+סיסמה (Password): alumim99
+מחרוזת החיבור המלאה (URI): mongodb+srv://Alumim:alumim99@cluster0.i8jyvvd.mongodb.net/?appName=Cluster0
+2. משתמש הניהול הראשוני של האפליקציה (Admin User):
+במידה ומסד הנתונים ריק (הן ב-MongoDB והן בקבצי ה-JSON המקומיים), המערכת יוצרת אוטומטית את משתמש הניהול הבא (מתוך הפונקציה initializeUsers בקובץ 
+db.js
+):
+
+שם משתמש (Username): admin
+סיסמה (Password): 1234
+4:58 PM
+
+
+Render שרת האפליקציה
+
+GitHub
+
+גישנ לבסיס הנתונים בשרת Alumim והסיסמה alumim99) 
+
+
+
+
+
+
+Google AI Plus (400 GB)
+Google One
+החל מ-היום
+‏19.00 ‏₪/month
+אפשר לבטל מתי שרוצים בקטע "מינויים" ב-Google Play
+
+
+Visa-9797
+פג תוקף
+navigate_next
+
+
+🔑 פרטי ההתחברות לשרת הנתונים (MongoDB Atlas)
+כתובת השרת (Cluster): cluster0.i8jyvvd.mongodb.net
+מחרוזת התחברות מלאה (URI): mongodb+srv://Alumim:alumim99@cluster0.i8jyvvd.mongodb.net/?appName=Cluster0
+שם משתמש לשרת הנתונים (DB Username): Alumim
+סיסמה לשרת הנתונים (DB Password): alumim99
+שם בסיס הנתונים (Database Name): Alumim
+👤 פרטי התחברות למערכת (משתמש מנהל באפליקציה)
+שם משתמש: admin
+סיסמה: 1234
+
+
+mongodb+srv://Alumim:alumim99@cluster0.i8jyvvd.mongodb.net/?appName=Cluster0
+
+
+הכתובת המדויקת והמאומתת המוטמעת כעת במפורש בכל קבצי המערכת ובבנייה היא: mongodb+srv://Alumim:alumim99@cluster0.i8jyvvd.mongodb.net/?appName=Cluster0
+
+שם משתמש לשרת הנתונים (MongoDB): Alumim
+סיסמה לשרת הנתונים (MongoDB): alumim99
+שם בסיס הנתונים: Alumim
+משתמש ניהול באפליקציה (Admin User): admin
+סיסמה לניהול באפליקציה: 1234
+
+
+

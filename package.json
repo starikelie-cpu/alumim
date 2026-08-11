@@ -10,7 +10,7 @@
             "node18-win-x64"
         ]
     },
-    "version": "1.4.11",
+    "version": "1.4.22",
     "description": "Synagogue Management Application",
     "author": "Synagogue Management Team",
     "main": "electron.cjs",
@@ -20,12 +20,11 @@
         "build": "vite build",
         "preview": "vite preview",
         "start": "electron .",
-        "dist": "npm run build && electron-builder && npm run postdist",
-        "postdist": "node -e \"const fs = require('fs'); const version = require('./package.json').version; fs.copyFileSync('build-output/Nihul Beit Cnecet Setup ' + version + '.exe', './Nihul Beit Cnecet Setup ' + version + '.exe')\""
+        "dist": "npm run build && node scripts/prepare-dist.cjs && node scripts/build-installer.cjs && npm run postdist",
+        "postdist": "node -e \"const fs = require('fs'); const path = require('path'); const pkg = require('./package.json'); const version = pkg.version; const outputDir = (pkg.build && pkg.build.directories && pkg.build.directories.output) || 'build-output'; const installer = path.join(outputDir, 'Nihul Beit Cnecet Setup ' + version + '.exe'); fs.copyFileSync(installer, path.join('dist', 'Nihul Beit Cnecet Setup ' + version + '.exe')); fs.copyFileSync(installer, path.join('.', 'Nihul Beit Cnecet Setup ' + version + '.exe'));\""
     },
     "dependencies": {
         "@hebcal/core": "^6.0.8",
-        "antd": "^6.2.3",
         "dotenv": "^16.4.5",
         "express": "^5.2.1",
         "hebcal": "^2.3.2",
@@ -36,9 +35,11 @@
     },
     "devDependencies": {
         "@vitejs/plugin-react": "^4.3.1",
+        "antd": "^6.2.3",
         "concurrently": "^9.2.1",
         "electron": "^40.3.0",
-        "electron-builder": "^26.15.0",
+        "electron-builder": "^26.15.3",
+        "electron-packager": "^17.1.2",
         "esbuild": "^0.27.3",
         "vite": "^5.4.21"
     },
@@ -55,18 +56,20 @@
         "productName": "Nihul Beit Cnecet",
         "asar": false,
         "directories": {
-            "output": "build-output"
+            "output": "build-output-1.4.22"
         },
         "files": [
             "dist/**/*",
             "public/**/*",
             "index.js",
-            "db.js",
             "electron.cjs",
             "package.json",
-            "prague_synagogue_icon.ico",
             "data/**/*",
-            ".env"
+            "!**/node_modules/antd/**",
+            "!**/node_modules/@ant-design/**",
+            "!**/node_modules/react/**",
+            "!**/node_modules/react-dom/**",
+            "!**/node_modules/lucide-react/**"
         ],
         "win": {
             "target": "nsis",

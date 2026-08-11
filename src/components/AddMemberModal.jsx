@@ -5,10 +5,11 @@ import { CalendarOutlined, SearchOutlined, QuestionCircleOutlined } from '@ant-d
 import { HebrewCalendarComponent } from './HebrewCalendarComponent';
 import { formatHebrewDateToNumeric, formatHebrewDateToTextual, calculateAliyahInfo, getHebrewMonthNumber, gematriaToNum } from '../utils/hebrewDateUtils';
 import { API_BASE } from '../config';
+import { resolveEffectiveSynagogueId } from '../../accessControl';
 
 const { Option } = Select;
 
-const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = [] }) => {
+const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = [], synagogues = [], currentUser = null }) => {
     const [form] = Form.useForm();
     const [calendar, setCalendar] = useState({ isOpen: false, field: null });
     const [nameSearch, setNameSearch] = useState('');
@@ -70,6 +71,12 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                 ...aliyahClearFields
             };
             form.setFieldsValue(formattedMember);
+        } else if (visible && !editingMember) {
+            form.resetFields();
+            const effectiveSynagogueId = resolveEffectiveSynagogueId(currentUser, null, null);
+            if (effectiveSynagogueId) {
+                form.setFieldsValue({ synagogueId: effectiveSynagogueId });
+            }
         } else if (!visible) {
             form.resetFields();
         }
@@ -79,9 +86,11 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
         const allFormValues = form.getFieldsValue(true);
         const aliyahInfo = calculateAliyahInfo(values.aliyah_date);
 
+        const effectiveSynagogueId = resolveEffectiveSynagogueId(currentUser, allFormValues.synagogueId, null);
         const memberData = {
             ...(editingMember || {}),
             ...allFormValues,
+            synagogueId: effectiveSynagogueId,
             // Only calculate parasha if user didn't manually select one
             aliyah_parasha: allFormValues.aliyah_parasha || aliyahInfo.parasha,
             days_since_aliyah: aliyahInfo.days_since_aliyah,
@@ -288,6 +297,25 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                 </Form.Item>
                             </Col>
                         </Row>
+
+                        {synagogues.length > 0 && (
+                            <Row gutter={24} style={{ marginBottom: 4 }}>
+                                <Col span={24}>
+                                    <Form.Item name="synagogueId" label="בית כנסת">
+                                        <Select
+                                            placeholder="בחר בית כנסת..."
+                                            allowClear
+                                            disabled={currentUser?.role === 'synagogue_admin'}
+                                            style={{ width: '100%' }}
+                                        >
+                                            {synagogues.map(s => (
+                                                <Option key={s.id} value={s.id}>{s.name}</Option>
+                                            ))}
+                                        </Select>
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        )}
 
                         <Row gutter={24}>
                             <Col span={8}>
