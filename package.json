@@ -25,6 +25,7 @@
     },
     "dependencies": {
         "@hebcal/core": "^6.0.8",
+        "antd": "^6.6.0",
         "dotenv": "^16.4.5",
         "express": "^5.2.1",
         "hebcal": "^2.3.2",
@@ -35,7 +36,6 @@
     },
     "devDependencies": {
         "@vitejs/plugin-react": "^4.3.1",
-        "antd": "^6.2.3",
         "concurrently": "^9.2.1",
         "electron": "^40.3.0",
         "electron-builder": "^26.15.3",
@@ -45,13 +45,6 @@
     },
     "build": {
         "artifactName": "Nihul Beit Cnecet Setup ${version}.exe",
-        "compression": "store",
-        "extraResources": [
-            {
-                "from": "dist",
-                "to": "dist"
-            }
-        ],
         "appId": "com.synagogue.management",
         "productName": "Nihul Beit Cnecet",
         "asar": false,
@@ -73,14 +66,13 @@
         ],
         "win": {
             "target": "nsis",
-            "icon": "build/prague_synagogue_icon.ico"
+            "icon": "prague_synagogue_icon.ico"
         },
         "nsis": {
             "oneClick": false,
             "allowToChangeInstallationDirectory": true,
             "createDesktopShortcut": true,
-            "runAfterFinish": true,
-            "useZip": true
+            "runAfterFinish": true
         }
     }
 }
