@@ -418,7 +418,7 @@ app.post('/api/members', requireAdmin, async (req, res) => {
 app.put('/api/members/:id', requireAdmin, async (req, res) => {
     try {
         const memberId = parseInt(req.params.id);
-        const members = await getMembers();
+        const members = await getMembers(req.currentUser);
         const oldMember = members.find(m => m.id === memberId);
 
         if (!oldMember) {
@@ -435,7 +435,7 @@ app.put('/api/members/:id', requireAdmin, async (req, res) => {
         if (isNiftar) {
             try {
                 console.log('Member marked as נפ - adding to niftarim archive:', memberId);
-                const niftarim = await getNiftarim();
+                const niftarim = await getNiftarim(req.currentUser);
                 const alreadyExists = niftarim.some(n => n.originalMemberId === memberId);
                 if (!alreadyExists) {
                     const niftarRecord = {
@@ -520,7 +520,7 @@ app.get('/api/archive', requireAuthenticatedUser, async (req, res) => {
 });
 
 // Get archive for specific member
-app.get('/api/archive/:memberId', async (req, res) => {
+app.get('/api/archive/:memberId', requireAuthenticatedUser, async (req, res) => {
     try {
         const memberId = parseInt(req.params.memberId);
         const memberHistory = await getArchiveForMember(memberId);
