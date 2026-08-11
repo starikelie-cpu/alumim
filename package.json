@@ -49,15 +49,18 @@
         "productName": "Nihul Beit Cnecet",
         "asar": false,
         "directories": {
-            "output": "build-output-1.4.22"
+            "output": "build-output-1.4.23"
         },
         "files": [
             "dist/**/*",
             "public/**/*",
             "index.js",
+            "db.js",
+            "accessControl.js",
             "electron.cjs",
             "package.json",
             "data/**/*",
+            "prague_synagogue_icon.ico",
             "!**/node_modules/antd/**",
             "!**/node_modules/@ant-design/**",
             "!**/node_modules/react/**",
