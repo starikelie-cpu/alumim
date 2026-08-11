@@ -617,9 +617,20 @@ function App() {
                             <span style={{ fontSize: '15px' }}>
                                 שלום, <strong>{user.username}</strong> ({user.role === 'super_admin' ? 'מנהל על' : user.role === 'synagogue_admin' ? 'מנהל בית כנסת' : 'צופה'})
                             </span>
-                            {user?.synagogueId && (
-                                <span style={{ fontSize: '13px', color: '#666' }}>
-                                    בית כנסת: <strong>{synagogues.find(item => item.id === user.synagogueId)?.name || user.synagogueId}</strong>
+                            {user?.synagogueId && synagogues.find(item => item.id === user.synagogueId) && (
+                                <span style={{
+                                    fontSize: '13px',
+                                    background: '#e6f4ff',
+                                    border: '1px solid #91caff',
+                                    borderRadius: '12px',
+                                    padding: '2px 12px',
+                                    color: '#0958d9',
+                                    fontWeight: 'bold',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px'
+                                }}>
+                                    🕍 {synagogues.find(item => item.id === user.synagogueId)?.name}
                                 </span>
                             )}
                             {isAdmin && (
@@ -648,6 +659,30 @@ function App() {
             </div>
 
             <div style={{ padding: '40px 50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+                {/* Banner - שם בית הכנסת */}
+                {user?.synagogueId && synagogues.find(s => s.id === user.synagogueId) && (
+                    <div style={{
+                        background: 'linear-gradient(135deg, #1677ff 0%, #0958d9 100%)',
+                        borderRadius: '12px',
+                        padding: '14px 40px',
+                        color: '#fff',
+                        textAlign: 'center',
+                        boxShadow: '0 4px 12px rgba(22, 119, 255, 0.3)',
+                        marginBottom: '4px',
+                        width: '100%',
+                        maxWidth: '600px'
+                    }}>
+                        <div style={{ fontSize: '13px', opacity: 0.85, marginBottom: '2px' }}>בית הכנסת שלי</div>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                            🕍 {synagogues.find(s => s.id === user.synagogueId)?.name}
+                        </div>
+                        {synagogues.find(s => s.id === user.synagogueId)?.address && (
+                            <div style={{ fontSize: '12px', opacity: 0.75, marginTop: '2px' }}>
+                                📍 {synagogues.find(s => s.id === user.synagogueId)?.address}
+                            </div>
+                        )}
+                    </div>
+                )}
                 <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
                     {isAdmin ? (
                         <Button type="primary" size="large" onClick={() => setIsModalVisible(true)}>
