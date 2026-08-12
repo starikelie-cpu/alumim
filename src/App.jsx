@@ -67,15 +67,23 @@ function App() {
             .then(data => {
                 if (data.loggedIn) {
                     setUser(data.user);
+                    // Token is valid - fetch data with valid session
+                    fetchAllData();
                 } else {
+                    // Token is stale - clear it and fetch as guest
                     localStorage.removeItem('token');
                     setToken(null);
                     setUser(null);
+                    fetchAllData();
                 }
             })
             .catch(err => {
                 console.error("Auth check failed:", err);
+                fetchAllData(); // fallback
             });
+        } else {
+            // No token - fetch as guest
+            fetchAllData();
         }
     }, [token]);
 
@@ -83,7 +91,10 @@ function App() {
         localStorage.setItem('token', newToken);
         setToken(newToken);
         setUser(loggedInUser);
+        // Re-fetch data immediately with the new valid token
+        setTimeout(() => fetchAllData(), 50);
     };
+
 
     const handleAdminCredentialsSave = async (values) => {
         setIsSavingAdminCredentials(true);
@@ -222,9 +233,11 @@ function App() {
 
 
     useEffect(() => {
-        fetchAllData();
+        // Note: initial data load is handled by the auth useEffect above.
+        // This effect only handles periodic DB status checks and auto-reconnect re-fetch.
 
         // Periodically check DB status to pick up background auto-reconnections
+
         const interval = setInterval(() => {
             fetch(`${API_BASE}/api/db-status`)
                 .then(res => res.json())
