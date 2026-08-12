@@ -393,7 +393,13 @@ app.delete('/api/users/:username', requireAdmin, async (req, res) => {
 // Get all members
 app.get('/api/members', requireAuthenticatedUser, async (req, res) => {
     try {
-        const members = await getMembers(req.currentUser);
+        // Allow guests to view a specific synagogue via ?viewSynagogueId=xxx
+        const effectiveUser = req.currentUser?.synagogueId
+            ? req.currentUser
+            : req.query.viewSynagogueId
+                ? { ...req.currentUser, synagogueId: req.query.viewSynagogueId }
+                : req.currentUser;
+        const members = await getMembers(effectiveUser);
         res.json(members);
     } catch (error) {
         console.error('Error reading members:', error);
@@ -511,7 +517,12 @@ app.delete('/api/members/:id', requireAdmin, async (req, res) => {
 // Get archive list
 app.get('/api/archive', requireAuthenticatedUser, async (req, res) => {
     try {
-        const archives = await getArchive(req.currentUser);
+        const effectiveUser = req.currentUser?.synagogueId
+            ? req.currentUser
+            : req.query.viewSynagogueId
+                ? { ...req.currentUser, synagogueId: req.query.viewSynagogueId }
+                : req.currentUser;
+        const archives = await getArchive(effectiveUser);
         res.json(archives);
     } catch (error) {
         console.error('Error reading archive:', error);
@@ -596,7 +607,12 @@ app.post('/api/archive/import', requireAdmin, async (req, res) => {
 // Get all niftarim
 app.get('/api/niftarim', requireAuthenticatedUser, async (req, res) => {
     try {
-        const niftarim = await getNiftarim(req.currentUser);
+        const effectiveUser = req.currentUser?.synagogueId
+            ? req.currentUser
+            : req.query.viewSynagogueId
+                ? { ...req.currentUser, synagogueId: req.query.viewSynagogueId }
+                : req.currentUser;
+        const niftarim = await getNiftarim(effectiveUser);
         res.json(niftarim);
     } catch (error) {
         console.error('Error reading niftarim:', error);

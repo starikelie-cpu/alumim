@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
-import { Button, ConfigProvider, theme, message, Modal, Input, Form } from 'antd';
+import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select } from 'antd';
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
@@ -36,6 +36,10 @@ function App() {
     const [isLoginVisible, setIsLoginVisible] = useState(false);
     const [isUserMgmtVisible, setIsUserMgmtVisible] = useState(false);
     const [synagogues, setSynagogues] = useState([]);
+    // Guest synagogue selection – persisted in localStorage
+    const [guestSynagogueId, setGuestSynagogueId] = useState(
+        () => localStorage.getItem('guestSynagogueId') || null
+    );
 
     // Database connection status state
     const [dbStatus, setDbStatus] = useState({ useMongoDB: false, error: null, mongoUri: 'mongodb+srv://Alumim:alumim99@cluster1.i8jyvvd.mongodb.net/Alumim?retryWrites=true&w=majority&appName=Cluster1' });
@@ -181,14 +185,18 @@ function App() {
             .finally(() => setIsConnectingDb(false));
     };
 
-    const fetchAllData = () => {
+    const fetchAllData = (overrideGuestSynId) => {
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        fetch(`${API_BASE}/api/members`, { headers })
+        // For guests without token, append ?viewSynagogueId if selected
+        const guestSynId = overrideGuestSynId !== undefined ? overrideGuestSynId : guestSynagogueId;
+        const guestParam = (!token && guestSynId) ? `?viewSynagogueId=${guestSynId}` : '';
+
+        fetch(`${API_BASE}/api/members${guestParam}`, { headers })
             .then(res => res.json())
             .then(data => setMembers(data))
             .catch(err => console.error("Failed to fetch members:", err));
 
-        fetch(`${API_BASE}/api/niftarim`)
+        fetch(`${API_BASE}/api/niftarim${guestParam}`, { headers })
             .then(res => res.json())
             .then(data => setNiftarim(Array.isArray(data) ? data : []))
             .catch(err => console.error("Failed to fetch niftarim:", err));
@@ -200,6 +208,18 @@ function App() {
 
         fetchDbStatus();
     };
+
+    // Handler: guest selects a synagogue
+    const handleGuestSynagogueChange = (synId) => {
+        setGuestSynagogueId(synId);
+        if (synId) {
+            localStorage.setItem('guestSynagogueId', synId);
+        } else {
+            localStorage.removeItem('guestSynagogueId');
+        }
+        fetchAllData(synId);
+    };
+
 
     useEffect(() => {
         fetchAllData();
@@ -648,12 +668,25 @@ function App() {
                             </Button>
                         </>
                     ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', transform: 'translateX(8px)' }}>
-                            <span style={{ fontSize: '15px', color: '#666' }}>חיבור: <strong>אורח (צופה בלבד)</strong></span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '14px', color: '#888' }}>
+                                🙋 אורח (צופה בלבד)
+                            </span>
+                            <Select
+                                placeholder="בחר בית כנסת לצפייה..."
+                                value={guestSynagogueId}
+                                onChange={handleGuestSynagogueChange}
+                                allowClear
+                                style={{ minWidth: '180px', fontWeight: 'bold' }}
+                                size="small"
+                                options={synagogues.map(s => ({ value: s.id, label: `🕍 ${s.name}` }))}
+                                popupMatchSelectWidth={false}
+                            />
                             <Button type="primary" size="small" onClick={() => setIsLoginVisible(true)}>
                                 התחבר כמנהל
                             </Button>
                         </div>
+
                     )}
                 </div>
             </div>
@@ -679,6 +712,30 @@ function App() {
                         {synagogues.find(s => s.id === user.synagogueId)?.address && (
                             <div style={{ fontSize: '12px', opacity: 0.75, marginTop: '2px' }}>
                                 📍 {synagogues.find(s => s.id === user.synagogueId)?.address}
+                            </div>
+                        )}
+                    </div>
+                )}
+                {/* Banner לאורח שבחר בית כנסת */}
+                {!user && guestSynagogueId && synagogues.find(s => s.id === guestSynagogueId) && (
+                    <div style={{
+                        background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
+                        borderRadius: '12px',
+                        padding: '14px 40px',
+                        color: '#fff',
+                        textAlign: 'center',
+                        boxShadow: '0 4px 12px rgba(19, 194, 194, 0.3)',
+                        marginBottom: '4px',
+                        width: '100%',
+                        maxWidth: '600px'
+                    }}>
+                        <div style={{ fontSize: '13px', opacity: 0.85, marginBottom: '2px' }}>צופה בבית הכנסת</div>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                            🕍 {synagogues.find(s => s.id === guestSynagogueId)?.name}
+                        </div>
+                        {synagogues.find(s => s.id === guestSynagogueId)?.address && (
+                            <div style={{ fontSize: '12px', opacity: 0.75, marginTop: '2px' }}>
+                                📍 {synagogues.find(s => s.id === guestSynagogueId)?.address}
                             </div>
                         )}
                     </div>
