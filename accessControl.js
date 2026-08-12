@@ -35,12 +35,22 @@ export function resolveEffectiveSynagogueId(user, requestedSynagogueId = null, f
 
 export function filterRecordsBySynagogue(records, user, fallbackSynagogueId = null) {
   if (!Array.isArray(records)) return [];
-  const synagogueId = resolveSynagogueId(user, fallbackSynagogueId);
-  if (!synagogueId) return records;
 
+  const role = normalizeRole(user?.role);
+
+  // Super admin sees everything
+  if (role === 'super_admin') return records;
+
+  const synagogueId = resolveSynagogueId(user, fallbackSynagogueId);
+
+  // No synagogueId and not super_admin → no access
+  if (!synagogueId) return [];
+
+  // Filter: only records belonging to the user's synagogue
+  // Records without synagogueId are NOT shown to synagogue_admin (security)
   return records.filter((record) => {
     const recordSynagogueId = record && record.synagogueId ? String(record.synagogueId) : null;
-    return !recordSynagogueId || recordSynagogueId === synagogueId;
+    return recordSynagogueId === synagogueId;
   });
 }
 
