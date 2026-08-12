@@ -10,7 +10,7 @@
             "node18-win-x64"
         ]
     },
-    "version": "1.4.27",
+    "version": "1.4.28",
     "description": "Synagogue Management Application",
     "author": "Synagogue Management Team",
     "main": "electron.cjs",
