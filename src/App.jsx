@@ -42,6 +42,14 @@ function App() {
         try {
             const saved = localStorage.getItem('localSynagogueName');
             if (saved) {
+                // תיקון פורמט ישן: גרסאות ישנות שמרו "שם - כתובת" במקום רק שם
+                // אם הערך מכיל " - " נחלץ רק את החלק לפני המקף
+                if (saved.includes(' - ')) {
+                    const namePart = saved.split(' - ')[0].trim();
+                    console.log('Fixed old localSynagogueName format:', saved, '->', namePart);
+                    localStorage.setItem('localSynagogueName', namePart);
+                    return namePart;
+                }
                 console.log('Loaded synagogue name from localStorage immediately:', saved);
                 return saved;
             }
@@ -96,6 +104,23 @@ function App() {
                     setSynagogues(parsed);
                     setIsUsingCachedSynagogues(true);
                     console.log('Loaded cached synagogues from localStorage immediately');
+
+                    // תיקון מיידי: בדוק אם localSynagogueName תואם שם קיים ב-cache
+                    const currentName = localStorage.getItem('localSynagogueName');
+                    if (currentName && !parsed.find(s => s.name === currentName)) {
+                        // השם לא תואם - נסה לתקן לפי guestSynagogueId
+                        const savedGuestId = localStorage.getItem('guestSynagogueId');
+                        const correctSyn = savedGuestId ? parsed.find(s => s.id === savedGuestId) : null;
+                        if (correctSyn) {
+                            console.log('Fixed localSynagogueName (from cache) to:', correctSyn.name);
+                            localStorage.setItem('localSynagogueName', correctSyn.name);
+                            setLocalSynagogueName(correctSyn.name);
+                        } else {
+                            console.log('Cleared invalid localSynagogueName (from cache):', currentName);
+                            localStorage.removeItem('localSynagogueName');
+                            setLocalSynagogueName(null);
+                        }
+                    }
                 }
             } catch (e) {
                 console.error('Failed to parse cached synagogues:', e);
