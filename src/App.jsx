@@ -36,10 +36,38 @@ function App() {
     const [isLoginVisible, setIsLoginVisible] = useState(false);
     const [isUserMgmtVisible, setIsUserMgmtVisible] = useState(false);
     const [synagogues, setSynagogues] = useState([]);
-    // Guest synagogue selection – persisted in localStorage
-    const [guestSynagogueId, setGuestSynagogueId] = useState(
-        () => localStorage.getItem('guestSynagogueId') || null
+    const [isUsingCachedSynagogues, setIsUsingCachedSynagogues] = useState(false);
+    const [localSynagogueName, setLocalSynagogueName] = useState(() => {
+        // Load synagogue name from localStorage IMMEDIATELY - no server wait
+        try {
+            const saved = localStorage.getItem('localSynagogueName');
+            if (saved) {
+                console.log('Loaded synagogue name from localStorage immediately:', saved);
+                return saved;
+            }
+        } catch (e) {
+            console.error('Failed to load synagogue name from localStorage:', e);
+        }
+        return null;
+    });
+    // Guest synagogue selection – persisted in localStorage for instant load
+    const [guestSynagogueId, setGuestSynagogueId] = useState(() => {
+        // Load guest synagogue ID from localStorage IMMEDIATELY - no server wait
+        try {
+            const saved = localStorage.getItem('guestSynagogueId');
+            if (saved) {
+                console.log('Loaded guest synagogue ID from localStorage immediately:', saved);
+                return saved;
+            }
+        } catch (e) {
+            console.error('Failed to load guest synagogue ID from localStorage:', e);
+        }
+        return null;
+    });
+    const [adminViewSynagogueId, setAdminViewSynagogueId] = useState(
+        () => localStorage.getItem('adminViewSynagogueId') || null
     );
+    const [showFirstTimePrompt, setShowFirstTimePrompt] = useState(false);
 
     // Database connection status state
     const [dbStatus, setDbStatus] = useState({ useMongoDB: false, error: null, mongoUri: 'mongodb+srv://Alumim:alumim99@cluster1.i8jyvvd.mongodb.net/Alumim?retryWrites=true&w=majority&appName=Cluster1' });
@@ -59,38 +87,162 @@ function App() {
     };
 
     useEffect(() => {
-        if (token) {
-            fetch(`${API_BASE}/api/auth/me`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.loggedIn) {
-                    setUser(data.user);
-                    // Token is valid - fetch data with valid session
-                    fetchAllData();
-                } else {
-                    // Token is stale - clear it and fetch as guest
-                    localStorage.removeItem('token');
-                    setToken(null);
-                    setUser(null);
-                    fetchAllData();
+        // Load cached synagogues from localStorage IMMEDIATELY - no server wait
+        const cachedSynagogues = localStorage.getItem('cachedSynagogues');
+        if (cachedSynagogues) {
+            try {
+                const parsed = JSON.parse(cachedSynagogues);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setSynagogues(parsed);
+                    setIsUsingCachedSynagogues(true);
+                    console.log('Loaded cached synagogues from localStorage immediately');
                 }
-            })
-            .catch(err => {
-                console.error("Auth check failed:", err);
-                fetchAllData(); // fallback
-            });
-        } else {
-            // No token - fetch as guest
-            fetchAllData();
+            } catch (e) {
+                console.error('Failed to parse cached synagogues:', e);
+            }
         }
+
+        // Load preferences from local file first - COMPLETELY LOCAL
+        const loadPreferences = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/preferences`);
+                if (res.ok) {
+                    const prefs = await res.json();
+                    // Load cached synagogue names with their IDs - COMPLETELY LOCAL
+                    if (prefs.cachedSynagogues && Array.isArray(prefs.cachedSynagogues)) {
+                        setSynagogues(prefs.cachedSynagogues);
+                        setIsUsingCachedSynagogues(true);
+                        console.log('Loaded cached synagogue names from local file');
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load preferences:', e);
+            }
+        };
+
+        loadPreferences().then(() => {
+            // ONLY load from server in background to update cache - NO BLOCKING
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            fetch(`${API_BASE}/api/synagogues`, { headers })
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data) && data.length > 0) {
+                        setSynagogues(data);
+                        localStorage.setItem('cachedSynagogues', JSON.stringify(data));
+                        localStorage.setItem('cachedSynagoguesTimestamp', Date.now().toString());
+                        setIsUsingCachedSynagogues(false);
+                        
+                        // Save to local file for persistence across installations
+                        fetch(`${API_BASE}/api/preferences`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cachedSynagogues: data })
+                        }).catch(e => console.error('Failed to save cached synagogues:', e));
+                        
+                        console.log('Updated synagogues from server in background');
+
+                        // תיקון: בדוק אם localSynagogueName תואם לשם בית כנסת קיים
+                        // אם לא (למשל נשמרה כתובת בגרסה ישנה), תקן אוטומטית
+                        const savedLocalName = localStorage.getItem('localSynagogueName');
+                        if (savedLocalName) {
+                            const nameMatch = data.find(s => s.name === savedLocalName);
+                            if (!nameMatch) {
+                                // השם לא נמצא - ייתכן שנשמרה כתובת במקום שם
+                                // נסה לתקן לפי guestSynagogueId
+                                const savedGuestId = localStorage.getItem('guestSynagogueId');
+                                if (savedGuestId) {
+                                    const correctSyn = data.find(s => s.id === savedGuestId);
+                                    if (correctSyn) {
+                                        console.log('Fixing localSynagogueName from', savedLocalName, 'to', correctSyn.name);
+                                        localStorage.setItem('localSynagogueName', correctSyn.name);
+                                        setLocalSynagogueName(correctSyn.name);
+                                    }
+                                } else {
+                                    // אין guestSynagogueId - נסה לתקן לפי כתובת
+                                    const addressMatch = data.find(s => s.address === savedLocalName || savedLocalName.includes(s.address) || s.address.includes(savedLocalName));
+                                    if (addressMatch) {
+                                        console.log('Fixing localSynagogueName (by address) from', savedLocalName, 'to', addressMatch.name);
+                                        localStorage.setItem('localSynagogueName', addressMatch.name);
+                                        setLocalSynagogueName(addressMatch.name);
+                                    } else {
+                                        // לא נמצאה התאמה - נקה
+                                        console.log('Clearing invalid localSynagogueName:', savedLocalName);
+                                        localStorage.removeItem('localSynagogueName');
+                                        setLocalSynagogueName(null);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Show first-time prompt if guest has no synagogue selected and synagogues are loaded
+                    if (!token && !guestSynagogueId && Array.isArray(data) && data.length > 0 && data[0].name) {
+                        setShowFirstTimePrompt(true);
+                    }
+                })
+                .catch(err => console.error('Failed to fetch synagogues from server:', err));
+
+            if (token) {
+                fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.loggedIn) {
+                        setUser(data.user);
+                        // Token is valid - fetch data with valid session
+                        fetchAllData();
+                    } else {
+                        // Token is stale - clear it and fetch as guest
+                        localStorage.removeItem('token');
+                        setToken(null);
+                        setUser(null);
+                        fetchAllData();
+                    }
+                })
+                .catch(err => {
+                    console.error("Auth check failed:", err);
+                    fetchAllData(); // fallback
+                });
+            } else {
+                // No token - fetch as guest with the saved synagogueId
+                fetchAllData();
+            }
+        });
     }, [token]);
 
     const handleLoginSuccess = (newToken, loggedInUser) => {
         localStorage.setItem('token', newToken);
         setToken(newToken);
         setUser(loggedInUser);
+        setGuestSynagogueId(null);
+        // Clear local file preference on login
+        fetch(`${API_BASE}/api/preferences`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guestSynagogueId: null })
+        }).catch(e => console.error('Failed to clear preferences:', e));
+        
+        // Save synagogue name for synagogue admin to localStorage IMMEDIATELY
+        if (loggedInUser?.role === 'synagogue_admin' && loggedInUser?.synagogueId) {
+            // Find synagogue name from cached synagogues
+            const cachedSynagogues = localStorage.getItem('cachedSynagogues');
+            if (cachedSynagogues) {
+                try {
+                    const cached = JSON.parse(cachedSynagogues);
+                    const syn = cached.find(s => s.id === loggedInUser.synagogueId);
+                    if (syn) {
+                        localStorage.setItem('localSynagogueName', syn.name);
+                        setLocalSynagogueName(syn.name);
+                        console.log('Saved synagogue name for admin to localStorage:', syn.name);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse cached synagogues:', e);
+                }
+            }
+        }
+        
+        setAdminViewSynagogueId(null);
+        localStorage.removeItem('adminViewSynagogueId');
         // Re-fetch data immediately with the new valid token
         setTimeout(() => fetchAllData(), 50);
     };
@@ -136,14 +288,40 @@ function App() {
             }).catch(err => console.error(err));
         }
         localStorage.removeItem('token');
+        localStorage.removeItem('adminViewSynagogueId');
         setToken(null);
         setUser(null);
+        setAdminViewSynagogueId(null);
+        
+        // Reset local synagogue name to guest's selection
+        const savedGuestId = localStorage.getItem('guestSynagogueId');
+        if (savedGuestId) {
+            // Try to find the synagogue name from cached synagogues
+            const cachedSynagogues = localStorage.getItem('cachedSynagogues');
+            if (cachedSynagogues) {
+                try {
+                    const parsed = JSON.parse(cachedSynagogues);
+                    const guestSynagogue = parsed.find(s => s.id === savedGuestId);
+                    if (guestSynagogue) {
+                        setLocalSynagogueName(guestSynagogue.name);
+                        localStorage.setItem('localSynagogueName', guestSynagogue.name);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse cached synagogues:', e);
+                }
+            }
+        } else {
+            // No guest selection, clear the name
+            setLocalSynagogueName(null);
+            localStorage.removeItem('localSynagogueName');
+        }
+        
         message.success('התנתקת בהצלחה');
     };
 
     const isAdmin = user && (user.role === 'super_admin' || user.role === 'synagogue_admin' || user.role === 'admin');
     const isSuperAdmin = user?.role === 'super_admin';
-    const canSeeAdminDashboard = isSuperAdmin || user?.role === 'admin';
+    const canSeeAdminDashboard = isSuperAdmin || user?.role === 'admin' || user?.role === 'synagogue_admin';
 
     const fetchDbStatus = () => {
         fetch(`${API_BASE}/api/db-status`)
@@ -196,39 +374,104 @@ function App() {
             .finally(() => setIsConnectingDb(false));
     };
 
-    const fetchAllData = (overrideGuestSynId) => {
+    const fetchAllData = (overrideGuestSynId, overrideAdminSynId) => {
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         // For guests without token, append ?viewSynagogueId if selected
         const guestSynId = overrideGuestSynId !== undefined ? overrideGuestSynId : guestSynagogueId;
-        const guestParam = (!token && guestSynId) ? `?viewSynagogueId=${guestSynId}` : '';
+        const adminSynId = overrideAdminSynId !== undefined ? overrideAdminSynId : adminViewSynagogueId;
+        
+        // For synagogue admin, always use their synagogueId unless explicitly overridden
+        let scopedSynId = token ? adminSynId : guestSynId;
+        if (token && user?.role === 'synagogue_admin' && !overrideAdminSynId) {
+            scopedSynId = user.synagogueId;
+        }
+        
+        // For guests, always use the localStorage saved synagogueId if available
+        if (!token && !scopedSynId) {
+            const savedGuestId = localStorage.getItem('guestSynagogueId');
+            if (savedGuestId) {
+                scopedSynId = savedGuestId;
+                console.log('Using saved guest synagogueId from localStorage:', savedGuestId);
+            }
+        }
+        
+        const viewParam = scopedSynId ? `?viewSynagogueId=${encodeURIComponent(scopedSynId)}` : '';
 
-        fetch(`${API_BASE}/api/members${guestParam}`, { headers })
-            .then(res => res.json())
-            .then(data => setMembers(data))
-            .catch(err => console.error("Failed to fetch members:", err));
+        console.log('fetchAllData called with:', { token, guestSynId, adminSynId, scopedSynId, viewParam });
 
-        fetch(`${API_BASE}/api/niftarim${guestParam}`, { headers })
-            .then(res => res.json())
-            .then(data => setNiftarim(Array.isArray(data) ? data : []))
-            .catch(err => console.error("Failed to fetch niftarim:", err));
-
+        // Load synagogues first and independently - this is critical for UI
         fetch(`${API_BASE}/api/synagogues`, { headers })
             .then(res => res.json())
-            .then(data => setSynagogues(Array.isArray(data) ? data : []))
+            .then(data => {
+                setSynagogues(Array.isArray(data) ? data : []);
+                // Show first-time prompt if guest has no synagogue selected and synagogues are loaded
+                if (!token && !guestSynagogueId && Array.isArray(data) && data.length > 0 && data[0].name) {
+                    setShowFirstTimePrompt(true);
+                }
+            })
             .catch(err => console.error('Failed to fetch synagogues:', err));
+
+        fetch(`${API_BASE}/api/members${viewParam}`, { headers })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Members data received:', data.length, 'members');
+                setMembers(data);
+            })
+            .catch(err => console.error("Failed to fetch members:", err));
+
+        fetch(`${API_BASE}/api/niftarim${viewParam}`, { headers })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Niftarim data received:', data.length, 'niftarim');
+                setNiftarim(Array.isArray(data) ? data : []);
+            })
+            .catch(err => console.error("Failed to fetch niftarim:", err));
 
         fetchDbStatus();
     };
 
     // Handler: guest selects a synagogue
-    const handleGuestSynagogueChange = (synId) => {
+    const handleGuestSynagogueChange = async (synId) => {
         setGuestSynagogueId(synId);
+        
+        // Save to localStorage IMMEDIATELY - no server wait
+        localStorage.setItem('guestSynagogueId', synId);
+        console.log('Saved guest synagogueId to localStorage immediately:', synId);
+        
+        // Save to local file
+        try {
+            await fetch(`${API_BASE}/api/preferences`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ guestSynagogueId: synId })
+            });
+            console.log('Saved preferred synagogue to local file');
+            
+            // Save synagogue name to localStorage IMMEDIATELY - no server wait
+            const selectedSynagogue = synagogues.find(s => s.id === synId);
+            if (selectedSynagogue) {
+                localStorage.setItem('localSynagogueName', selectedSynagogue.name);
+                setLocalSynagogueName(selectedSynagogue.name);
+                console.log('Saved synagogue name to localStorage immediately:', selectedSynagogue.name);
+            }
+        } catch (e) {
+            console.error('Failed to save preferences:', e);
+        }
+        
         if (synId) {
-            localStorage.setItem('guestSynagogueId', synId);
-        } else {
-            localStorage.removeItem('guestSynagogueId');
+            setShowFirstTimePrompt(false); // Hide prompt after selection
         }
         fetchAllData(synId);
+    };
+
+    const handleAdminViewSynagogueChange = (synId) => {
+        setAdminViewSynagogueId(synId || null);
+        if (synId) {
+            localStorage.setItem('adminViewSynagogueId', synId);
+        } else {
+            localStorage.removeItem('adminViewSynagogueId');
+        }
+        fetchAllData(undefined, synId || null);
     };
 
 
@@ -650,7 +893,19 @@ function App() {
                             <span style={{ fontSize: '15px' }}>
                                 שלום, <strong>{user.username}</strong> ({user.role === 'super_admin' ? 'מנהל על' : user.role === 'synagogue_admin' ? 'מנהל בית כנסת' : 'צופה'})
                             </span>
-                            {user?.synagogueId && synagogues.find(item => item.id === user.synagogueId) && (
+                            {isSuperAdmin && (
+                                <Select
+                                    value={adminViewSynagogueId || undefined}
+                                    onChange={handleAdminViewSynagogueChange}
+                                    allowClear
+                                    placeholder="תצוגה: כל בתי הכנסת"
+                                    style={{ minWidth: '220px' }}
+                                    size="small"
+                                    options={synagogues.map(s => ({ value: s.id, label: `🕍 ${s.name}` }))}
+                                    popupMatchSelectWidth={false}
+                                />
+                            )}
+                            {user?.role === 'synagogue_admin' && user?.synagogueId && (
                                 <span style={{
                                     fontSize: '13px',
                                     background: '#e6f4ff',
@@ -663,7 +918,7 @@ function App() {
                                     alignItems: 'center',
                                     gap: '5px'
                                 }}>
-                                    🕍 {synagogues.find(item => item.id === user.synagogueId)?.name}
+                                    🕍 {synagogues.find(s => s.id === user.synagogueId)?.name}
                                 </span>
                             )}
                             {isAdmin && (
@@ -673,7 +928,7 @@ function App() {
                             )}
                             {canSeeAdminDashboard && (
                                 <Button type="default" onClick={() => setIsUserMgmtVisible(true)}>
-                                    לוח בקרה ניהולי
+                                    {isSuperAdmin ? 'לוח בקרה ניהולי' : 'ניהול מנהלים ומשתמשים'}
                                 </Button>
                             )}
                             <Button type="primary" danger size="small" onClick={handleLogout}>
@@ -685,16 +940,26 @@ function App() {
                             <span style={{ fontSize: '14px', color: '#888' }}>
                                 🙋 אורח (צופה בלבד)
                             </span>
-                            <Select
-                                placeholder="בחר בית כנסת לצפייה..."
-                                value={guestSynagogueId}
-                                onChange={handleGuestSynagogueChange}
-                                allowClear
-                                style={{ minWidth: '180px', fontWeight: 'bold' }}
-                                size="small"
-                                options={synagogues.map(s => ({ value: s.id, label: `🕍 ${s.name}` }))}
-                                popupMatchSelectWidth={false}
-                            />
+                            {localSynagogueName && (
+                                <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
+                                    🕍 {localSynagogueName}
+                                </span>
+                            )}
+                            {synagogues.length > 0 && !localSynagogueName ? (
+                                <Select
+                                    placeholder="בחר בית כנסת לצפייה..."
+                                    value={guestSynagogueId}
+                                    onChange={handleGuestSynagogueChange}
+                                    allowClear
+                                    style={{ minWidth: '180px', fontWeight: 'bold' }}
+                                    size="small"
+                                    options={synagogues.map(s => ({ value: s.id, label: `🕍 ${s.name}` }))}
+                                    popupMatchSelectWidth={false}
+                                    optionLabelProp="label"
+                                />
+                            ) : (
+                                !localSynagogueName && <span style={{ fontSize: '12px', color: '#999' }}>טוען בתי כנסת...</span>
+                            )}
                             <Button type="primary" size="small" onClick={() => setIsLoginVisible(true)}>
                                 התחבר כמנהל
                             </Button>
@@ -706,35 +971,41 @@ function App() {
 
             <div style={{ padding: '40px 50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
                 {/* Banner - שם בית הכנסת */}
-                {user?.synagogueId && synagogues.find(s => s.id === user.synagogueId) && (
+                {(user?.synagogueId && synagogues.find(s => s.id === user.synagogueId)) && (
                     <div style={{
-                        background: 'linear-gradient(135deg, #1677ff 0%, #0958d9 100%)',
+                        background: user?.role === 'viewer'
+                            ? 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)'
+                            : 'linear-gradient(135deg, #1677ff 0%, #0958d9 100%)',
                         borderRadius: '12px',
-                        padding: '14px 40px',
+                        padding: '20px 40px',
                         color: '#fff',
                         textAlign: 'center',
-                        boxShadow: '0 4px 12px rgba(22, 119, 255, 0.3)',
+                        boxShadow: user?.role === 'viewer'
+                            ? '0 4px 12px rgba(82, 196, 26, 0.3)'
+                            : '0 4px 12px rgba(22, 119, 255, 0.3)',
                         marginBottom: '4px',
                         width: '100%',
                         maxWidth: '600px'
                     }}>
-                        <div style={{ fontSize: '13px', opacity: 0.85, marginBottom: '2px' }}>בית הכנסת שלי</div>
-                        <div style={{ fontSize: '24px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                        <div style={{ fontSize: '13px', opacity: 0.85, marginBottom: '4px' }}>
+                            בית הכנסת
+                        </div>
+                        <div style={{ fontSize: '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
                             🕍 {synagogues.find(s => s.id === user.synagogueId)?.name}
                         </div>
                         {synagogues.find(s => s.id === user.synagogueId)?.address && (
-                            <div style={{ fontSize: '12px', opacity: 0.75, marginTop: '2px' }}>
+                            <div style={{ fontSize: '13px', opacity: 0.8, marginTop: '6px' }}>
                                 📍 {synagogues.find(s => s.id === user.synagogueId)?.address}
                             </div>
                         )}
                     </div>
                 )}
                 {/* Banner לאורח שבחר בית כנסת */}
-                {!user && guestSynagogueId && synagogues.find(s => s.id === guestSynagogueId) && (
+                {(!user && guestSynagogueId && synagogues.find(s => s.id === guestSynagogueId)) && (
                     <div style={{
                         background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
                         borderRadius: '12px',
-                        padding: '14px 40px',
+                        padding: '20px 40px',
                         color: '#fff',
                         textAlign: 'center',
                         boxShadow: '0 4px 12px rgba(19, 194, 194, 0.3)',
@@ -742,15 +1013,74 @@ function App() {
                         width: '100%',
                         maxWidth: '600px'
                     }}>
-                        <div style={{ fontSize: '13px', opacity: 0.85, marginBottom: '2px' }}>צופה בבית הכנסת</div>
-                        <div style={{ fontSize: '24px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                        <div style={{ fontSize: '13px', opacity: 0.85, marginBottom: '4px' }}>
+                            בית הכנסת
+                        </div>
+                        <div style={{ fontSize: '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
                             🕍 {synagogues.find(s => s.id === guestSynagogueId)?.name}
                         </div>
                         {synagogues.find(s => s.id === guestSynagogueId)?.address && (
-                            <div style={{ fontSize: '12px', opacity: 0.75, marginTop: '2px' }}>
+                            <div style={{ fontSize: '13px', opacity: 0.8, marginTop: '6px' }}>
                                 📍 {synagogues.find(s => s.id === guestSynagogueId)?.address}
                             </div>
                         )}
+                    </div>
+                )}
+                {/* Banner לאורח עם שם בית כנסת מקומי */}
+                {(!user && !guestSynagogueId && localSynagogueName) && (
+                    <div style={{
+                        background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
+                        borderRadius: '12px',
+                        padding: '20px 40px',
+                        color: '#fff',
+                        textAlign: 'center',
+                        boxShadow: '0 4px 12px rgba(19, 194, 194, 0.3)',
+                        marginBottom: '4px',
+                        width: '100%',
+                        maxWidth: '600px'
+                    }}>
+                        <div style={{ fontSize: '13px', opacity: 0.85, marginBottom: '4px' }}>
+                            בית הכנסת
+                        </div>
+                        <div style={{ fontSize: '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                            🕍 {localSynagogueName}
+                        </div>
+                        {synagogues.find(s => s.name === localSynagogueName)?.address && (
+                            <div style={{ fontSize: '13px', opacity: 0.8, marginTop: '6px' }}>
+                                📍 {synagogues.find(s => s.name === localSynagogueName)?.address}
+                            </div>
+                        )}
+                    </div>
+                )}
+                {/* First-time synagogue selection prompt for guests */}
+                {!user && showFirstTimePrompt && !guestSynagogueId && (
+                    <div style={{
+                        background: 'linear-gradient(135deg, #ff7a45 0%, #d4380d 100%)',
+                        borderRadius: '12px',
+                        padding: '16px 30px',
+                        color: '#fff',
+                        textAlign: 'center',
+                        boxShadow: '0 4px 12px rgba(212, 56, 13, 0.3)',
+                        marginBottom: '4px',
+                        width: '100%',
+                        maxWidth: '600px',
+                        animation: 'pulse 2s infinite'
+                    }}>
+                        <div style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '8px' }}>
+                            🙏 אנא בחר בית כנסת לצפייה
+                        </div>
+                        <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '12px' }}>
+                            כדי לצפות בנתוני המתפללים, הארכיון והנפטרים
+                        </div>
+                        <Select
+                            placeholder="בחר בית כנסת..."
+                            onChange={handleGuestSynagogueChange}
+                            allowClear={false}
+                            style={{ minWidth: '200px', fontWeight: 'bold' }}
+                            size="middle"
+                            options={synagogues.map(s => ({ value: s.id, label: `🕍 ${s.name || s.id}` }))}
+                            popupMatchSelectWidth={false}
+                        />
                     </div>
                 )}
                 <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -806,6 +1136,7 @@ function App() {
                     members={members}
                     synagogues={synagogues}
                     currentUser={user}
+                    localSynagogueName={localSynagogueName}
                 />
 
                 <MembersListModal
@@ -818,6 +1149,7 @@ function App() {
                     onAddNew={() => setIsModalVisible(true)}
                     isAdmin={isAdmin}
                     token={token}
+                    guestSynagogueId={guestSynagogueId}
                 />
 
                 <ArchiveListModal
@@ -829,6 +1161,7 @@ function App() {
                     refreshKey={archiveRefreshKey}
                     isAdmin={isAdmin}
                     token={token}
+                    guestSynagogueId={guestSynagogueId}
                 />
 
                 <NiftarimListModal

@@ -10,7 +10,7 @@
             "node18-win-x64"
         ]
     },
-    "version": "1.4.28",
+    "version": "1.4.92",
     "description": "Synagogue Management Application",
     "author": "Synagogue Management Team",
     "main": "electron.cjs",
@@ -24,8 +24,9 @@
         "postdist": "node -e \"const fs = require('fs'); const path = require('path'); const pkg = require('./package.json'); const version = pkg.version; const outputDir = (pkg.build && pkg.build.directories && pkg.build.directories.output) || 'build-output'; const installer = path.join(outputDir, 'Nihul Beit Cnecet Setup ' + version + '.exe'); fs.copyFileSync(installer, path.join('dist', 'Nihul Beit Cnecet Setup ' + version + '.exe')); fs.copyFileSync(installer, path.join('.', 'Nihul Beit Cnecet Setup ' + version + '.exe'));\""
     },
     "dependencies": {
+        "@ant-design/icons": "6.3.2",
         "@hebcal/core": "^6.0.8",
-        "antd": "^6.6.0",
+        "antd": "6.6.0",
         "dotenv": "^16.4.5",
         "express": "^5.2.1",
         "hebcal": "^2.3.2",
@@ -49,7 +50,7 @@
         "productName": "Nihul Beit Cnecet",
         "asar": false,
         "directories": {
-            "output": "build-output-1.4.23"
+            "output": "build-output-1.4.92"
         },
         "files": [
             "dist/**/*",
@@ -59,17 +60,12 @@
             "accessControl.js",
             "electron.cjs",
             "package.json",
-            "data/**/*",
-            "prague_synagogue_icon.ico",
-            "!**/node_modules/antd/**",
-            "!**/node_modules/@ant-design/**",
-            "!**/node_modules/react/**",
-            "!**/node_modules/react-dom/**",
-            "!**/node_modules/lucide-react/**"
+            "build/prague_synagogue_icon.ico",
+            "node_modules/**"
         ],
         "win": {
             "target": "nsis",
-            "icon": "prague_synagogue_icon.ico"
+            "icon": "build/prague_synagogue_icon.ico"
         },
         "nsis": {
             "oneClick": false,
