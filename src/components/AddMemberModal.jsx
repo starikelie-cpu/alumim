@@ -9,11 +9,12 @@ import { resolveEffectiveSynagogueId } from '../../accessControl';
 
 const { Option } = Select;
 
-const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = [], synagogues = [], currentUser = null }) => {
+const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = [], synagogues = [], currentUser = null, localSynagogueName = null }) => {
     const [form] = Form.useForm();
     const [calendar, setCalendar] = useState({ isOpen: false, field: null });
     const [nameSearch, setNameSearch] = useState('');
     const letterSelectRef = React.useRef(null);
+    const [currentUserSynagogueName, setCurrentUserSynagogueName] = useState('');
 
     const formatHebrewDate = (dateObj) => {
         if (!dateObj || typeof dateObj !== 'object') return dateObj;
@@ -27,7 +28,36 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
             .then(res => res.json())
             .then(data => setParashot(data))
             .catch(err => console.error("Failed to fetch parashot:", err));
-    }, []);
+        
+        // Load synagogue name from DEDICATED LOCAL FILE - no server call
+        if (currentUser?.role === 'synagogue_admin') {
+            // First try the dedicated local synagogue name file
+            if (localSynagogueName) {
+                setCurrentUserSynagogueName(localSynagogueName);
+                console.log('Loaded synagogue name from dedicated local file');
+            } else {
+                // Fallback to cached synagogues in localStorage
+                const cachedSynagogues = localStorage.getItem('cachedSynagogues');
+                if (cachedSynagogues) {
+                    try {
+                        const cached = JSON.parse(cachedSynagogues);
+                        const syn = cached.find(s => s.id === currentUser.synagogueId);
+                        if (syn) {
+                            setCurrentUserSynagogueName(syn.name);
+                            console.log('Loaded synagogue name from local cache');
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse cached synagogues:', e);
+                    }
+                }
+                // If not in localStorage cache, try from synagogues prop (might be from local file)
+                const syn = synagogues.find(s => s.id === currentUser.synagogueId);
+                if (syn) {
+                    setCurrentUserSynagogueName(syn.name);
+                }
+            }
+        }
+    }, [currentUser, synagogues, localSynagogueName]);
 
     const uniqueLastNames = useMemo(() => {
         const names = [...new Set(members.map(m => m.lastName).filter(Boolean))];
@@ -298,14 +328,25 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                             </Col>
                         </Row>
 
-                        {synagogues.length > 0 && (
+                        {currentUser?.role === 'synagogue_admin' && currentUser?.synagogueId ? (
+                            <Row gutter={24} style={{ marginBottom: 4 }}>
+                                <Col span={24}>
+                                    <Form.Item name="synagogueId" label="בית כנסת">
+                                        <Input 
+                                            value={currentUserSynagogueName || synagogues.find(s => s.id === currentUser.synagogueId)?.name || 'בית הכנסת שלי'}
+                                            disabled
+                                            style={{ width: '100%' }}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        ) : synagogues.length > 0 && (
                             <Row gutter={24} style={{ marginBottom: 4 }}>
                                 <Col span={24}>
                                     <Form.Item name="synagogueId" label="בית כנסת">
                                         <Select
                                             placeholder="בחר בית כנסת..."
                                             allowClear
-                                            disabled={currentUser?.role === 'synagogue_admin'}
                                             style={{ width: '100%' }}
                                         >
                                             {synagogues.map(s => (

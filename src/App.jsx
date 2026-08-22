@@ -416,13 +416,10 @@ function App() {
             const savedGuestId = localStorage.getItem('guestSynagogueId');
             if (savedGuestId) {
                 scopedSynId = savedGuestId;
-                console.log('Using saved guest synagogueId from localStorage:', savedGuestId);
             }
         }
         
         const viewParam = scopedSynId ? `?viewSynagogueId=${encodeURIComponent(scopedSynId)}` : '';
-
-        console.log('fetchAllData called with:', { token, guestSynId, adminSynId, scopedSynId, viewParam });
 
         // Load synagogues first and independently - this is critical for UI
         fetch(`${API_BASE}/api/synagogues`, { headers })
@@ -439,7 +436,6 @@ function App() {
         fetch(`${API_BASE}/api/members${viewParam}`, { headers })
             .then(res => res.json())
             .then(data => {
-                console.log('Members data received:', data.length, 'members');
                 setMembers(data);
             })
             .catch(err => console.error("Failed to fetch members:", err));
@@ -447,7 +443,6 @@ function App() {
         fetch(`${API_BASE}/api/niftarim${viewParam}`, { headers })
             .then(res => res.json())
             .then(data => {
-                console.log('Niftarim data received:', data.length, 'niftarim');
                 setNiftarim(Array.isArray(data) ? data : []);
             })
             .catch(err => console.error("Failed to fetch niftarim:", err));
@@ -461,7 +456,6 @@ function App() {
         
         // Save to localStorage IMMEDIATELY - no server wait
         localStorage.setItem('guestSynagogueId', synId);
-        console.log('Saved guest synagogueId to localStorage immediately:', synId);
         
         // Save to local file
         try {
@@ -470,14 +464,12 @@ function App() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ guestSynagogueId: synId })
             });
-            console.log('Saved preferred synagogue to local file');
             
             // Save synagogue name to localStorage IMMEDIATELY - no server wait
             const selectedSynagogue = synagogues.find(s => s.id === synId);
             if (selectedSynagogue) {
                 localStorage.setItem('localSynagogueName', selectedSynagogue.name);
                 setLocalSynagogueName(selectedSynagogue.name);
-                console.log('Saved synagogue name to localStorage immediately:', selectedSynagogue.name);
             }
         } catch (e) {
             console.error('Failed to save preferences:', e);
@@ -534,7 +526,6 @@ function App() {
             })
                 .then(res => res.json())
                 .then(updatedMember => {
-                    console.log('Member Updated:', updatedMember);
                     // If member was marked as נפ, refresh niftarim list from server and remove from members list
                     const letterVal = updatedMember.letter;
                     const isNiftar = Array.isArray(letterVal)
@@ -587,7 +578,6 @@ function App() {
             })
                 .then(res => res.json())
                 .then(updatedArchive => {
-                    console.log('Archive Record Updated:', updatedArchive);
                     setIsModalVisible(false);
                     setEditingArchiveRecord(null);
                     setArchiveRefreshKey(prev => prev + 1);
@@ -607,7 +597,6 @@ function App() {
         })
             .then(res => res.json())
             .then(savedMember => {
-                console.log('Member Saved:', savedMember);
                 setMembers(prev => [...prev, savedMember]);
                 setIsModalVisible(false);
                 return savedMember;
@@ -630,7 +619,6 @@ function App() {
         })
             .then(res => res.json())
             .then(() => {
-                console.log('Member Deleted:', memberId);
                 setMembers(prev => prev.filter(m => m.id !== memberId));
             })
             .catch(err => console.error("Failed to delete member:", err));
@@ -664,7 +652,6 @@ function App() {
         })
             .then(res => res.json())
             .then(() => {
-                console.log('Archive Record Deleted:', archiveId);
                 setArchiveRefreshKey(prev => prev + 1);
             })
             .catch(err => console.error("Failed to delete archive record:", err));
@@ -1044,11 +1031,6 @@ function App() {
                         <div style={{ fontSize: '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
                             🕍 {synagogues.find(s => s.id === guestSynagogueId)?.name}
                         </div>
-                        {synagogues.find(s => s.id === guestSynagogueId)?.address && (
-                            <div style={{ fontSize: '13px', opacity: 0.8, marginTop: '6px' }}>
-                                📍 {synagogues.find(s => s.id === guestSynagogueId)?.address}
-                            </div>
-                        )}
                     </div>
                 )}
                 {/* Banner לאורח עם שם בית כנסת מקומי */}
@@ -1070,11 +1052,6 @@ function App() {
                         <div style={{ fontSize: '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
                             🕍 {localSynagogueName}
                         </div>
-                        {synagogues.find(s => s.name === localSynagogueName)?.address && (
-                            <div style={{ fontSize: '13px', opacity: 0.8, marginTop: '6px' }}>
-                                📍 {synagogues.find(s => s.name === localSynagogueName)?.address}
-                            </div>
-                        )}
                     </div>
                 )}
                 {/* First-time synagogue selection prompt for guests */}

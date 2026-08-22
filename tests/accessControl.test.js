@@ -51,6 +51,8 @@ test('filters records by synagogue and keeps super admin view unrestricted', () 
   const user = { role: 'synagogue_admin', synagogueId: 'syn-1' };
   assert.deepEqual(filterRecordsBySynagogue(records, user), [{ id: 1, synagogueId: 'syn-1' }]);
   assert.deepEqual(filterRecordsBySynagogue(records, { role: 'super_admin' }), records);
+  assert.deepEqual(filterRecordsBySynagogue(records, { role: 'super_admin' }, 'syn-2'), [{ id: 2, synagogueId: 'syn-2' }]);
+  assert.deepEqual(filterRecordsBySynagogue(records, { role: 'super_admin', viewSynagogueId: 'syn-1' }), [{ id: 1, synagogueId: 'syn-1' }]);
 });
 
 test('filters users so synagogue admins only see their own synagogue users', () => {

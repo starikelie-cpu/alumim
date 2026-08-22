@@ -7,7 +7,7 @@ import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 import { API_BASE } from '../config';
 
 
-const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, memberId = null, isAdmin, token }) => {
+const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, memberId = null, isAdmin, token, guestSynagogueId }) => {
     const [archiveData, setArchiveData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
@@ -20,17 +20,20 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
         if (visible) {
             fetchArchive();
         }
-    }, [visible, memberId, refreshKey]);
+    }, [visible, memberId, refreshKey, guestSynagogueId]);
 
     const fetchArchive = async () => {
         setLoading(true);
         try {
             // Add timestamp to prevent caching
             const timestamp = new Date().getTime();
+            // Add viewSynagogueId for guest users
+            const viewParam = guestSynagogueId ? `&viewSynagogueId=${encodeURIComponent(guestSynagogueId)}` : '';
             const url = memberId
-                ? `${API_BASE}/api/archive/${memberId}?t=${timestamp}`
-                : `${API_BASE}/api/archive?t=${timestamp}`;
-            const response = await fetch(url);
+                ? `${API_BASE}/api/archive/${memberId}?t=${timestamp}${viewParam}`
+                : `${API_BASE}/api/archive?t=${timestamp}${viewParam}`;
+            const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+            const response = await fetch(url, headers ? { headers } : undefined);
             const data = await response.json();
             // Pre-calculate absolute dates and sorting values
             const enrichedData = data.map(item => ({

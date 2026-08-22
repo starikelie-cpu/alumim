@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Modal, Tabs, Table, Button, Form, Input, Select, Popconfirm, Space,
+    Modal, Tabs, Table, Button, Form, Input, Select, AutoComplete, Popconfirm, Space,
     message, Tag, Card, Statistic, Row, Col, Tooltip, Badge, Divider, Typography
 } from 'antd';
 import {
     PlusOutlined, DeleteOutlined, KeyOutlined, EditOutlined, BankOutlined,
     TeamOutlined, BarChartOutlined, CheckOutlined, CloseOutlined, CrownOutlined,
-    UserOutlined, EnvironmentOutlined, PhoneOutlined
+    UserOutlined, EnvironmentOutlined
 } from '@ant-design/icons';
 import { API_BASE } from '../config';
 import { normalizeRole } from '../../accessControl';
@@ -25,6 +25,15 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
     const [loadingSyn, setLoadingSyn] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
 
+    // Israeli cities and streets data from OpenStreetMap with local caching
+    const [cities, setCities] = useState([]);
+    const [streets, setStreets] = useState([]);
+    const [loadingCities, setLoadingCities] = useState(false);
+    const [loadingStreets, setLoadingStreets] = useState(false);
+    
+    // Local in-memory cache: city -> Set of streets
+    const [streetsCache, setStreetsCache] = useState(new Map());
+
     // Inline edit state for synagogue row
     const [editingSynId, setEditingSynId] = useState(null);
     const [editingSynForm] = Form.useForm();
@@ -35,14 +44,66 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
 
     const [addSynForm] = Form.useForm();
     const [addUserForm] = Form.useForm();
+    const [mysynForm] = Form.useForm();
     const [showAddSyn, setShowAddSyn] = useState(false);
     const [showAddUser, setShowAddUser] = useState(false);
     const [savingSyn, setSavingSyn] = useState(false);
     const [savingUser, setSavingUser] = useState(false);
+    const [savingMySyn, setSavingMySyn] = useState(false);
 
     const isSuperAdmin = currentUser?.role === 'super_admin';
 
     const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+    // Load Israeli cities from backend API
+    const loadCities = async () => {
+        setLoadingCities(true);
+        try {
+            const response = await fetch(`${API_BASE}/api/osm/cities`, { headers });
+            const data = await response.json();
+            if (data.cities && Array.isArray(data.cities)) {
+                setCities(data.cities);
+            }
+        } catch (error) {
+            console.error('Failed to load cities from backend API:', error);
+            // Fallback to some common cities
+            setCities(['ירושלים', 'תל אביב-יפו', 'חיפה', 'ראשון לציון', 'אשדוד', 'באר שבע', 'נתניה', 'חולון', 'בני ברק', 'רמת גן']);
+        } finally {
+            setLoadingCities(false);
+        }
+    };
+
+    // Load streets for selected city from backend API
+    const loadStreets = async (cityName) => {
+        if (!cityName) {
+            setStreets([]);
+            return;
+        }
+        
+        // Check cache first
+        if (streetsCache.has(cityName)) {
+            const cachedStreets = Array.from(streetsCache.get(cityName)).sort((a, b) => a.localeCompare(b, 'he'));
+            setStreets(cachedStreets);
+            return;
+        }
+        
+        setLoadingStreets(true);
+        try {
+            const response = await fetch(`${API_BASE}/api/osm/streets?city=${encodeURIComponent(cityName)}`, { headers });
+            const data = await response.json();
+            if (data.streets && Array.isArray(data.streets)) {
+                setStreets(data.streets);
+                
+                // Cache the streets for this city
+                setStreetsCache(prev => new Map(prev).set(cityName, new Set(data.streets)));
+            }
+        } catch (error) {
+            console.error('Failed to load streets from backend API:', error);
+            setStreets([]);
+        } finally {
+            setLoadingStreets(false);
+        }
+    };
 
     const fetchSynagogues = async () => {
         setLoadingSyn(true);
@@ -71,27 +132,65 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
         }
     }, [visible, token]);
 
+    // Load cities only when the add synagogue modal is opened
+    useEffect(() => {
+        if (showAddSyn) {
+            loadCities();
+        }
+    }, [showAddSyn]);
+
     // ── Synagogue actions ─────────────────────────────────────────────────────
 
     const handleAddSynagogue = async (values) => {
         setSavingSyn(true);
         try {
+            // First create the synagogue
             const res = await fetch(`${API_BASE}/api/synagogues`, {
                 method: 'POST', headers, body: JSON.stringify(values)
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'שגיאה');
-            message.success('בית כנסת נוצר בהצלחה');
+
+            // If admin details provided, create the admin user
+            if (values.adminUsername && values.adminPassword) {
+                const adminRes = await fetch(`${API_BASE}/api/users`, {
+                    method: 'POST', headers, body: JSON.stringify({
+                        username: values.adminUsername,
+                        password: values.adminPassword,
+                        name: values.adminName || values.adminUsername,
+                        role: 'synagogue_admin',
+                        synagogueId: data.id
+                    })
+                });
+                const adminData = await adminRes.json();
+                if (!adminRes.ok) {
+                    message.warning('בית כנסת נוצר אבל נכשל יצירת מנהל: ' + (adminData.error || 'שגיאה'));
+                } else {
+                    message.success('בית כנסת ומנהל נוצרו בהצלחה');
+                }
+            } else {
+                message.success('בית כנסת נוצר בהצלחה');
+            }
+
+            fetchSynagogues();
+            fetchUsers();
             addSynForm.resetFields();
             setShowAddSyn(false);
-            fetchSynagogues();
-        } catch (e) { message.error(e.message); }
+        } catch (e) {
+            console.error('Error creating synagogue:', e);
+            message.error(e.message);
+        }
         finally { setSavingSyn(false); }
     };
 
     const startEditSyn = (record) => {
         setEditingSynId(record.id);
-        editingSynForm.setFieldsValue({ name: record.name, address: record.address || '', phone: record.phone || '' });
+        editingSynForm.setFieldsValue({
+            name: record.name || '',
+            city: record.city || '',
+            street: record.street || '',
+            houseNumber: record.houseNumber || ''
+        });
     };
 
     const saveSyn = async (id) => {
@@ -117,13 +216,38 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
         } catch (e) { message.error(e.message); }
     };
 
+    // ── Synagogue admin – update own synagogue name ───────────────────────────
+
+    const saveMySynName = async () => {
+        setSavingMySyn(true);
+        try {
+            const values = await mysynForm.validateFields();
+            const synId = currentUser?.synagogueId;
+            if (!synId) { message.error('לא שויכת לבית כנסת'); return; }
+            const res = await fetch(`${API_BASE}/api/synagogues/${synId}`, {
+                method: 'PUT', headers, body: JSON.stringify({ name: values.name })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'שגיאה');
+            message.success('שם בית הכנסת עודכן בהצלחה');
+            fetchSynagogues();
+        } catch (e) { if (e.message) message.error(e.message); }
+        finally { setSavingMySyn(false); }
+    };
+
     // ── User actions ──────────────────────────────────────────────────────────
 
     const handleAddUser = async (values) => {
         setSavingUser(true);
         try {
+            // For synagogue admin, enforce their synagogueId
+            const payload = { ...values };
+            if (!isSuperAdmin && currentUser?.synagogueId) {
+                payload.synagogueId = currentUser.synagogueId;
+            }
+            
             const res = await fetch(`${API_BASE}/api/users`, {
-                method: 'POST', headers, body: JSON.stringify(values)
+                method: 'POST', headers, body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'שגיאה');
@@ -136,6 +260,12 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
     };
 
     const startEditUser = (record) => {
+        // Prevent synagogue admin from editing users from other synagogues
+        if (!isSuperAdmin && currentUser?.synagogueId && record.synagogueId !== currentUser.synagogueId) {
+            message.error('אין לך הרשאה לערוך משתמשים מבתי כנסת אחרים');
+            return;
+        }
+        
         setEditingUserId(record.username);
         editingUserForm.setFieldsValue({
             role: normalizeRole(record.role),
@@ -146,8 +276,15 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
     const saveUser = async (username) => {
         try {
             const values = await editingUserForm.validateFields();
+            
+            // For synagogue admin, enforce their synagogueId and prevent changing it
+            const payload = { ...values };
+            if (!isSuperAdmin && currentUser?.synagogueId) {
+                payload.synagogueId = currentUser.synagogueId;
+            }
+            
             const res = await fetch(`${API_BASE}/api/users/${username}`, {
-                method: 'PUT', headers, body: JSON.stringify(values)
+                method: 'PUT', headers, body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'שגיאה');
@@ -196,16 +333,19 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             title: 'שם בית כנסת',
             dataIndex: 'name',
             key: 'name',
-            render: (name, record) =>
+            render: (name, record) => (
                 editingSynId === record.id ? (
-                    <Form form={editingSynForm} layout="inline" style={{ gap: 4 }}>
-                        <Form.Item name="name" rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                            <Input size="small" style={{ width: 140 }} />
-                        </Form.Item>
-                    </Form>
+                    <div>
+                        <Form form={editingSynForm} layout="vertical" style={{ margin: 0 }}>
+                            <Form.Item name="name" style={{ marginBottom: 4 }}>
+                                <Input size="small" placeholder="שם בית כנסת" />
+                            </Form.Item>
+                        </Form>
+                    </div>
                 ) : (
                     <Space><BankOutlined style={{ color: '#1890ff' }} /><strong>{name}</strong></Space>
                 )
+            )
         },
         {
             title: 'כתובת',
@@ -213,25 +353,28 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             key: 'address',
             render: (addr, record) =>
                 editingSynId === record.id ? (
-                    <Form form={editingSynForm} layout="inline">
-                        <Form.Item name="address" style={{ marginBottom: 0 }}>
-                            <Input size="small" style={{ width: 160 }} prefix={<EnvironmentOutlined />} />
-                        </Form.Item>
-                    </Form>
-                ) : addr || <Text type="secondary">—</Text>
-        },
-        {
-            title: 'טלפון',
-            dataIndex: 'phone',
-            key: 'phone',
-            render: (phone, record) =>
-                editingSynId === record.id ? (
-                    <Form form={editingSynForm} layout="inline">
-                        <Form.Item name="phone" style={{ marginBottom: 0 }}>
-                            <Input size="small" style={{ width: 120 }} prefix={<PhoneOutlined />} />
-                        </Form.Item>
-                    </Form>
-                ) : phone || <Text type="secondary">—</Text>
+                    <div>
+                        <Form form={editingSynForm} layout="vertical" style={{ margin: 0 }}>
+                            <Space size={4}>
+                                <Form.Item name="city" style={{ marginBottom: 4 }}>
+                                    <Input size="small" style={{ width: 100 }} placeholder="עיר" />
+                                </Form.Item>
+                                <Form.Item name="street" style={{ marginBottom: 4 }}>
+                                    <Input size="small" style={{ width: 100 }} placeholder="רחוב" />
+                                </Form.Item>
+                                <Form.Item name="houseNumber" style={{ marginBottom: 4 }}>
+                                    <Input size="small" style={{ width: 70 }} placeholder="מס'" />
+                                </Form.Item>
+                            </Space>
+                        </Form>
+                    </div>
+                ) : (
+                    <Space direction="vertical" size={0}>
+                        {record.city && <Text type="secondary">{record.city}</Text>}
+                        {record.street && <Text>{record.street} {record.houseNumber}</Text>}
+                        {!record.city && !record.street && <Text type="secondary">—</Text>}
+                    </Space>
+                )
         },
         {
             title: 'מתפללים',
@@ -239,7 +382,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             align: 'center',
             render: (_, record) => {
                 const s = synStats.find(x => x.id === record.id);
-                return <Badge count={s?.memberCount || 0} showZero color="#1890ff" />;
+                return <Badge count={s?.memberCount || 0} overflowCount={99999} showZero color="#1890ff" />;
             }
         },
         {
@@ -306,7 +449,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                 return <Tag color={info.color}>{info.label}</Tag>;
             }
         },
-        {
+        isSuperAdmin && {
             title: 'בית כנסת',
             dataIndex: 'synagogueId',
             key: 'synagogueId',
@@ -315,7 +458,13 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                     return (
                         <Form form={editingUserForm} layout="inline">
                             <Form.Item name="synagogueId" style={{ marginBottom: 0 }}>
-                                <Select size="small" style={{ width: 180 }} allowClear placeholder="כללי (כל בתי כנסת)">
+                                <Select 
+                                    size="small" 
+                                    style={{ width: 180 }} 
+                                    allowClear 
+                                    placeholder="כללי (כל בתי כנסת)"
+                                    disabled={!isSuperAdmin}
+                                >
                                     {synagogues.map(s => (
                                         <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
                                     ))}
@@ -342,7 +491,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                     </Space>
                 ) : (
                     <Space>
-                        <Tooltip title="עריכת תפקיד ובית כנסת">
+                        <Tooltip title="עריכת תפקיד">
                             <Button size="small" icon={<EditOutlined />} onClick={() => startEditUser(record)} />
                         </Tooltip>
                         <Tooltip title="שינוי סיסמה">
@@ -356,12 +505,24 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                     </Space>
                 )
         }
-    ];
+    ].filter(Boolean);
 
     // ── Tab items ─────────────────────────────────────────────────────────────
 
+    // Determine the synagogue of the current synagogue_admin
+    const mySynagogue = !isSuperAdmin && currentUser?.synagogueId
+        ? synagogues.find(s => s.id === currentUser.synagogueId)
+        : null;
+
+    // Initialise mysynForm whenever the synagogue data is loaded
+    useEffect(() => {
+        if (mySynagogue) {
+            mysynForm.setFieldsValue({ name: mySynagogue.name || '' });
+        }
+    }, [mySynagogue?.name]);
+
     const tabs = [
-        {
+        isSuperAdmin && {
             key: 'synagogues',
             label: <span><BankOutlined /> בתי כנסת ({synagogues.length})</span>,
             children: (
@@ -375,16 +536,68 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
 
                     {showAddSyn && (
                         <Card size="small" style={{ marginBottom: 16, background: '#f6ffed', borderColor: '#b7eb8f' }}>
-                            <Form form={addSynForm} layout="inline" onFinish={handleAddSynagogue}>
-                                <Form.Item name="name" label="שם" rules={[{ required: true, message: 'חובה' }]}>
-                                    <Input placeholder="שם בית כנסת" prefix={<BankOutlined />} />
-                                </Form.Item>
-                                <Form.Item name="address" label="כתובת">
-                                    <Input placeholder="כתובת" prefix={<EnvironmentOutlined />} />
-                                </Form.Item>
-                                <Form.Item name="phone" label="טלפון">
-                                    <Input placeholder="טלפון" prefix={<PhoneOutlined />} />
-                                </Form.Item>
+                            <Form form={addSynForm} layout="vertical" onFinish={handleAddSynagogue}>
+                                <Row gutter={16}>
+                                    <Col span={24}>
+                                        <Form.Item name="name" label="שם בית כנסת" rules={[{ required: true, message: 'חובה' }]}>
+                                            <Input placeholder="שם בית כנסת" prefix={<BankOutlined />} />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                                <Row gutter={16}>
+                                    <Col span={8}>
+                                        <Form.Item name="city" label="עיר" rules={[{ required: true, message: 'חובה' }]}>
+                                            <Select
+                                                placeholder={loadingCities ? "טוען ערים..." : "בחר עיר"}
+                                                showSearch
+                                                loading={loadingCities}
+                                                filterOption={(input, option) =>
+                                                    option?.label?.toLowerCase().includes(input.toLowerCase())
+                                                }
+                                                onChange={(value) => {
+                                                    loadStreets(value);
+                                                    addSynForm.setFieldsValue({ street: undefined });
+                                                }}
+                                                options={cities.map(city => ({ value: city, label: city }))}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={8}>
+                                        <Form.Item name="street" label="רחוב">
+                                            <AutoComplete
+                                                placeholder={loadingStreets ? "טוען רחובות..." : "הזן או בחר רחוב"}
+                                                disabled={!addSynForm.getFieldValue('city')}
+                                                options={streets.map(street => ({ value: street, label: street }))}
+                                                filterOption={(inputValue, option) =>
+                                                    option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                                }
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={8}>
+                                        <Form.Item name="houseNumber" label="מספר בית">
+                                            <Input placeholder="מספר" />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                                <Divider>יצירת מנהל בית כנסת</Divider>
+                                <Row gutter={16}>
+                                    <Col span={8}>
+                                        <Form.Item name="adminUsername" label="שם משתמש מנהל">
+                                            <Input placeholder="שם משתמש" prefix={<UserOutlined />} />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={8}>
+                                        <Form.Item name="adminPassword" label="סיסמה מנהל">
+                                            <Input.Password placeholder="סיסמה" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={8}>
+                                        <Form.Item name="adminName" label="שם מלא מנהל">
+                                            <Input placeholder="שם מלא" />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
                                 <Form.Item>
                                     <Space>
                                         <Button type="primary" htmlType="submit" loading={savingSyn}>צור</Button>
@@ -401,27 +614,41 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                         rowKey="id"
                         loading={loadingSyn}
                         size="small"
-                        pagination={false}
+                        pagination={{
+                            pageSize: 10,
+                            showSizeChanger: true,
+                            showTotal: (total) => `סה"כ: ${total} בתי כנסת`,
+                            pageSizeOptions: ['10', '20', '50', '100']
+                        }}
                         locale={{ emptyText: 'אין בתי כנסת במערכת' }}
+                        scroll={{ y: 400 }}
                     />
                 </div>
             )
         },
         {
             key: 'users',
-            label: <span><TeamOutlined /> משתמשים ({users.length})</span>,
+            label: <span><TeamOutlined /> {isSuperAdmin ? `משתמשים (${users.length})` : `מנהלים ומשתמשים (${users.length})`}</span>,
             children: (
                 <div>
                     <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Title level={5} style={{ margin: 0 }}>ניהול משתמשים</Title>
+                        <Title level={5} style={{ margin: 0 }}>{isSuperAdmin ? 'ניהול משתמשים' : 'ניהול מנהלים ומשתמשים'}</Title>
                         <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowAddUser(v => !v)}>
-                            הוסף משתמש
+                            {isSuperAdmin ? 'הוסף משתמש' : 'הוסף מנהל חדש'}
                         </Button>
                     </div>
 
                     {showAddUser && (
                         <Card size="small" style={{ marginBottom: 16, background: '#e6f7ff', borderColor: '#91d5ff' }}>
-                            <Form form={addUserForm} layout="inline" onFinish={handleAddUser}>
+                            <Form 
+                                form={addUserForm} 
+                                layout="inline" 
+                                onFinish={handleAddUser}
+                                initialValues={{
+                                    role: 'synagogue_admin',
+                                    synagogueId: !isSuperAdmin ? currentUser?.synagogueId : undefined
+                                }}
+                            >
                                 <Form.Item name="username" label="שם משתמש" rules={[{ required: true, message: 'חובה' }]}>
                                     <Input placeholder="שם משתמש" prefix={<UserOutlined />} />
                                 </Form.Item>
@@ -435,16 +662,22 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                                         <Select.Option value="viewer">צופה</Select.Option>
                                     </Select>
                                 </Form.Item>
-                                <Form.Item name="synagogueId" label="בית כנסת">
-                                    <Select style={{ width: 180 }} allowClear placeholder="כללי">
-                                        {synagogues.map(s => (
-                                            <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
+                                {isSuperAdmin && (
+                                    <Form.Item name="synagogueId" label="בית כנסת">
+                                        <Select 
+                                            style={{ width: 180 }} 
+                                            allowClear 
+                                            placeholder="כללי"
+                                        >
+                                            {synagogues.map(s => (
+                                                <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
+                                            ))}
+                                        </Select>
+                                    </Form.Item>
+                                )}
                                 <Form.Item>
                                     <Space>
-                                        <Button type="primary" htmlType="submit" loading={savingUser}>צור</Button>
+                                        <Button type="primary" htmlType="submit" loading={savingUser}>צור מנהל/משתמש</Button>
                                         <Button onClick={() => { setShowAddUser(false); addUserForm.resetFields(); }}>ביטול</Button>
                                     </Space>
                                 </Form.Item>
@@ -458,8 +691,14 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                         rowKey="username"
                         loading={loadingUsers}
                         size="small"
-                        pagination={false}
+                        pagination={{
+                            pageSize: 10,
+                            showSizeChanger: true,
+                            showTotal: (total) => `סה"כ: ${total} משתמשים`,
+                            pageSizeOptions: ['10', '20', '50', '100']
+                        }}
                         locale={{ emptyText: 'אין משתמשים' }}
+                        scroll={{ y: 400 }}
                     />
                 </div>
             )
@@ -492,7 +731,13 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                         dataSource={synStats}
                         rowKey="id"
                         size="small"
-                        pagination={false}
+                        pagination={{
+                            pageSize: 10,
+                            showSizeChanger: true,
+                            showTotal: (total) => `סה"כ: ${total} בתי כנסת`,
+                            pageSizeOptions: ['10', '20', '50', '100']
+                        }}
+                        scroll={{ y: 300 }}
                         columns={[
                             { title: 'בית כנסת', dataIndex: 'name', key: 'name', render: n => <strong>{n}</strong> },
                             { title: 'מתפללים', dataIndex: 'memberCount', key: 'memberCount', align: 'center', render: v => <Badge count={v} showZero color="#1890ff" /> },
@@ -510,6 +755,44 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                     />
                 </div>
             )
+        },
+        !isSuperAdmin && currentUser?.synagogueId && {
+            key: 'mysyn',
+            label: <span><BankOutlined /> הגדרות בית כנסת</span>,
+            children: (
+                <div>
+                    <Title level={5} style={{ marginBottom: 20 }}>עדכון שם בית הכנסת</Title>
+                    {mySynagogue ? (
+                        <Card size="small" style={{ maxWidth: 480, background: '#f6ffed', borderColor: '#b7eb8f' }}>
+                            <Form form={mysynForm} layout="vertical" onFinish={saveMySynName}>
+                                <Form.Item
+                                    name="name"
+                                    label="שם בית כנסת"
+                                    rules={[{ required: true, message: 'חובה להזין שם' }]}
+                                >
+                                    <Input
+                                        prefix={<BankOutlined />}
+                                        placeholder="הזן שם בית כנסת"
+                                        size="large"
+                                    />
+                                </Form.Item>
+                                <Form.Item style={{ marginBottom: 0 }}>
+                                    <Button
+                                        type="primary"
+                                        htmlType="submit"
+                                        icon={<CheckOutlined />}
+                                        loading={savingMySyn}
+                                    >
+                                        שמור שינויים
+                                    </Button>
+                                </Form.Item>
+                            </Form>
+                        </Card>
+                    ) : (
+                        <Text type="secondary">לא שויכת לבית כנסת</Text>
+                    )}
+                </div>
+            )
         }
     ].filter(Boolean);
 
@@ -518,8 +801,10 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             open={visible}
             title={
                 <Space>
-                    <CrownOutlined style={{ color: '#faad14', fontSize: 18 }} />
-                    <span style={{ fontSize: 18, fontWeight: 700 }}>לוח בקרה - ניהול מערכת</span>
+                    {isSuperAdmin ? <CrownOutlined style={{ color: '#faad14', fontSize: 18 }} /> : <TeamOutlined style={{ color: '#1890ff', fontSize: 18 }} />}
+                    <span style={{ fontSize: 18, fontWeight: 700 }}>
+                        {isSuperAdmin ? 'לוח בקרה - ניהול מערכת' : 'ניהול מנהלים ומשתמשים'}
+                    </span>
                 </Space>
             }
             onCancel={onCancel}
@@ -532,7 +817,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             }}
         >
             <Tabs
-                defaultActiveKey="synagogues"
+                defaultActiveKey={isSuperAdmin ? 'synagogues' : 'users'}
                 items={tabs}
                 tabBarStyle={{ marginBottom: 16 }}
                 size="large"

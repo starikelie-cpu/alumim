@@ -55,10 +55,16 @@ const UserManagementModal = ({ visible, onCancel, token, currentUser }) => {
 
     const handleCreateUser = async (values) => {
         try {
+            // For synagogue admin, enforce their synagogueId
             const payload = {
                 ...values,
                 synagogueId: values.synagogueId || null
             };
+            
+            if (currentUser?.role !== 'super_admin' && currentUser?.synagogueId) {
+                payload.synagogueId = currentUser.synagogueId;
+            }
+            
             const response = await fetch(`${API_BASE}/api/users`, {
                 method: 'POST',
                 headers: fetchHeaders,
@@ -138,6 +144,12 @@ const UserManagementModal = ({ visible, onCancel, token, currentUser }) => {
 
     const handleChangeRole = async (username, newRole) => {
         try {
+            // For synagogue admin, prevent assigning super_admin role
+            if (currentUser?.role !== 'super_admin' && newRole === 'super_admin') {
+                message.error('אין לך הרשאה להקצות תפקיד מנהל על');
+                return;
+            }
+            
             const response = await fetch(`${API_BASE}/api/users/${username}`, {
                 method: 'PUT',
                 headers: fetchHeaders,
@@ -168,13 +180,14 @@ const UserManagementModal = ({ visible, onCancel, token, currentUser }) => {
                     return <Tag color="gold">מנהל על</Tag>;
                 }
                 const normalizedRole = normalizeRole(role);
+                const isCurrentUserSuperAdmin = currentUser?.role === 'super_admin';
                 return (
                     <Select
                         value={normalizedRole}
                         onChange={(val) => handleChangeRole(record.username, val)}
                         style={{ width: 150 }}
                     >
-                        <Select.Option value="super_admin">מנהל (admin)</Select.Option>
+                        {isCurrentUserSuperAdmin && <Select.Option value="super_admin">מנהל (admin)</Select.Option>}
                         <Select.Option value="synagogue_admin">מנהל בית כנסת</Select.Option>
                         <Select.Option value="viewer">צופה</Select.Option>
                     </Select>
@@ -226,22 +239,24 @@ const UserManagementModal = ({ visible, onCancel, token, currentUser }) => {
             destroyOnClose
         >
             <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                <Button 
-                    type="default"
-                    onClick={() => setIsAddSynagogueVisible(!isAddSynagogueVisible)}
-                >
-                    בית כנסת חדש
-                </Button>
+                {currentUser?.role === 'super_admin' && (
+                    <Button 
+                        type="default"
+                        onClick={() => setIsAddSynagogueVisible(!isAddSynagogueVisible)}
+                    >
+                        בית כנסת חדש
+                    </Button>
+                )}
                 <Button 
                     type="primary" 
                     icon={<PlusOutlined />} 
                     onClick={() => setIsAddUserVisible(!isAddUserVisible)}
                 >
-                    משתמש חדש
+                    משתמש / מנהל חדש
                 </Button>
             </div>
 
-            {isAddSynagogueVisible && (
+            {isAddSynagogueVisible && currentUser?.role === 'super_admin' && (
                 <Form
                     form={synagogueForm}
                     layout="inline"
@@ -267,6 +282,10 @@ const UserManagementModal = ({ visible, onCancel, token, currentUser }) => {
                     form={form}
                     layout="inline"
                     onFinish={handleCreateUser}
+                    initialValues={{
+                        role: 'synagogue_admin',
+                        synagogueId: currentUser?.role !== 'super_admin' ? currentUser?.synagogueId : undefined
+                    }}
                     style={{ marginBottom: '20px', padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}
                 >
                     <Form.Item
@@ -283,13 +302,17 @@ const UserManagementModal = ({ visible, onCancel, token, currentUser }) => {
                     </Form.Item>
                     <Form.Item name="role" initialValue="synagogue_admin">
                         <Select style={{ width: 160 }}>
-                            <Select.Option value="super_admin">מנהל (admin)</Select.Option>
+                            {currentUser?.role === 'super_admin' && <Select.Option value="super_admin">מנהל (admin)</Select.Option>}
                             <Select.Option value="synagogue_admin">מנהל בית כנסת</Select.Option>
                             <Select.Option value="viewer">צופה</Select.Option>
                         </Select>
                     </Form.Item>
                     <Form.Item name="synagogueId">
-                        <Select style={{ width: 180 }} placeholder="בחר בית כנסת">
+                        <Select 
+                            style={{ width: 180 }} 
+                            placeholder="בחר בית כנסת"
+                            disabled={currentUser?.role !== 'super_admin'}
+                        >
                             {synagogues.map((item) => (
                                 <Select.Option key={item.id} value={item.id}>{item.name}</Select.Option>
                             ))}

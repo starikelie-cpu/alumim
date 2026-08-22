@@ -24,12 +24,26 @@ export function canAccessAdminDashboard(role) {
 export function resolveSynagogueId(user, fallbackSynagogueId = null) {
   if (!user) return fallbackSynagogueId || null;
   if (isSuperAdmin(user.role)) return fallbackSynagogueId || null;
+  // For viewers (guests/worshippers), if they have a synagogueId set, use it
+  if (normalizeRole(user.role) === 'viewer' && user.synagogueId) {
+    return user.synagogueId;
+  }
+  // For synagogue_admin, always use their synagogueId
+  if (normalizeRole(user.role) === 'synagogue_admin') {
+    return user.synagogueId || null;
+  }
   return user.synagogueId || fallbackSynagogueId || null;
 }
 
 export function resolveEffectiveSynagogueId(user, requestedSynagogueId = null, fallbackSynagogueId = null) {
   if (!user) return requestedSynagogueId || fallbackSynagogueId || null;
   if (isSuperAdmin(user.role)) return requestedSynagogueId || fallbackSynagogueId || null;
+  
+  // For synagogue admin, always use their synagogueId - ignore requested and fallback
+  if (normalizeRole(user.role) === 'synagogue_admin') {
+    return user.synagogueId || null;
+  }
+  
   return user.synagogueId || requestedSynagogueId || fallbackSynagogueId || null;
 }
 
@@ -38,8 +52,20 @@ export function filterRecordsBySynagogue(records, user, fallbackSynagogueId = nu
 
   const role = normalizeRole(user?.role);
 
+  const explicitSynagogueId = user?.viewSynagogueId
+    ? String(user.viewSynagogueId)
+    : fallbackSynagogueId
+      ? String(fallbackSynagogueId)
+      : null;
+
   // Super admin sees everything
-  if (role === 'super_admin') return records;
+  if (role === 'super_admin') {
+    if (!explicitSynagogueId) return records;
+    return records.filter((record) => {
+      const recordSynagogueId = record && record.synagogueId ? String(record.synagogueId) : null;
+      return recordSynagogueId === explicitSynagogueId;
+    });
+  }
 
   const synagogueId = resolveSynagogueId(user, fallbackSynagogueId);
 
@@ -48,6 +74,7 @@ export function filterRecordsBySynagogue(records, user, fallbackSynagogueId = nu
 
   // Filter: only records belonging to the user's synagogue
   // Records without synagogueId are NOT shown to synagogue_admin (security)
+  // But viewers (guests) should see records for their selected synagogue
   return records.filter((record) => {
     const recordSynagogueId = record && record.synagogueId ? String(record.synagogueId) : null;
     return recordSynagogueId === synagogueId;

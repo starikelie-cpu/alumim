@@ -6,7 +6,7 @@ import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 import { API_BASE } from '../config';
 
-const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token }) => {
+const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId }) => {
     const [searchText, setSearchText] = useState('');
     const [daysLimit, setDaysLimit] = useState(localStorage.getItem('printDaysLimit') || '');
     const [timeAlefLimit, setTimeAlefLimit] = useState(localStorage.getItem('printTimeAlefLimit') || '');
@@ -155,7 +155,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
             // Fetch archive to find the absolutely latest aliyah_date for each member
             let archiveRecords = [];
             try {
-                const archRes = await fetch(`${API_BASE}/api/archive`);
+                const viewParam = guestSynagogueId ? `?viewSynagogueId=${encodeURIComponent(guestSynagogueId)}` : '';
+                const archRes = await fetch(`${API_BASE}/api/archive${viewParam}`);
                 archiveRecords = await archRes.json();
             } catch (e) {
                 console.error("Failed to fetch archive for print sync:", e);

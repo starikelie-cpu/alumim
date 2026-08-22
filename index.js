@@ -35,7 +35,12 @@ import {
     getSynagogues,
     addSynagogue,
     updateSynagogue,
-    deleteSynagogue
+    deleteSynagogue,
+    getCachedCities,
+    getCachedStreets,
+    cacheCities,
+    cacheStreets,
+    loadGeocodingCacheAfterConnection
 } from './db.js';
 import { normalizeRole, isAdminRole, resolveEffectiveSynagogueId } from './accessControl.js';
 
@@ -81,7 +86,7 @@ log('Server starting...');
 log(`__dirname: ${__dirname}`);
 log(`Port: ${port}`);
 
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '50mb', strict: false }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const allParshot = [
@@ -148,7 +153,12 @@ ensureDataDir();
 ensureLocalAdmin().catch(err => log(`Error ensuring local admin: ${err.message}`));
 
 // Start database connection in the background so it doesn't block server startup
-connectDB().catch(err => log(`Error in connectDB: ${err.message}`));
+connectDB()
+    .then(() => {
+        // Load geocoding cache after MongoDB connection is established
+        loadGeocodingCacheAfterConnection().catch(err => log(`Error loading geocoding cache: ${err.message}`));
+    })
+    .catch(err => log(`Error in connectDB: ${err.message}`));
 
 // === Active Sessions memory storage ===
 const activeSessions = new Map(); // token -> { username, role }
@@ -268,6 +278,79 @@ app.get('/api/db-status', (req, res) => {
     res.json(getConnectionStatus());
 });
 
+// === Local Preferences API ===
+app.get('/api/preferences', async (req, res) => {
+    try {
+        const prefPath = path.join(DATA_DIR, 'preferences.json');
+        if (fsSync.existsSync(prefPath)) {
+            const data = await fs.readFile(prefPath, 'utf8');
+            res.json(JSON.parse(data));
+        } else {
+            res.json({});
+        }
+    } catch (error) {
+        console.error('Error reading preferences:', error);
+        res.json({});
+    }
+});
+
+app.post('/api/preferences', async (req, res) => {
+    try {
+        const prefPath = path.join(DATA_DIR, 'preferences.json');
+        await fs.mkdir(DATA_DIR, { recursive: true });
+        await fs.writeFile(prefPath, JSON.stringify(req.body, null, 2));
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error saving preferences:', error);
+        res.status(500).json({ error: 'Failed to save preferences' });
+    }
+});
+
+// === Synagogue Name API - Simple file access ===
+app.get('/api/synagogue-name', (req, res) => {
+    try {
+        const synNamePath = path.join(DATA_DIR, 'synagogue_name.json');
+        if (fsSync.existsSync(synNamePath)) {
+            const data = fsSync.readFileSync(synNamePath, 'utf8');
+            const parsed = JSON.parse(data);
+            res.json({ synagogueName: parsed.synagogueName });
+        } else {
+            res.json({ synagogueName: null });
+        }
+    } catch (error) {
+        console.error('Error reading synagogue name:', error);
+        res.json({ synagogueName: null });
+    }
+});
+
+app.post('/api/synagogue-name', (req, res) => {
+    try {
+        const { synagogueName } = req.body;
+        const synNamePath = path.join(DATA_DIR, 'synagogue_name.json');
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+        fs.writeFileSync(synNamePath, JSON.stringify({ synagogueName }, null, 2));
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error saving synagogue name:', error);
+        res.status(500).json({ error: 'Failed to save synagogue name' });
+    }
+});
+
+// === Current User Info API ===
+app.get('/api/current-user', requireAuthenticatedUser, (req, res) => {
+    try {
+        const userInfo = {
+            username: req.currentUser?.username || 'guest',
+            role: req.currentUser?.role || 'viewer',
+            synagogueId: req.currentUser?.synagogueId || null
+        };
+        res.json(userInfo);
+    } catch (error) {
+        console.error('Error getting current user info:', error);
+        res.status(500).json({ error: 'Failed to get user info' });
+    }
+});
+
 app.post('/api/db-config', async (req, res) => {
     try {
         const { mongoUri } = req.body;
@@ -304,6 +387,7 @@ app.get('/api/logs', async (req, res) => {
 // === Synagogue Management APIs ===
 app.get('/api/synagogues', requireAuthenticatedUser, async (req, res) => {
     try {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         const synagogues = await getSynagogues();
         res.json(synagogues);
     } catch (error) {
@@ -313,16 +397,38 @@ app.get('/api/synagogues', requireAuthenticatedUser, async (req, res) => {
 
 app.post('/api/synagogues', requireAdmin, async (req, res) => {
     try {
+        console.log('Received synagogue data:', req.body);
         const synagogue = await addSynagogue(req.body);
+        console.log('Created synagogue:', synagogue);
         res.json(synagogue);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create synagogue' });
+        console.error('Failed to create synagogue:', error);
+        res.status(500).json({ error: 'Failed to create synagogue: ' + error.message });
     }
 });
 
 app.put('/api/synagogues/:id', requireAdmin, async (req, res) => {
     try {
-        const updated = await updateSynagogue(req.params.id, req.body);
+        const user = req.currentUser;
+        const rawId = req.params.id; // keep as string for DB calls
+
+        // synagogue_admin may only update their own synagogue, and only the name field
+        if (normalizeRole(user.role) === 'synagogue_admin') {
+            if (!user.synagogueId || String(user.synagogueId) !== String(rawId)) {
+                return res.status(403).json({ error: 'אין הרשאה לעדכן בית כנסת זה' });
+            }
+            // Allow only the name field to be changed by synagogue_admin
+            const { name } = req.body;
+            if (!name || String(name).trim() === '') {
+                return res.status(400).json({ error: 'שם בית כנסת לא יכול להיות ריק' });
+            }
+            const updated = await updateSynagogue(rawId, { name: String(name).trim() });
+            if (!updated) return res.status(404).json({ error: 'Synagogue not found' });
+            return res.json(updated);
+        }
+
+        // super_admin – full update
+        const updated = await updateSynagogue(rawId, req.body);
         if (!updated) return res.status(404).json({ error: 'Synagogue not found' });
         res.json(updated);
     } catch (error) {
@@ -340,7 +446,7 @@ app.delete('/api/synagogues/:id', requireAdmin, async (req, res) => {
     }
 });
 
-// === User Management APIs (Admin Only) ===
+// === User Management APIs (Admin & Synagogue Admin) ===
 app.get('/api/users', requireAdmin, async (req, res) => {
     try {
         const { filterUsersByAccess } = await import('./accessControl.js');
@@ -356,6 +462,18 @@ app.get('/api/users', requireAdmin, async (req, res) => {
 
 app.post('/api/users', requireAdmin, async (req, res) => {
     try {
+        const userRole = normalizeRole(req.currentUser?.role);
+        if (userRole === 'synagogue_admin') {
+            if (!req.currentUser.synagogueId) {
+                return res.status(400).json({ error: 'מנהל בית כנסת חייב להיות משויך לבית כנסת' });
+            }
+            // Enforce synagogueId to match synagogue_admin's synagogue
+            req.body.synagogueId = req.currentUser.synagogueId;
+            // Prevent synagogue_admin from creating super_admin users
+            if (normalizeRole(req.body.role) === 'super_admin') {
+                req.body.role = 'synagogue_admin';
+            }
+        }
         const newUser = await addUser(req.body);
         res.json(newUser);
     } catch (error) {
@@ -366,6 +484,18 @@ app.post('/api/users', requireAdmin, async (req, res) => {
 
 app.put('/api/users/:username', requireAdmin, async (req, res) => {
     try {
+        const userRole = normalizeRole(req.currentUser?.role);
+        if (userRole === 'synagogue_admin') {
+            const allUsers = await getUsers();
+            const targetUser = allUsers.find(u => u.username === req.params.username);
+            if (!targetUser || targetUser.synagogueId !== req.currentUser.synagogueId) {
+                return res.status(403).json({ error: 'אין הרשאה לערוך משתמש זה' });
+            }
+            req.body.synagogueId = req.currentUser.synagogueId;
+            if (normalizeRole(req.body.role) === 'super_admin') {
+                delete req.body.role;
+            }
+        }
         const updated = await updateUser(req.params.username, req.body);
         if (!updated) {
             return res.status(404).json({ error: 'User not found' });
@@ -379,6 +509,14 @@ app.put('/api/users/:username', requireAdmin, async (req, res) => {
 
 app.delete('/api/users/:username', requireAdmin, async (req, res) => {
     try {
+        const userRole = normalizeRole(req.currentUser?.role);
+        if (userRole === 'synagogue_admin') {
+            const allUsers = await getUsers();
+            const targetUser = allUsers.find(u => u.username === req.params.username);
+            if (!targetUser || targetUser.synagogueId !== req.currentUser.synagogueId) {
+                return res.status(403).json({ error: 'אין הרשאה למחוק משתמש זה' });
+            }
+        }
         const success = await deleteUser(req.params.username);
         if (!success) {
             return res.status(404).json({ error: 'User not found' });
@@ -393,13 +531,31 @@ app.delete('/api/users/:username', requireAdmin, async (req, res) => {
 // Get all members
 app.get('/api/members', requireAuthenticatedUser, async (req, res) => {
     try {
-        // Allow guests to view a specific synagogue via ?viewSynagogueId=xxx
-        const effectiveUser = req.currentUser?.synagogueId
-            ? req.currentUser
-            : req.query.viewSynagogueId
-                ? { ...req.currentUser, synagogueId: req.query.viewSynagogueId }
-                : req.currentUser;
+        const requestedSynagogueId = req.query.viewSynagogueId ? String(req.query.viewSynagogueId) : null;
+        const role = normalizeRole(req.currentUser?.role);
+        let effectiveUser = req.currentUser;
+        
+        console.log('GET /api/members - requestedSynagogueId:', requestedSynagogueId, 'role:', role, 'currentUser:', req.currentUser);
+        
+        // For worshippers (viewers with synagogue association), ensure they see their synagogue's data
+        if (role === 'viewer' && req.currentUser?.synagogueId && !requestedSynagogueId) {
+            // Viewer with synagogue association sees their synagogue by default
+            effectiveUser = { ...req.currentUser };
+            console.log('Viewer with synagogue association sees their synagogue:', req.currentUser.synagogueId);
+        }
+        
+        if (requestedSynagogueId) {
+            if (role === 'super_admin') {
+                effectiveUser = { ...req.currentUser, viewSynagogueId: requestedSynagogueId };
+            } else if (role === 'viewer') {
+                // Guest viewer can browse a selected synagogue - ALWAYS set synagogueId
+                effectiveUser = { ...req.currentUser, synagogueId: requestedSynagogueId };
+                console.log('Setting guest viewer synagogueId to:', requestedSynagogueId);
+            }
+        }
+        
         const members = await getMembers(effectiveUser);
+        console.log('Returning members count:', members.length);
         res.json(members);
     } catch (error) {
         console.error('Error reading members:', error);
@@ -517,11 +673,26 @@ app.delete('/api/members/:id', requireAdmin, async (req, res) => {
 // Get archive list
 app.get('/api/archive', requireAuthenticatedUser, async (req, res) => {
     try {
-        const effectiveUser = req.currentUser?.synagogueId
-            ? req.currentUser
-            : req.query.viewSynagogueId
-                ? { ...req.currentUser, synagogueId: req.query.viewSynagogueId }
-                : req.currentUser;
+        const requestedSynagogueId = req.query.viewSynagogueId ? String(req.query.viewSynagogueId) : null;
+        const role = normalizeRole(req.currentUser?.role);
+        let effectiveUser = req.currentUser;
+        
+        // For worshippers (viewers with synagogue association), ensure they see their synagogue's data
+        if (role === 'viewer' && req.currentUser?.synagogueId && !requestedSynagogueId) {
+            // Viewer with synagogue association sees their synagogue by default
+            effectiveUser = { ...req.currentUser };
+            console.log('Viewer with synagogue association sees their synagogue archive:', req.currentUser.synagogueId);
+        }
+        
+        if (requestedSynagogueId) {
+            if (role === 'super_admin') {
+                effectiveUser = { ...req.currentUser, viewSynagogueId: requestedSynagogueId };
+            } else if (role === 'viewer') {
+                // Guest viewer can browse a selected synagogue - ALWAYS set synagogueId
+                effectiveUser = { ...req.currentUser, synagogueId: requestedSynagogueId };
+            }
+        }
+        
         const archives = await getArchive(effectiveUser);
         res.json(archives);
     } catch (error) {
@@ -539,6 +710,72 @@ app.get('/api/archive/:memberId', requireAuthenticatedUser, async (req, res) => 
     } catch (error) {
         console.error('Error reading archive for member:', error);
         res.status(500).json({ error: 'Failed to read member history' });
+    }
+});
+
+// === Geocoding API (Server-side cache with data.gov.il official data) ===
+app.get('/api/osm/cities', async (req, res) => {
+    try {
+        // Check cache first
+        const cachedCities = getCachedCities();
+        if (cachedCities.length > 0) {
+            return res.json({ cities: cachedCities, cached: true });
+        }
+        
+        // Use official data.gov.il API for all Israeli settlements (1,300+ settlements)
+        const response = await fetch('https://data.gov.il/api/3/action/datastore_search?resource_id=8f714b6f-c35c-4b40-a0e7-547b675eee0e&limit=2000');
+        const data = await response.json();
+        if (data.success && data.result.records) {
+            const cityNames = [...new Set(data.result.records.map(record => record.city_name_he))]
+                .filter(name => name && name.trim())
+                .sort((a, b) => a.localeCompare(b, 'he'));
+            
+            // Cache the cities
+            cacheCities(cityNames);
+            
+            res.json({ cities: cityNames, cached: false });
+        } else {
+            res.json({ cities: [] });
+        }
+    } catch (error) {
+        console.error('Failed to fetch cities from data.gov.il:', error);
+        res.json({ cities: ['ירושלים', 'תל אביב-יפו', 'חיפה', 'ראשון לציון', 'אשדוד', 'באר שבע', 'נתניה', 'חולון', 'בני ברק', 'רמת גן'] });
+    }
+});
+
+app.get('/api/osm/streets', async (req, res) => {
+    try {
+        const { city } = req.query;
+        if (!city) {
+            return res.json({ streets: [] });
+        }
+        
+        // Check cache first
+        const cachedStreets = getCachedStreets(city);
+        if (cachedStreets.length > 0) {
+            return res.json({ streets: cachedStreets, cached: true });
+        }
+        
+        // Use official data.gov.il API for streets (63,000+ streets in 1,300+ settlements)
+        const response = await fetch(`https://data.gov.il/api/3/action/datastore_search?resource_id=bf185c7f-1a4e-4662-88c5-fa118a244bda&q=${encodeURIComponent(city)}&limit=5000`);
+        const data = await response.json();
+        if (data.success && data.result.records) {
+            const streetNames = [...new Set(data.result.records
+                .filter(record => record.city_name === city && record.street_name)
+                .map(record => record.street_name))]
+                .filter(name => name && name.trim())
+                .sort((a, b) => a.localeCompare(b, 'he'));
+            
+            // Cache the streets for this city
+            cacheStreets(city, streetNames);
+            
+            res.json({ streets: streetNames, cached: false });
+        } else {
+            res.json({ streets: [] });
+        }
+    } catch (error) {
+        console.error('Failed to fetch streets from data.gov.il:', error);
+        res.json({ streets: [] });
     }
 });
 
@@ -607,11 +844,26 @@ app.post('/api/archive/import', requireAdmin, async (req, res) => {
 // Get all niftarim
 app.get('/api/niftarim', requireAuthenticatedUser, async (req, res) => {
     try {
-        const effectiveUser = req.currentUser?.synagogueId
-            ? req.currentUser
-            : req.query.viewSynagogueId
-                ? { ...req.currentUser, synagogueId: req.query.viewSynagogueId }
-                : req.currentUser;
+        const requestedSynagogueId = req.query.viewSynagogueId ? String(req.query.viewSynagogueId) : null;
+        const role = normalizeRole(req.currentUser?.role);
+        let effectiveUser = req.currentUser;
+        
+        // For worshippers (viewers with synagogue association), ensure they see their synagogue's data
+        if (role === 'viewer' && req.currentUser?.synagogueId && !requestedSynagogueId) {
+            // Viewer with synagogue association sees their synagogue by default
+            effectiveUser = { ...req.currentUser };
+            console.log('Viewer with synagogue association sees their synagogue niftarim:', req.currentUser.synagogueId);
+        }
+        
+        if (requestedSynagogueId) {
+            if (role === 'super_admin') {
+                effectiveUser = { ...req.currentUser, viewSynagogueId: requestedSynagogueId };
+            } else if (role === 'viewer') {
+                // Guest viewer can browse a selected synagogue - ALWAYS set synagogueId
+                effectiveUser = { ...req.currentUser, synagogueId: requestedSynagogueId };
+            }
+        }
+        
         const niftarim = await getNiftarim(effectiveUser);
         res.json(niftarim);
     } catch (error) {
@@ -709,8 +961,8 @@ app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);
     console.log(`Serving static from: ${path.join(__dirname, 'public')}`);
 
-    // Signal parent Electron process that server is ready.
-    // utilityProcess uses process.parentPort; child_process.fork uses process.send.
+    // Signal parent Electron process that server is ready IMMEDIATELY
+    // Don't wait for database connection - it runs in background
     if (process.parentPort) {
         process.parentPort.postMessage('server-ready');
     } else if (process.send) {

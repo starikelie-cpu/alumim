@@ -13,6 +13,7 @@ try {
 const MONGODB_URI = 'mongodb+srv://Alumim:alumim99@cluster1.i8jyvvd.mongodb.net/Alumim?retryWrites=true&w=majority&appName=Cluster1';
 
 let mainWindow;
+let splashWindow;
 let serverProcess;
 let currentBackendPort = 3000;
 
@@ -43,6 +44,67 @@ app.on('second-instance', () => {
 log('Application starting...');
 log(`isPackaged: ${app.isPackaged}`);
 
+// ── Splash window ─────────────────────────────────────────────────────────────
+function createSplashWindow() {
+    splashWindow = new BrowserWindow({
+        width: 420,
+        height: 280,
+        frame: false,
+        transparent: false,
+        resizable: false,
+        center: true,
+        alwaysOnTop: true,
+        backgroundColor: '#1a3a5c',
+        icon: path.join(__dirname, 'prague_synagogue_icon.ico'),
+        webPreferences: { nodeIntegration: false, contextIsolation: true },
+    });
+
+    const splashHtml = `<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head><meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: linear-gradient(135deg, #1a3a5c 0%, #2d6a9f 100%);
+    color: #fff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100vh; text-align: center; user-select: none;
+  }
+  .icon { font-size: 56px; margin-bottom: 16px; }
+  h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px; }
+  .sub { font-size: 14px; color: #a8c8e8; margin-bottom: 28px; }
+  .bar-wrap {
+    width: 260px; height: 6px; background: rgba(255,255,255,0.2);
+    border-radius: 3px; overflow: hidden;
+  }
+  .bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #4fc3f7, #81d4fa);
+    border-radius: 3px;
+    animation: fill 4s ease-in-out forwards;
+  }
+  @keyframes fill { 0%{width:5%} 40%{width:60%} 80%{width:85%} 100%{width:95%} }
+  .status { font-size: 12px; color: #7baed4; margin-top: 12px; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+</style>
+</head>
+<body>
+  <div class="icon">🕍</div>
+  <h1>ניהול בית כנסת</h1>
+  <div class="sub">מאתחל את המערכת...</div>
+  <div class="bar-wrap"><div class="bar"></div></div>
+  <div class="status">מתחבר לשרת...</div>
+</body>
+</html>`;
+
+    splashWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(splashHtml)}`);
+    splashWindow.show();
+}
+
+
+
 function createWindow(backendPort) {
     if (backendPort) currentBackendPort = backendPort;
 
@@ -63,6 +125,11 @@ function createWindow(backendPort) {
     }
 
     mainWindow.once('ready-to-show', () => {
+        // Close splash first, then reveal main window
+        if (splashWindow && !splashWindow.isDestroyed()) {
+            splashWindow.close();
+            splashWindow = null;
+        }
         mainWindow.maximize();
         mainWindow.show();
     });
@@ -96,6 +163,7 @@ function createWindow(backendPort) {
     mainWindow.on('closed', () => { mainWindow = null; });
 }
 
+
 // ── Port selection ────────────────────────────────────────────────────────────
 function selectBackendPort(preferredPort = 3000) {
     return new Promise((resolve) => {
@@ -117,7 +185,7 @@ function selectBackendPort(preferredPort = 3000) {
 }
 
 // ── HTTP health probe ─────────────────────────────────────────────────────────
-function waitForHttpServerReady(url, timeoutMs = 30000, intervalMs = 500) {
+function waitForHttpServerReady(url, timeoutMs = 15000, intervalMs = 300) {
     const start = Date.now();
     return new Promise((resolve, reject) => {
         const tryOnce = () => {
@@ -127,7 +195,7 @@ function waitForHttpServerReady(url, timeoutMs = 30000, intervalMs = 500) {
                 maybeRetry();
             });
             req.on('error', maybeRetry);
-            req.setTimeout(1000, () => { req.destroy(); maybeRetry(); });
+            req.setTimeout(500, () => { req.destroy(); maybeRetry(); }); // Reduced from 1000 to 500
         };
         const maybeRetry = () => {
             if (Date.now() - start >= timeoutMs) {
@@ -140,11 +208,46 @@ function waitForHttpServerReady(url, timeoutMs = 30000, intervalMs = 500) {
     });
 }
 
+// ── Synagogue name file operations ───────────────────────────────────────────────
+const SYNAGOGUE_NAME_FILE = path.join(app.getPath('userData'), 'synagogue_name.json');
+
+function getSynagogueNameFromFile() {
+    try {
+        if (fs.existsSync(SYNAGOGUE_NAME_FILE)) {
+            const data = fs.readFileSync(SYNAGOGUE_NAME_FILE, 'utf8');
+            const parsed = JSON.parse(data);
+            return parsed.synagogueName || null;
+        }
+    } catch (e) {
+        log(`Error reading synagogue name file: ${e.message}`);
+    }
+    return null;
+}
+
+function saveSynagogueNameToFile(synagogueName) {
+    try {
+        fs.writeFileSync(SYNAGOGUE_NAME_FILE, JSON.stringify({ synagogueName }, null, 2));
+        log(`Saved synagogue name to file: ${synagogueName}`);
+    } catch (e) {
+        log(`Error saving synagogue name file: ${e.message}`);
+    }
+}
+
 // ── Server startup ────────────────────────────────────────────────────────────
 function startServer(backendPort) {
     return new Promise((resolve, reject) => {
         const userDataPath = path.join(app.getPath('userData'), 'data');
         const serverPath   = path.join(__dirname, 'index.js');
+
+        // Ensure data directory exists
+        try {
+            if (!fs.existsSync(userDataPath)) {
+                fs.mkdirSync(userDataPath, { recursive: true });
+                log(`Created data directory: ${userDataPath}`);
+            }
+        } catch (err) {
+            log(`Error creating data directory: ${err.message}`);
+        }
 
         log(`Starting server at: ${serverPath}`);
         log(`Data path: ${userDataPath}`);
@@ -201,15 +304,18 @@ function startServer(backendPort) {
         startupTimer = setTimeout(() => {
             if (settled) return;
             log('No ready signal — probing HTTP health endpoint');
-            waitForHttpServerReady(`http://localhost:${backendPort}/api/db-status`, 15000, 500)
+            waitForHttpServerReady(`http://localhost:${backendPort}/api/db-status`, 4000, 200)
                 .then(() => { log('HTTP healthy; continuing.'); finish(true); })
                 .catch(() => finish(false, new Error('Server did not respond in time')));
-        }, 30000);
+        }, 1500); // Reduced from 3000 to 1500
     });
 }
 
 // ── Electron lifecycle ────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
+    // Show splash immediately — user sees something while server starts
+    if (!isDev) createSplashWindow();
+
     try {
         // 1. Pick a free port (prefer 3000)
         const backendPort = await selectBackendPort(3000);
@@ -221,7 +327,7 @@ app.whenReady().then(async () => {
 
         // 3. Wait until HTTP is confirmed listening (proven server readiness)
         await waitForHttpServerReady(
-            `http://localhost:${backendPort}/api/db-status`, 30000, 500
+            `http://localhost:${backendPort}/api/db-status`, 5000, 200
         );
         log('HTTP server confirmed ready');
 
@@ -230,6 +336,8 @@ app.whenReady().then(async () => {
 
     } catch (err) {
         log(`FATAL startup error: ${err.message}`);
+        // Close splash before showing error
+        if (splashWindow && !splashWindow.isDestroyed()) { splashWindow.close(); splashWindow = null; }
         dialog.showErrorBox('Startup Error',
             `Application failed to start backend server.\n\n${err.message}`);
         app.quit();
@@ -240,11 +348,32 @@ app.whenReady().then(async () => {
     });
 });
 
+
+let isQuitting = false;
+
 app.on('window-all-closed', () => {
-    if (serverProcess) serverProcess.kill();
     if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('before-quit', () => {
-    if (serverProcess) serverProcess.kill();
+app.on('before-quit', (event) => {
+    if (isQuitting) return; // already in cleanup — let it through
+    if (!serverProcess) return;
+
+    event.preventDefault(); // block quit until server exits cleanly
+    isQuitting = true;
+    log('before-quit: killing server process and waiting for it to exit...');
+
+    const cleanupTimeout = setTimeout(() => {
+        log('before-quit: cleanup timed out after 5s, forcing quit');
+        app.quit();
+    }, 5000);
+
+    serverProcess.once('exit', () => {
+        log('before-quit: server process exited cleanly');
+        clearTimeout(cleanupTimeout);
+        serverProcess = null;
+        app.quit(); // now truly quit — isQuitting=true skips this handler
+    });
+
+    serverProcess.kill();
 });

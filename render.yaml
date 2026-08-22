@@ -1,0 +1,11 @@
+﻿services:
+  - type: web
+    name: beit-knesset
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
