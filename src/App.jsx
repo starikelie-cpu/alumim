@@ -12,7 +12,7 @@ import AddNiftarModal from './components/AddNiftarModal';
 import NiftarimListModal from './components/NiftarimListModal';
 import LoginModal from './components/LoginModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
-import { API_BASE } from './config';
+import { API_BASE, isMobile, isElectron } from './config';
 
 function App() {
     const [members, setMembers] = useState([]);
@@ -863,8 +863,8 @@ function App() {
                 fontFamily: 'Assistant, sans-serif',
             },
         }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '12px 24px', borderBottom: '1px solid #e8e8e8', background: '#fafafa', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile() ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile() ? 'flex-start' : 'center', width: '100%', padding: isMobile() ? '10px 14px' : '12px 24px', borderBottom: '1px solid #e8e8e8', background: '#fafafa', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', gap: isMobile() ? '8px' : '0', boxSizing: 'border-box' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                     <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold' }}>
                         בית כנסת - ניהול מתפללים v{pkg.version}
                     </div>
@@ -981,7 +981,7 @@ function App() {
                 </div>
             </div>
 
-            <div style={{ padding: '40px 50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+            <div style={{ padding: isMobile() ? '18px 14px' : '40px 50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile() ? '14px' : '20px', width: '100%', boxSizing: 'border-box' }}>
                 {/* Banner - שם בית הכנסת */}
                 {(user?.synagogueId && synagogues.find(s => s.id === user.synagogueId)) && (
                     <div style={{
@@ -989,7 +989,7 @@ function App() {
                             ? 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)'
                             : 'linear-gradient(135deg, #1677ff 0%, #0958d9 100%)',
                         borderRadius: '12px',
-                        padding: '20px 40px',
+                        padding: isMobile() ? '14px 20px' : '20px 40px',
                         color: '#fff',
                         textAlign: 'center',
                         boxShadow: user?.role === 'viewer'
@@ -997,16 +997,17 @@ function App() {
                             : '0 4px 12px rgba(22, 119, 255, 0.3)',
                         marginBottom: '4px',
                         width: '100%',
-                        maxWidth: '600px'
+                        maxWidth: isMobile() ? '100%' : '600px',
+                        boxSizing: 'border-box'
                     }}>
-                        <div style={{ fontSize: '13px', opacity: 0.85, marginBottom: '4px' }}>
+                        <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.85, marginBottom: '4px' }}>
                             בית הכנסת
                         </div>
-                        <div style={{ fontSize: '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
                             🕍 {synagogues.find(s => s.id === user.synagogueId)?.name}
                         </div>
                         {synagogues.find(s => s.id === user.synagogueId)?.address && (
-                            <div style={{ fontSize: '13px', opacity: 0.8, marginTop: '6px' }}>
+                            <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.8, marginTop: '6px' }}>
                                 📍 {synagogues.find(s => s.id === user.synagogueId)?.address}
                             </div>
                         )}
@@ -1017,18 +1018,19 @@ function App() {
                     <div style={{
                         background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
                         borderRadius: '12px',
-                        padding: '20px 40px',
+                        padding: isMobile() ? '14px 20px' : '20px 40px',
                         color: '#fff',
                         textAlign: 'center',
                         boxShadow: '0 4px 12px rgba(19, 194, 194, 0.3)',
                         marginBottom: '4px',
                         width: '100%',
-                        maxWidth: '600px'
+                        maxWidth: isMobile() ? '100%' : '600px',
+                        boxSizing: 'border-box'
                     }}>
-                        <div style={{ fontSize: '13px', opacity: 0.85, marginBottom: '4px' }}>
+                        <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.85, marginBottom: '4px' }}>
                             בית הכנסת
                         </div>
-                        <div style={{ fontSize: '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
                             🕍 {synagogues.find(s => s.id === guestSynagogueId)?.name}
                         </div>
                     </div>
@@ -1038,18 +1040,19 @@ function App() {
                     <div style={{
                         background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
                         borderRadius: '12px',
-                        padding: '20px 40px',
+                        padding: isMobile() ? '14px 20px' : '20px 40px',
                         color: '#fff',
                         textAlign: 'center',
                         boxShadow: '0 4px 12px rgba(19, 194, 194, 0.3)',
                         marginBottom: '4px',
                         width: '100%',
-                        maxWidth: '600px'
+                        maxWidth: isMobile() ? '100%' : '600px',
+                        boxSizing: 'border-box'
                     }}>
-                        <div style={{ fontSize: '13px', opacity: 0.85, marginBottom: '4px' }}>
+                        <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.85, marginBottom: '4px' }}>
                             בית הכנסת
                         </div>
-                        <div style={{ fontSize: '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
                             🕍 {localSynagogueName}
                         </div>
                     </div>
@@ -1085,30 +1088,59 @@ function App() {
                         />
                     </div>
                 )}
-                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: isMobile() ? 'column' : 'row',
+                    gap: isMobile() ? '12px' : '20px',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    width: isMobile() ? '100%' : 'auto',
+                }}>
                     {isAdmin ? (
-                        <Button type="primary" size="large" onClick={() => setIsModalVisible(true)}>
+                        <Button
+                            type="primary"
+                            size="large"
+                            block={isMobile()}
+                            onClick={() => setIsModalVisible(true)}
+                        >
                             הוסף מתפלל חדש
                         </Button>
                     ) : (
-                        <Button type="primary" size="large" onClick={() => setIsLoginVisible(true)}>
+                        <Button
+                            type="primary"
+                            size="large"
+                            block={isMobile()}
+                            onClick={() => setIsLoginVisible(true)}
+                        >
                             התחבר כמנהל
                         </Button>
                     )}
-                    <Button size="large" onClick={() => setIsListVisible(true)}>
+                    <Button
+                        size="large"
+                        block={isMobile()}
+                        onClick={() => setIsListVisible(true)}
+                    >
                         הצג רשימת מתפללים
-                    </Button>
-                    <Button size="large" onClick={handleOpenGeneralArchive}>
-                        ארכיון כללי
                     </Button>
                     <Button
                         size="large"
-                        style={{ background: '#fff1f0', borderColor: '#ffa39e', color: '#a8071a', fontWeight: 'bold' }}
-                        onClick={() => setIsNiftarimListVisible(true)}
+                        block={isMobile()}
+                        onClick={handleOpenGeneralArchive}
                     >
-                        נפטרים
+                        ארכיון כללי
                     </Button>
-                    {isAdmin && (
+                    {/* כפתור נפטרים – מוסתר באנדרואיד/מובייל */}
+                    {!isMobile() && (
+                        <Button
+                            size="large"
+                            style={{ background: '#fff1f0', borderColor: '#ffa39e', color: '#a8071a', fontWeight: 'bold' }}
+                            onClick={() => setIsNiftarimListVisible(true)}
+                        >
+                            נפטרים
+                        </Button>
+                    )}
+                    {/* כפתורי ייצוא/ייבוא – מוסתרים בנייד (מנהל יכול לגשת מ-desktop) */}
+                    {isAdmin && !isMobile() && (
                         <>
                             <Button
                                 size="large"
