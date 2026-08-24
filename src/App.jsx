@@ -86,6 +86,9 @@ function App() {
     const [isSavingAdminCredentials, setIsSavingAdminCredentials] = useState(false);
     const [adminCredentialsForm] = Form.useForm();
 
+    // App loading state for splash screen
+    const [isAppLoading, setIsAppLoading] = useState(true);
+
     const getHeaders = (extraHeaders = {}) => {
         const headers = { ...extraHeaders };
         if (token) {
@@ -448,6 +451,9 @@ function App() {
             .catch(err => console.error("Failed to fetch niftarim:", err));
 
         fetchDbStatus();
+        
+        // Remove loading state after initial data fetch
+        setTimeout(() => setIsAppLoading(false), 500);
     };
 
     // Handler: guest selects a synagogue
@@ -515,6 +521,19 @@ function App() {
 
         return () => clearInterval(interval);
     }, []);
+
+    // Hide splash screen when app is loaded
+    useEffect(() => {
+        if (!isAppLoading) {
+            const splashScreen = document.getElementById('splash-screen');
+            if (splashScreen) {
+                splashScreen.classList.add('hidden');
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                }, 500);
+            }
+        }
+    }, [isAppLoading]);
 
     const handleSave = (newMember) => {
         // If editing, update existing member
@@ -863,6 +882,55 @@ function App() {
                 fontFamily: 'Assistant, sans-serif',
             },
         }}>
+            {/* Splash Screen */}
+            {isAppLoading && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(135deg, #1a3a5c 0%, #2d6a9f 100%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                    transition: 'opacity 0.5s ease-out'
+                }}>
+                    <style>{`
+                        @keyframes fill {
+                            0% { width: 5% }
+                            40% { width: 60% }
+                            80% { width: 85% }
+                            100% { width: 95% }
+                        }
+                        @keyframes pulse {
+                            0%, 100% { opacity: 0.6 }
+                            50% { opacity: 1 }
+                        }
+                    `}</style>
+                    <div style={{ fontSize: '56px', marginBottom: '16px' }}>🕍</div>
+                    <div style={{ fontSize: '24px', fontWeight: 700, marginBottom: '6px', letterSpacing: '0.5px', color: '#fff' }}>
+                        ניהול בית כנסת
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#a8c8e8', marginBottom: '28px' }}>
+                        מאתחל את המערכת...
+                    </div>
+                    <div style={{ width: '260px', height: '6px', background: 'rgba(255,255,255,0.2)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{
+                            height: '100%',
+                            width: '95%',
+                            background: 'linear-gradient(90deg, #4fc3f7, #81d4fa)',
+                            borderRadius: '3px',
+                            animation: 'fill 4s ease-in-out forwards'
+                        }} />
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#7baed4', marginTop: '12px', animation: 'pulse 1.5s infinite' }}>
+                        מתחבר לשרת...
+                    </div>
+                </div>
+            )}
             <div style={{ display: 'flex', flexDirection: isMobile() ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile() ? 'flex-start' : 'center', width: '100%', padding: isMobile() ? '10px 14px' : '12px 24px', borderBottom: '1px solid #e8e8e8', background: '#fafafa', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', gap: isMobile() ? '8px' : '0', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                     <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold' }}>

@@ -528,6 +528,14 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
             onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
         },
         {
+            title: 'פרשת בר מצווה',
+            dataIndex: 'barMitzvahParasha',
+            key: 'barMitzvahParasha',
+            width: 120,
+            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+        },
+        {
             title: 'תאריך פטירת אב',
             dataIndex: 'father_death_date',
             key: 'father_death_date',
@@ -540,14 +548,6 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
             dataIndex: 'mother_death_date',
             key: 'mother_death_date',
             width: 150,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'פרשת בר מצווה',
-            dataIndex: 'barMitzvahParasha',
-            key: 'barMitzvahParasha',
-            width: 120,
             onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
             onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
         },
