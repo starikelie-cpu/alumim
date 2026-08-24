@@ -644,7 +644,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                     background: '#e6f7ff',
                                     color: '#003a8c',
                                     borderColor: '#91d5ff',
-                                    fontWeight: 'bold'
+                                    fontWeight: 'bold',
+                                    fontSize: '16px'
                                 }}
                             >
                                 הוספת מתפלל
@@ -716,30 +717,31 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                             </div>
                         </div>
                         <Button
-                            icon={<PrinterOutlined />}
+                            icon={<PrinterOutlined style={{ fontSize: '16px' }} />}
                             onClick={handlePrint}
-                            style={{ background: '#52c41a', borderColor: '#52c41a', color: 'black', fontWeight: 'bold' }}
+                            style={{ background: '#52c41a', borderColor: '#52c41a', color: 'black', fontWeight: 'bold', fontSize: '16px' }}
                         >
                             הדפס
                         </Button>
 
                         <Button
-                            icon={<PrinterOutlined />}
+                            icon={<PrinterOutlined style={{ fontSize: '16px' }} />}
                             onClick={handlePrintAllMembers}
-                            style={{ background: '#1890ff', borderColor: '#1890ff', color: 'white', fontWeight: 'bold' }}
+                            style={{ background: '#1890ff', borderColor: '#1890ff', color: 'white', fontWeight: 'bold', fontSize: '16px' }}
                         >
                             הדפס מתפללים
                         </Button>
 
                         <Button
-                            icon={<DownloadOutlined />}
+                            icon={<DownloadOutlined style={{ fontSize: '16px' }} />}
                             onClick={() => saveJsonFile(members, 'members.json')}
                             title="ייצוא לקובץ"
                             style={{
                                 background: '#ffe7ba',
                                 borderColor: '#ffbb96',
                                 color: 'black',
-                                fontWeight: 'bold'
+                                fontWeight: 'bold',
+                                fontSize: '16px'
                             }}
                         >
                             ייצוא
@@ -760,7 +762,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         </Tooltip>
 
                         <Button
-                            icon={<UploadOutlined />}
+                            icon={<UploadOutlined style={{ fontSize: '16px' }} />}
                             onClick={async () => {
                                 if (!isAdmin) {
                                     alert('נדרשת התחברות כמנהל (admin) כדי לייבא גיבוי נתונים. אנא התחבר כמנהל בראש המסך ונסה שוב.');
@@ -794,7 +796,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 background: '#efdbff',
                                 borderColor: '#b37feb',
                                 color: '#391085',
-                                fontWeight: 'bold'
+                                fontWeight: 'bold',
+                                fontSize: '16px'
                             }}
                         >
                             ייבוא
@@ -805,7 +808,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
             open={visible}
             onCancel={onCancel}
             footer={[
-                <Button key="close" onClick={onCancel}>
+                <Button key="close" onClick={onCancel} style={{ fontSize: '16px', fontWeight: 'bold' }}>
                     סגור
                 </Button>
             ]}

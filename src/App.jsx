@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
-import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select } from 'antd';
+import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip } from 'antd';
 import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
@@ -880,7 +880,19 @@ function App() {
             algorithm: theme.defaultAlgorithm,
             token: {
                 fontFamily: 'Assistant, sans-serif',
+                fontSize: 16,
             },
+            components: {
+                Button: {
+                    controlHeight: 38,
+                    controlHeightLG: 46,
+                    controlHeightSM: 30,
+                    fontSize: 16,
+                    fontSizeLG: 18,
+                    fontSizeSM: 14,
+                    fontWeight: 600,
+                }
+            }
         }}>
             {/* Splash Screen */}
             {isAppLoading && (
@@ -1169,6 +1181,7 @@ function App() {
                             type="primary"
                             size="large"
                             block={isMobile()}
+                            style={{ fontSize: '18px', fontWeight: 'bold' }}
                             onClick={() => setIsModalVisible(true)}
                         >
                             הוסף מתפלל חדש
@@ -1178,6 +1191,7 @@ function App() {
                             type="primary"
                             size="large"
                             block={isMobile()}
+                            style={{ fontSize: '18px', fontWeight: 'bold' }}
                             onClick={() => setIsLoginVisible(true)}
                         >
                             התחבר כמנהל
@@ -1186,6 +1200,7 @@ function App() {
                     <Button
                         size="large"
                         block={isMobile()}
+                        style={{ fontSize: '18px', fontWeight: 'bold' }}
                         onClick={() => setIsListVisible(true)}
                     >
                         הצג רשימת מתפללים
@@ -1193,35 +1208,49 @@ function App() {
                     <Button
                         size="large"
                         block={isMobile()}
+                        style={{ fontSize: '18px', fontWeight: 'bold' }}
                         onClick={handleOpenGeneralArchive}
                     >
                         ארכיון כללי
                     </Button>
-                    {/* כפתור נפטרים – מוסתר באנדרואיד/מובייל */}
+                    {/* כפתור נפטרים עם אייקון נר נשמה / זיכרון – מוסתר באנדרואיד/מובייל */}
                     {!isMobile() && (
-                        <Button
-                            size="large"
-                            style={{ background: '#fff1f0', borderColor: '#ffa39e', color: '#a8071a', fontWeight: 'bold' }}
-                            onClick={() => setIsNiftarimListVisible(true)}
-                        >
-                            נפטרים
-                        </Button>
+                        <Tooltip title="רשימת נפטרים">
+                            <Button
+                                size="large"
+                                style={{
+                                    background: '#fff1f0',
+                                    borderColor: '#ffa39e',
+                                    color: '#a8071a',
+                                    fontWeight: 'bold',
+                                    fontSize: '22px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    minWidth: '54px',
+                                    padding: '0 16px'
+                                }}
+                                onClick={() => setIsNiftarimListVisible(true)}
+                            >
+                                🕯️
+                            </Button>
+                        </Tooltip>
                     )}
                     {/* כפתורי ייצוא/ייבוא – מוסתרים בנייד (מנהל יכול לגשת מ-desktop) */}
                     {isAdmin && !isMobile() && (
                         <>
                             <Button
                                 size="large"
-                                icon={<DownloadOutlined />}
-                                style={{ background: '#ffe7ba', borderColor: '#ffbb96', color: '#873800', fontWeight: 'bold' }}
+                                icon={<DownloadOutlined style={{ fontSize: '18px' }} />}
+                                style={{ background: '#ffe7ba', borderColor: '#ffbb96', color: '#873800', fontWeight: 'bold', fontSize: '18px' }}
                                 onClick={handleExport}
                             >
                                 ייצוא גיבוי מלא
                             </Button>
                             <Button
                                 size="large"
-                                icon={<UploadOutlined />}
-                                style={{ background: '#efdbff', borderColor: '#b37feb', color: '#391085', fontWeight: 'bold' }}
+                                icon={<UploadOutlined style={{ fontSize: '18px' }} />}
+                                style={{ background: '#efdbff', borderColor: '#b37feb', color: '#391085', fontWeight: 'bold', fontSize: '18px' }}
                                 onClick={handleImport}
                             >
                                 ייבוא גיבוי מלא
