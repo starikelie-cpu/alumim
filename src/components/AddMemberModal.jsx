@@ -4,7 +4,7 @@ import { HDate } from '@hebcal/core';
 import { CalendarOutlined, SearchOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { HebrewCalendarComponent } from './HebrewCalendarComponent';
 import { formatHebrewDateToNumeric, formatHebrewDateToTextual, calculateAliyahInfo, getHebrewMonthNumber, gematriaToNum } from '../utils/hebrewDateUtils';
-import { API_BASE } from '../config';
+import { API_BASE, isMobile } from '../config';
 import { resolveEffectiveSynagogueId } from '../../accessControl';
 
 const { Option } = Select;
@@ -185,22 +185,26 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                 open={visible}
                 onCancel={onCancel}
                 onOk={() => form.submit()}
-                width={860}
+                width={isMobile() ? '96vw' : 860}
+                style={{ top: isMobile() ? 10 : 100, maxWidth: '100vw' }}
                 zIndex={1050}
                 okText="שמור"
                 cancelText="ביטול"
                 styles={{
                     body: {
                         backgroundColor: '#f0f2f5',
-                        padding: '16px',
+                        padding: isMobile() ? '10px 8px' : '16px',
                         borderRadius: '12px',
-                        boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.06)'
+                        boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.06)',
+                        maxHeight: isMobile() ? '82vh' : 'auto',
+                        overflowY: 'auto'
                     },
                     content: {
                         backgroundColor: '#ffffff',
                         color: '#002766',
                         borderRadius: '16px',
-                        boxShadow: '0 20px 40px rgba(0,0,0,0.15), 0 5px 15px rgba(0,0,0,0.1)'
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.15), 0 5px 15px rgba(0,0,0,0.1)',
+                        padding: isMobile() ? '10px 8px' : '20px 24px'
                     },
                     header: {
                         background: '#bae7ff',
@@ -220,19 +224,20 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                         color: #002766 !important;
                         font-size: 17px;
                     }
-                    .ant-input, .ant-select-selector { 
+                    .ant-input, .ant-select-selector, .ant-input-affix-wrapper { 
                         border-radius: 8px !important;
                         border: 1px solid #d9d9d9 !important;
                         box-shadow: 0 2px 0 rgba(0,0,0,0.02) !important;
                         transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1) !important;
                         background: #fff !important;
+                        font-size: 16px !important;
                     }
-                    .ant-input:hover, .ant-select-selector:hover {
+                    .ant-input:hover, .ant-select-selector:hover, .ant-input-affix-wrapper:hover {
                         border-color: #40a9ff !important;
                         box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15) !important;
                         transform: translateY(-1px);
                     }
-                    .ant-input:focus, .ant-select-focused .ant-select-selector {
+                    .ant-input:focus, .ant-select-focused .ant-select-selector, .ant-input-affix-wrapper-focused {
                         border-color: #1890ff !important;
                         box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2), 0 8px 16px rgba(24, 144, 255, 0.1) !important;
                         transform: translateY(-2px);
@@ -260,8 +265,8 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                     style={{ color: '#002766' }}
                 >
                     <div className="premium-card">
-                        <Row gutter={24}>
-                            <Col span={8}>
+                        <Row gutter={[16, 12]}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item
                                     name="letter"
                                     label={
@@ -307,7 +312,7 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                     </Select>
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item name="status" label="מעמד">
                                     <Select placeholder="בחר מעמד" allowClear>
                                         <Option value="">ריק</Option>
@@ -317,7 +322,7 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                     </Select>
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item name="title" label="תואר">
                                     <Select placeholder="בחר תואר" allowClear>
                                         <Option value="הרב">הרב</Option>
@@ -329,7 +334,7 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                         </Row>
 
                         {currentUser?.role === 'synagogue_admin' && currentUser?.synagogueId ? (
-                            <Row gutter={24} style={{ marginBottom: 4 }}>
+                            <Row gutter={[16, 12]} style={{ marginBottom: 4 }}>
                                 <Col span={24}>
                                     <Form.Item name="synagogueId" label="בית כנסת">
                                         <Input 
@@ -341,7 +346,7 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                 </Col>
                             </Row>
                         ) : synagogues.length > 0 && (
-                            <Row gutter={24} style={{ marginBottom: 4 }}>
+                            <Row gutter={[16, 12]} style={{ marginBottom: 4 }}>
                                 <Col span={24}>
                                     <Form.Item name="synagogueId" label="בית כנסת">
                                         <Select
@@ -350,7 +355,7 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                             style={{ width: '100%' }}
                                         >
                                             {synagogues.map(s => (
-                                                <Option key={s.id} value={s.id}>{s.name}</Option>
+                                                 <Option key={s.id} value={s.id}>{s.name}</Option>
                                             ))}
                                         </Select>
                                     </Form.Item>
@@ -358,8 +363,8 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                             </Row>
                         )}
 
-                        <Row gutter={24}>
-                            <Col span={8}>
+                        <Row gutter={[16, 12]}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item name="lastName" label="שם משפחה" rules={[{ required: true, message: 'שדה חובה' }]}>
                                     <AutoComplete
                                         placeholder="הקלד שם משפחה..."
@@ -374,7 +379,7 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                     />
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item name="firstName" label="שם פרטי" rules={[{ required: true, message: 'שדה חובה' }]}>
                                     <AutoComplete
                                         placeholder="הקלד שם פרטי..."
@@ -384,12 +389,12 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                             option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
                                         }
                                         onChange={(val) => {
-                                            form.setFieldsValue({ firstName: val });
+                                             form.setFieldsValue({ firstName: val });
                                         }}
                                     />
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item name="fatherName" label="שם האב">
                                     <Input placeholder="למשל: אברהם" allowClear />
                                 </Form.Item>
@@ -400,8 +405,8 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                     <Divider orientation="right">תאריכי פטירה (לוח עברי)</Divider>
 
                     <div className="premium-card">
-                        <Row gutter={24}>
-                            <Col span={8}>
+                        <Row gutter={[16, 12]}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item name="father_death_date" label="תאריך פטירת אב">
                                     <Input
                                         readOnly
@@ -415,7 +420,7 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                     />
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item name="mother_death_date" label="תאריך פטירת אם">
                                     <Input
                                         readOnly
@@ -429,11 +434,19 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                     />
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item name="barMitzvahParasha" label="פרשת בר מצווה">
-                                    <Select placeholder="בחר פרשה" showSearch optionFilterProp="children" allowClear>
-                                        {parashot.map(p => <Option key={p} value={p}>{p}</Option>)}
-                                    </Select>
+                                    <AutoComplete
+                                        placeholder="בחר או הקלד פרשה..."
+                                        allowClear
+                                        options={parashot.map(p => ({ value: p }))}
+                                        filterOption={(inputValue, option) =>
+                                            option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                        }
+                                        onChange={(val) => {
+                                            form.setFieldsValue({ barMitzvahParasha: val });
+                                        }}
+                                    />
                                 </Form.Item>
                             </Col>
                         </Row>
@@ -444,8 +457,8 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                             <Divider orientation="right">מעקב עליות לתורה</Divider>
 
                             <div className="premium-card">
-                                <Row gutter={24}>
-                                    <Col span={8}>
+                                <Row gutter={[16, 12]}>
+                                    <Col xs={24} sm={8}>
                                         <Form.Item name="aliyah_date" label="תאריך עליה">
                                             <Input
                                                 readOnly
@@ -459,12 +472,12 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                             />
                                         </Form.Item>
                                     </Col>
-                                    <Col span={8}>
+                                    <Col xs={24} sm={8}>
                                         <Form.Item name="aliyah_parasha" label="פרשת עליה">
                                             <Input readOnly placeholder="תתמלא אוטומטית" />
                                         </Form.Item>
                                     </Col>
-                                    <Col span={8}>
+                                    <Col xs={24} sm={8}>
                                         <Form.Item name="aliyah_type" label="סוג עליה">
                                             <Select placeholder="בחר סוג עליה" allowClear>
                                                 <Option value="עליה">עליה</Option>
@@ -483,8 +496,8 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                         </Form.Item>
                                     </Col>
                                 </Row>
-                                <Row gutter={24}>
-                                    <Col span={8}>
+                                <Row gutter={[16, 12]}>
+                                    <Col xs={24} sm={8}>
                                         <Form.Item name="days_since_aliyah" label="זמן שעבר (בימים)">
                                             <Input readOnly type="number" placeholder="יחושב אוטומטית..." />
                                         </Form.Item>
@@ -495,8 +508,6 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                     )}
                 </Form>
             </Modal>
-
-
 
             <HebrewCalendarComponent
                 isOpen={calendar.isOpen}

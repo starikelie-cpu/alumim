@@ -4,7 +4,7 @@ import { HDate } from '@hebcal/core';
 import { CalendarOutlined } from '@ant-design/icons';
 import { HebrewCalendarComponent } from './HebrewCalendarComponent';
 import { formatHebrewDateToTextual, getHebrewMonthNumber, gematriaToNum } from '../utils/hebrewDateUtils';
-import { API_BASE } from '../config';
+import { API_BASE, isMobile } from '../config';
 
 const { Option } = Select;
 
@@ -68,19 +68,27 @@ const AddNiftarModal = ({ visible, onCancel, onSave, editingNiftar }) => {
                 open={visible}
                 onCancel={onCancel}
                 onOk={() => form.submit()}
-                width={700}
+                width={isMobile() ? '96vw' : 700}
+                style={{ top: isMobile() ? 10 : 100, maxWidth: '100vw' }}
                 zIndex={1050}
                 okText="שמור"
                 cancelText="ביטול"
                 styles={{
-                    body: { backgroundColor: '#e6f7ff', padding: '10px', borderRadius: '8px' },
+                    body: { 
+                        backgroundColor: '#e6f7ff', 
+                        padding: isMobile() ? '10px 8px' : '16px', 
+                        borderRadius: '8px',
+                        maxHeight: isMobile() ? '82vh' : 'auto',
+                        overflowY: 'auto'
+                    },
                     content: { backgroundColor: '#e6f7ff', color: '#002766' },
                     header: { backgroundColor: '#e6f7ff', color: '#002766', padding: '10px 24px', marginBottom: 0 }
                 }}
             >
                 <style>{`
-                    .ant-form-item { margin-bottom: 6px !important; }
+                    .ant-form-item { margin-bottom: 8px !important; }
                     .ant-divider-horizontal.ant-divider-with-text { margin: 8px 0 !important; }
+                    .ant-input, .ant-select-selector { font-size: 16px !important; }
                 `}</style>
                 <Form
                     form={form}
@@ -89,8 +97,8 @@ const AddNiftarModal = ({ visible, onCancel, onSave, editingNiftar }) => {
                     direction="rtl"
                     style={{ color: '#002766' }}
                 >
-                    <Row gutter={16}>
-                        <Col span={10}>
+                    <Row gutter={[16, 8]}>
+                        <Col xs={24} sm={10}>
                             <Form.Item name="status" label="מעמד">
                                 <Select placeholder="בחר מעמד" allowClear>
                                     <Option value="">ריק</Option>
@@ -100,7 +108,7 @@ const AddNiftarModal = ({ visible, onCancel, onSave, editingNiftar }) => {
                                 </Select>
                             </Form.Item>
                         </Col>
-                        <Col span={14}>
+                        <Col xs={24} sm={14}>
                             <Form.Item name="title" label="תואר">
                                 <Select placeholder="בחר תואר" allowClear>
                                     <Option value="הרב">הרב</Option>
@@ -111,13 +119,13 @@ const AddNiftarModal = ({ visible, onCancel, onSave, editingNiftar }) => {
                         </Col>
                     </Row>
 
-                    <Row gutter={16}>
-                        <Col span={12}>
+                    <Row gutter={[16, 8]}>
+                        <Col xs={24} sm={12}>
                             <Form.Item name="lastName" label="שם משפחה" rules={[{ required: true, message: 'שדה חובה' }]}>
                                 <Input allowClear />
                             </Form.Item>
                         </Col>
-                        <Col span={12}>
+                        <Col xs={24} sm={12}>
                             <Form.Item name="firstName" label="שם פרטי" rules={[{ required: true, message: 'שדה חובה' }]}>
                                 <Input allowClear />
                             </Form.Item>

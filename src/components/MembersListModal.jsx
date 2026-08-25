@@ -494,33 +494,33 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 title: 'תואר',
                 dataIndex: 'title',
                 key: 'title',
-                width: '18%',
-                onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', padding: '6px 4px', textAlign: 'center' } }),
-                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', textAlign: 'center' } })
+                width: '12%',
+                onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 2px', textAlign: 'center' } }),
+                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 2px', textAlign: 'center', wordBreak: 'break-word' } })
             },
             {
                 title: 'שם משפחה',
                 dataIndex: 'lastName',
                 key: 'lastName',
-                width: '28%',
-                onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', padding: '6px 4px' } }),
-                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px' } })
+                width: '30%',
+                onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
+                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', wordBreak: 'break-word' } })
             },
             {
                 title: 'שם פרטי',
                 dataIndex: 'firstName',
                 key: 'firstName',
-                width: '27%',
-                onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', padding: '6px 4px' } }),
-                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px' } })
+                width: '29%',
+                onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
+                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', wordBreak: 'break-word' } })
             },
             {
                 title: 'שם אב',
                 dataIndex: 'fatherName',
                 key: 'fatherName',
-                width: '27%',
-                onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', padding: '6px 4px' } }),
-                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px' } })
+                width: '29%',
+                onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
+                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', wordBreak: 'break-word' } })
             },
         ];
 

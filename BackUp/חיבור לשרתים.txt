@@ -16,3 +16,29 @@
 
 שבת שלום! ✡️
 
+
+
+🔐 כניסה לאפליקציה (beit-knesset.onrender.com)
+שדה	ערך
+שם משתמש	admin
+סיסמה	1234
+הרשאה	Super Admin (גישה מלאה)
+⚠️ מומלץ לשנות את הסיסמה לאחר הכניסה הראשונה!
+
+🍃 MongoDB Atlas (מסד הנתונים)
+שדה	ערך
+שם משתמש	Alumim
+סיסמה	alumim99
+Cluster	cluster1.i8jyvvd.mongodb.net
+Database	Alumim
+🚀 Render.com
+שדה	ערך
+API Key	rnd_l6I3HSu4VU5rnnuMc19RTD9950ls
+Dashboard	dashboard.render.com
+URL האפליקציה	beit-knesset.onrender.com
+🐙 GitHub
+שדה	ערך
+ריפוזיטורי	github.com/starikelie-cpu/alumim
+Branch	master
+11:38 PM
+

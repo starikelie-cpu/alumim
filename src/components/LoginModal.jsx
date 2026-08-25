@@ -10,10 +10,14 @@ const LoginModal = ({ visible, onCancel, onLoginSuccess }) => {
     const handleLogin = async (values) => {
         setLoading(true);
         try {
+            const cleanValues = {
+                username: values.username ? String(values.username).trim() : '',
+                password: values.password ? String(values.password).trim() : ''
+            };
             const response = await fetch(`${API_BASE}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values)
+                body: JSON.stringify(cleanValues)
             });
 
             const data = await response.json();
@@ -55,7 +59,15 @@ const LoginModal = ({ visible, onCancel, onLoginSuccess }) => {
                     label="שם משתמש"
                     rules={[{ required: true, message: 'נא להזין שם משתמש!' }]}
                 >
-                    <Input prefix={<UserOutlined />} placeholder="שם משתמש" size="large" />
+                    <Input
+                        prefix={<UserOutlined />}
+                        placeholder="שם משתמש"
+                        size="large"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        autoComplete="username"
+                    />
                 </Form.Item>
 
                 <Form.Item
@@ -63,7 +75,15 @@ const LoginModal = ({ visible, onCancel, onLoginSuccess }) => {
                     label="סיסמה"
                     rules={[{ required: true, message: 'נא להזין סיסמה!' }]}
                 >
-                    <Input.Password prefix={<LockOutlined />} placeholder="סיסמה" size="large" />
+                    <Input.Password
+                        prefix={<LockOutlined />}
+                        placeholder="סיסמה"
+                        size="large"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        autoComplete="current-password"
+                    />
                 </Form.Item>
 
                 <Form.Item style={{ marginTop: '24px', marginBottom: 0 }}>

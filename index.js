@@ -199,7 +199,8 @@ function requireAuthenticatedUser(req, res, next) {
 // === Authentication APIs ===
 app.post('/api/auth/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const username = req.body.username ? String(req.body.username).trim() : '';
+        const password = req.body.password ? String(req.body.password).trim() : '';
         if (!username || !password) {
             return res.status(400).json({ error: 'Username and password are required' });
         }

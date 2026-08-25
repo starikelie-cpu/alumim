@@ -385,12 +385,17 @@ export function isUsingMongoDB() {
 
 // === Users API ===
 export async function authenticateUser(username, password) {
-    const hashed = hashPassword(password);
+    const cleanUsername = String(username || '').trim();
+    const cleanPassword = String(password || '').trim();
+    const hashed = hashPassword(cleanPassword);
     
+    const escapedUsername = cleanUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const usernameRegex = new RegExp(`^${escapedUsername}$`, 'i');
+
     // Use MongoDB if available, otherwise fall back to local JSON
     if (useMongoDB && db) {
         try {
-            const user = await db.collection('users').findOne({ username: username });
+            const user = await db.collection('users').findOne({ username: { $regex: usernameRegex } });
             if (user && user.password === hashed) {
                 const role = normalizeRole(user.role);
                 return { username: user.username, role, synagogueId: user.synagogueId || null };
@@ -402,7 +407,7 @@ export async function authenticateUser(username, password) {
 
     // Fallback to local JSON if MongoDB is not available or failed
     const users = await readLocalFile(USERS_FILE);
-    const user = users.find(u => u.username === username);
+    const user = users.find(u => (u.username || '').toLowerCase() === cleanUsername.toLowerCase());
     if (user && user.password === hashed) {
         const role = normalizeRole(user.role);
         return { username: user.username, role, synagogueId: user.synagogueId || null };
