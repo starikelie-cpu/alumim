@@ -59,6 +59,24 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
         }
     }, [currentUser, synagogues, localSynagogueName]);
 
+    const displaySynagogueName = useMemo(() => {
+        if (localSynagogueName) return localSynagogueName;
+        if (currentUserSynagogueName) return currentUserSynagogueName;
+        const syn = synagogues.find(s => s.id === currentUser?.synagogueId);
+        if (syn) return syn.name;
+        try {
+            const cached = localStorage.getItem('cachedSynagogues');
+            if (cached) {
+                const list = JSON.parse(cached);
+                const found = list.find(s => s.id === currentUser?.synagogueId);
+                if (found) return found.name;
+            }
+            const savedLocal = localStorage.getItem('localSynagogueName');
+            if (savedLocal) return savedLocal;
+        } catch (e) {}
+        return currentUser?.synagogueId ? 'בית הכנסת שלי' : '';
+    }, [localSynagogueName, currentUserSynagogueName, synagogues, currentUser]);
+
     const uniqueLastNames = useMemo(() => {
         const names = [...new Set(members.map(m => m.lastName).filter(Boolean))];
         return names.sort((a, b) => a.localeCompare(b, 'he'));
@@ -333,19 +351,39 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                             </Col>
                         </Row>
 
-                        {isSuperAdmin(currentUser?.role) && synagogues.length > 0 && (
+                        {isSuperAdmin(currentUser?.role) ? (
+                            synagogues.length > 0 && (
+                                <Row gutter={[16, 12]} style={{ marginBottom: 4 }}>
+                                    <Col span={24}>
+                                        <Form.Item name="synagogueId" label="בית כנסת" rules={[{ required: true, message: 'נא לבחור בית כנסת' }]}>
+                                            <Select
+                                                placeholder="בחר בית כנסת..."
+                                                allowClear
+                                                style={{ width: '100%' }}
+                                            >
+                                                {synagogues.map(s => (
+                                                     <Option key={s.id} value={s.id}>{s.name}</Option>
+                                                ))}
+                                            </Select>
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                            )
+                        ) : (
                             <Row gutter={[16, 12]} style={{ marginBottom: 4 }}>
                                 <Col span={24}>
-                                    <Form.Item name="synagogueId" label="בית כנסת" rules={[{ required: true, message: 'נא לבחור בית כנסת' }]}>
-                                        <Select
-                                            placeholder="בחר בית כנסת..."
-                                            allowClear
-                                            style={{ width: '100%' }}
-                                        >
-                                            {synagogues.map(s => (
-                                                 <Option key={s.id} value={s.id}>{s.name}</Option>
-                                            ))}
-                                        </Select>
+                                    <Form.Item label="בית כנסת">
+                                        <Input 
+                                            value={displaySynagogueName}
+                                            disabled
+                                            style={{ 
+                                                width: '100%',
+                                                backgroundColor: '#f5f5f5',
+                                                color: '#002766',
+                                                fontWeight: 'bold',
+                                                cursor: 'default'
+                                            }}
+                                        />
                                     </Form.Item>
                                 </Col>
                             </Row>
