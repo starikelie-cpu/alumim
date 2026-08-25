@@ -505,7 +505,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
     const mobile = isMobile();
 
     const columns = useMemo(() => {
-        // עמודות למובייל: תואר (כולל א' בכחול למי שלא אורח), שם משפחה, שם פרטי, שם אב, ואפשרות עדכון למנהל
+        // עמודות למובייל: תואר, שם משפחה, שם פרטי, שם אב, ואפשרות עדכון למנהל
         const mobileColumns = [
             {
                 title: 'תואר',
@@ -513,18 +513,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'title',
                 width: '12%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 2px', textAlign: 'center' } }),
-                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 2px', textAlign: 'center', wordBreak: 'break-word' } }),
-                render: (title, record) => {
-                    const isGuest = isGuestMember(record);
-                    return (
-                        <span>
-                            {title || ''}
-                            {!isGuest && (
-                                <span style={{ color: '#1677ff', fontWeight: 'bold', marginRight: title ? '3px' : '0' }}>א</span>
-                            )}
-                        </span>
-                    );
-                }
+                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 2px', textAlign: 'center', wordBreak: 'break-word' } })
             },
             {
                 title: 'שם משפחה',
@@ -581,13 +570,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 width: 60,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
                 onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px', textAlign: 'center' } }),
-                render: (tags, record) => {
-                    const isGuest = isGuestMember(record);
-                    if (!isGuest) {
-                        return <span style={{ color: '#1677ff', fontWeight: 'bold', fontSize: '18px' }}>א</span>;
-                    }
-                    return Array.isArray(tags) ? tags.join(', ') : (tags || '');
-                }
+                render: (tags) => (Array.isArray(tags) ? tags.join(', ') : (tags || ''))
             },
             {
                 title: 'מעמד',
@@ -979,6 +962,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 tableLayout="fixed"
                 pagination={false}
                 scroll={{ y: 'calc(100vh - 250px)' }}
+                rowClassName={(record) => (!isGuestMember(record) ? 'row-non-guest-blue' : '')}
             />
         </Modal>
     );
