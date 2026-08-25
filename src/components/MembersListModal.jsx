@@ -8,16 +8,33 @@ import { API_BASE, isMobile } from '../config';
 
 const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId }) => {
     const [searchText, setSearchText] = useState('');
+    const [searchFirstName, setSearchFirstName] = useState('');
     const [daysLimit, setDaysLimit] = useState(localStorage.getItem('printDaysLimit') || '');
     const [timeAlefLimit, setTimeAlefLimit] = useState(localStorage.getItem('printTimeAlefLimit') || '');
     const dayOptions = Array.from({ length: 20 }, (_, i) => (i + 1) * 7);
 
+    // Check if member is marked as guest
+    const isGuestMember = (m) => {
+        if (!m) return false;
+        const letter = m.letter;
+        if (Array.isArray(letter)) {
+            return letter.some(l => String(l).includes('א') || String(l).includes("א'"));
+        }
+        if (typeof letter === 'string') {
+            return letter.includes('א') || letter.includes("א'");
+        }
+        return false;
+    };
 
     // Filter and sort members by last name and first name
     const filteredMembers = useMemo(() => {
         const query = searchText.trim().toLowerCase();
+        const firstQuery = searchFirstName.trim().toLowerCase();
         return members
             .filter(member => {
+                if (firstQuery && !(member.firstName || '').toLowerCase().includes(firstQuery)) {
+                    return false;
+                }
                 if (!query) return true;
                 return (
                     (member.lastName || '').toLowerCase().includes(query) ||
@@ -32,7 +49,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 if (lastNameCompare !== 0) return lastNameCompare;
                 return (a.firstName || '').localeCompare(b.firstName || '', 'he');
             });
-    }, [members, searchText]);
+    }, [members, searchText, searchFirstName]);
 
     const handlePrintAllMembers = () => {
         try {
@@ -488,7 +505,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
     const mobile = isMobile();
 
     const columns = useMemo(() => {
-        // עמודות למובייל: תואר, שם משפחה, שם פרטי, שם אב בלבד
+        // עמודות למובייל: תואר (כולל א' בכחול למי שלא אורח), שם משפחה, שם פרטי, שם אב, ואפשרות עדכון למנהל
         const mobileColumns = [
             {
                 title: 'תואר',
@@ -496,13 +513,24 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'title',
                 width: '12%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 2px', textAlign: 'center' } }),
-                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 2px', textAlign: 'center', wordBreak: 'break-word' } })
+                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 2px', textAlign: 'center', wordBreak: 'break-word' } }),
+                render: (title, record) => {
+                    const isGuest = isGuestMember(record);
+                    return (
+                        <span>
+                            {title || ''}
+                            {!isGuest && (
+                                <span style={{ color: '#1677ff', fontWeight: 'bold', marginRight: title ? '3px' : '0' }}>א</span>
+                            )}
+                        </span>
+                    );
+                }
             },
             {
                 title: 'שם משפחה',
                 dataIndex: 'lastName',
                 key: 'lastName',
-                width: '30%',
+                width: isAdmin ? '25%' : '30%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
                 onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', wordBreak: 'break-word' } })
             },
@@ -510,7 +538,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 title: 'שם פרטי',
                 dataIndex: 'firstName',
                 key: 'firstName',
-                width: '29%',
+                width: isAdmin ? '24%' : '29%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
                 onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', wordBreak: 'break-word' } })
             },
@@ -518,10 +546,28 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 title: 'שם אב',
                 dataIndex: 'fatherName',
                 key: 'fatherName',
-                width: '29%',
+                width: isAdmin ? '24%' : '29%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
                 onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', wordBreak: 'break-word' } })
             },
+            ...(isAdmin ? [
+                {
+                    title: 'עדכון',
+                    key: 'edit',
+                    width: '15%',
+                    onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 2px', textAlign: 'center' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 2px', textAlign: 'center' } }),
+                    render: (_, record) => (
+                        <Button
+                            type="link"
+                            icon={<EditOutlined style={{ fontSize: '18px', color: '#1677ff' }} />}
+                            onClick={() => onEdit(record)}
+                            title="עדכון"
+                            style={{ padding: '0', height: 'auto' }}
+                        />
+                    )
+                }
+            ] : [])
         ];
 
         if (mobile) return mobileColumns;
@@ -529,13 +575,19 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
         // עמודות מלאות לדסקטופ
         return [
             {
-                title: 'אורח',
+                title: 'אות',
                 dataIndex: 'letter',
                 key: 'letter',
                 width: 60,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } }),
-                render: (tags) => (Array.isArray(tags) ? tags.join(', ') : tags)
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px', textAlign: 'center' } }),
+                render: (tags, record) => {
+                    const isGuest = isGuestMember(record);
+                    if (!isGuest) {
+                        return <span style={{ color: '#1677ff', fontWeight: 'bold', fontSize: '18px' }}>א</span>;
+                    }
+                    return Array.isArray(tags) ? tags.join(', ') : (tags || '');
+                }
             },
             {
                 title: 'מעמד',
@@ -891,16 +943,33 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 alignItems: mobile ? 'stretch' : 'center',
                 gap: '8px'
             }}>
-                <Input
-                    placeholder="חיפוש לפי שם משפחה, פרטי, אב..."
-                    prefix={<SearchOutlined />}
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    style={{ width: mobile ? '100%' : '300px' }}
-                    allowClear
-                />
+                <div style={{
+                    display: 'flex',
+                    flexDirection: mobile ? 'column' : 'row',
+                    gap: '8px',
+                    width: mobile ? '100%' : 'auto',
+                    flex: mobile ? 'none' : 1,
+                    maxWidth: mobile ? '100%' : '600px'
+                }}>
+                    <Input
+                        placeholder="חיפוש לפי שם משפחה / כללי..."
+                        prefix={<SearchOutlined />}
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        style={{ width: mobile ? '100%' : '260px' }}
+                        allowClear
+                    />
+                    <Input
+                        placeholder="חיפוש לפי שם פרטי..."
+                        prefix={<SearchOutlined />}
+                        value={searchFirstName}
+                        onChange={(e) => setSearchFirstName(e.target.value)}
+                        style={{ width: mobile ? '100%' : '220px' }}
+                        allowClear
+                    />
+                </div>
                 <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                    סה"כ מתפללים: {filteredMembers.length} {searchText && `(מתוך ${members.length})`}
+                    סה"כ מתפללים: {filteredMembers.length} {(searchText || searchFirstName) && `(מתוך ${members.length})`}
                 </span>
             </div>
             <Table
