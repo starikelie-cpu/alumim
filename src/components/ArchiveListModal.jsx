@@ -567,7 +567,7 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <HistoryOutlined style={{ color: '#00008B', fontSize: '24px' }} />
-                        <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#00008B' }}>ארכיון שינויים {memberId ? '(היסטוריית מתפלל)' : ''}</span>
+                        <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#00008B' }}>ארכיון עליות {memberId ? '(היסטוריית מתפלל)' : ''}</span>
                     </div>
                     {dateRange && (
                         <div style={{ fontSize: '16px', color: '#1890ff', fontWeight: 'bold' }}>

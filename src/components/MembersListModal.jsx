@@ -686,7 +686,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                             type="link"
                             icon={<HistoryOutlined />}
                             onClick={() => onViewHistory(record.id)}
-                            title="היסטוריית שינויים"
+                            title="ארכיון עליות"
                             style={{ color: '#1890ff' }}
                         />
                         {isAdmin && (
@@ -942,26 +942,26 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
             }}>
                 <div style={{
                     display: 'flex',
-                    flexDirection: mobile ? 'column' : 'row',
+                    flexDirection: 'row',
                     gap: '8px',
                     width: mobile ? '100%' : 'auto',
-                    flex: mobile ? 'none' : 1,
+                    flex: mobile ? 1 : 'none',
                     maxWidth: mobile ? '100%' : '600px'
                 }}>
                     <Input
-                        placeholder="חיפוש לפי שם משפחה / כללי..."
+                        placeholder={mobile ? "שם משפחה..." : "חיפוש לפי שם משפחה / כללי..."}
                         prefix={<SearchOutlined />}
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
-                        style={{ width: mobile ? '100%' : '260px' }}
+                        style={{ flex: 1, minWidth: 0, width: mobile ? 'auto' : '260px' }}
                         allowClear
                     />
                     <Input
-                        placeholder="חיפוש לפי שם פרטי..."
+                        placeholder={mobile ? "שם פרטי..." : "חיפוש לפי שם פרטי..."}
                         prefix={<SearchOutlined />}
                         value={searchFirstName}
                         onChange={(e) => setSearchFirstName(e.target.value)}
-                        style={{ width: mobile ? '100%' : '220px' }}
+                        style={{ flex: 1, minWidth: 0, width: mobile ? 'auto' : '220px' }}
                         allowClear
                     />
                 </div>
