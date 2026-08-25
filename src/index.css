@@ -58,11 +58,11 @@ body {
 }
 
 /* שורת מתפלל קבוע (לא אורח) - מוצגת בכחול */
-.row-non-guest-blue > td:not(.ant-table-cell-actions) {
+.ant-table-wrapper .ant-table-tbody > tr.row-non-guest-blue > td,
+.ant-table-wrapper .ant-table-tbody > tr.row-non-guest-blue td,
+.row-non-guest-blue td,
+.row-non-guest-blue {
   color: #1677ff !important;
-}
-
-.row-non-guest-blue > td {
-  color: #1677ff !important;
+  font-weight: bold !important;
 }
 

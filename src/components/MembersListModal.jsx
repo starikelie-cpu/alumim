@@ -505,6 +505,20 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
     const mobile = isMobile();
 
     const columns = useMemo(() => {
+        // Helper function for cell styling (blue text for non-guests)
+        const getCellStyle = (record, isMobileView = false, extra = {}) => {
+            const isNonGuest = !isGuestMember(record);
+            return {
+                fontSize: isMobileView ? '15px' : '18px',
+                lineHeight: isMobileView ? '1.3' : '1.25',
+                padding: isMobileView ? '6px 4px' : '4px 8px',
+                color: isNonGuest ? '#1677ff' : '#000000',
+                fontWeight: isNonGuest ? 'bold' : 'normal',
+                ...(isMobileView ? { wordBreak: 'break-word' } : {}),
+                ...extra
+            };
+        };
+
         // עמודות למובייל: תואר, שם משפחה, שם פרטי, שם אב, ואפשרות עדכון למנהל
         const mobileColumns = [
             {
@@ -513,7 +527,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'title',
                 width: '12%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 2px', textAlign: 'center' } }),
-                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 2px', textAlign: 'center', wordBreak: 'break-word' } })
+                onCell: (record) => ({ style: getCellStyle(record, true, { textAlign: 'center', padding: '6px 2px' }) })
             },
             {
                 title: 'שם משפחה',
@@ -521,7 +535,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'lastName',
                 width: isAdmin ? '25%' : '30%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
-                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', wordBreak: 'break-word' } })
+                onCell: (record) => ({ style: getCellStyle(record, true) })
             },
             {
                 title: 'שם פרטי',
@@ -529,7 +543,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'firstName',
                 width: isAdmin ? '24%' : '29%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
-                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', wordBreak: 'break-word' } })
+                onCell: (record) => ({ style: getCellStyle(record, true) })
             },
             {
                 title: 'שם אב',
@@ -537,7 +551,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'fatherName',
                 width: isAdmin ? '24%' : '29%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
-                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', wordBreak: 'break-word' } })
+                onCell: (record) => ({ style: getCellStyle(record, true) })
             },
             ...(isAdmin ? [
                 {
@@ -545,7 +559,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                     key: 'edit',
                     width: '15%',
                     onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 2px', textAlign: 'center' } }),
-                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 2px', textAlign: 'center' } }),
+                    onCell: (record) => ({ style: getCellStyle(record, true, { padding: '6px 2px', textAlign: 'center' }) }),
                     render: (_, record) => (
                         <Button
                             type="link"
@@ -569,7 +583,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'letter',
                 width: 60,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px', textAlign: 'center' } }),
+                onCell: (record) => ({ style: getCellStyle(record, false, { textAlign: 'center' }) }),
                 render: (tags) => (Array.isArray(tags) ? tags.join(', ') : (tags || ''))
             },
             {
@@ -578,7 +592,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'status',
                 width: 80,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+                onCell: (record) => ({ style: getCellStyle(record, false) })
             },
             {
                 title: 'תואר',
@@ -586,7 +600,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'title',
                 width: 70,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+                onCell: (record) => ({ style: getCellStyle(record, false) })
             },
             {
                 title: 'שם משפחה',
@@ -594,7 +608,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'lastName',
                 width: 120,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+                onCell: (record) => ({ style: getCellStyle(record, false) })
             },
             {
                 title: 'שם פרטי',
@@ -602,7 +616,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'firstName',
                 width: 120,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+                onCell: (record) => ({ style: getCellStyle(record, false) })
             },
             {
                 title: 'שם אב',
@@ -610,7 +624,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'fatherName',
                 width: 110,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+                onCell: (record) => ({ style: getCellStyle(record, false) })
             },
             {
                 title: 'פרשת בר מצווה',
@@ -618,7 +632,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'barMitzvahParasha',
                 width: 120,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+                onCell: (record) => ({ style: getCellStyle(record, false) })
             },
             {
                 title: 'תאריך פטירת אב',
@@ -626,7 +640,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'father_death_date',
                 width: 150,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+                onCell: (record) => ({ style: getCellStyle(record, false) })
             },
             {
                 title: 'תאריך פטירת אם',
@@ -634,7 +648,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'mother_death_date',
                 width: 150,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+                onCell: (record) => ({ style: getCellStyle(record, false) })
             },
             {
                 title: 'תאריך עליה',
@@ -642,7 +656,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'aliyah_date',
                 width: 120,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+                onCell: (record) => ({ style: getCellStyle(record, false) })
             },
             {
                 title: 'פרשת עליה',
@@ -650,7 +664,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'aliyah_parasha',
                 width: 120,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } }),
+                onCell: (record) => ({ style: getCellStyle(record, false) }),
                 render: (text) => text ? text.replace('פרשת ', '').replace(/[^\u0590-\u05FF\s"'-\u05F3\u05F4]/g, '').trim() : '-'
             },
             {
@@ -659,7 +673,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'aliyah_type',
                 width: 100,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+                onCell: (record) => ({ style: getCellStyle(record, false) })
             },
             {
                 title: 'פעולות',
