@@ -4,7 +4,7 @@ import { SearchOutlined, HistoryOutlined, EditOutlined, DeleteOutlined, PrinterO
 import { parseHebrewDate, getHebrewMonthNumber, yearToGematria, translateParashaName, formatHebrewDateToTextual, getShmitaYearStatus, getUpcomingShabbatInfo, getDaysSinceAliyah, getAbsDate } from '../utils/hebrewDateUtils';
 import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
-import { API_BASE } from '../config';
+import { API_BASE, isMobile } from '../config';
 
 
 const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, memberId = null, isAdmin, token, guestSynagogueId }) => {
@@ -203,7 +203,46 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
         }
     };
 
-    const columns = useMemo(() => [
+    const mobile = isMobile();
+
+    const columns = useMemo(() => {
+        // עמודות פשוטות למובייל
+        if (mobile) {
+            return [
+                {
+                    title: 'שם משפחה',
+                    dataIndex: 'lastName',
+                    key: 'lastName',
+                    onHeaderCell: () => ({ style: { fontSize: '17px', fontWeight: 'bold' } }),
+                    onCell: () => ({ style: { fontSize: '16px', lineHeight: '1.4', padding: '6px 8px' } })
+                },
+                {
+                    title: 'שם פרטי',
+                    dataIndex: 'firstName',
+                    key: 'firstName',
+                    onHeaderCell: () => ({ style: { fontSize: '17px', fontWeight: 'bold' } }),
+                    onCell: () => ({ style: { fontSize: '16px', lineHeight: '1.4', padding: '6px 8px' } })
+                },
+                {
+                    title: 'שם אב',
+                    dataIndex: 'fatherName',
+                    key: 'fatherName',
+                    onHeaderCell: () => ({ style: { fontSize: '17px', fontWeight: 'bold' } }),
+                    onCell: () => ({ style: { fontSize: '16px', lineHeight: '1.4', padding: '6px 8px' } })
+                },
+                {
+                    title: 'תאריך עליה',
+                    dataIndex: 'aliyah_date',
+                    key: 'aliyah_date',
+                    onHeaderCell: () => ({ style: { fontSize: '17px', fontWeight: 'bold' } }),
+                    onCell: () => ({ style: { fontSize: '16px', lineHeight: '1.4', padding: '6px 8px' } }),
+                    render: (text) => formatHebrewDateToTextual(text, true)
+                },
+            ];
+        }
+
+        // עמודות מלאות לדסקטופ
+        return [
         {
             title: 'מעמד',
             dataIndex: 'status',
@@ -467,7 +506,8 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                 </div>
             ) : null
         }
-    ], [selectedLastName, selectedFirstName, uniqueLastNames, filteredFirstNames, dateSortOrder, onEdit, onDelete, isAdmin]);
+        ];
+    }, [selectedLastName, selectedFirstName, uniqueLastNames, filteredFirstNames, dateSortOrder, onEdit, onDelete, isAdmin, mobile]);
 
     const filteredData = useMemo(() => {
         return archiveData.filter(item => {
@@ -553,10 +593,20 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                 content: { height: '100vh', display: 'flex', flexDirection: 'column' }
             }}
         >
-            <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ marginBottom: '8px', display: 'flex', flexDirection: mobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: mobile ? 'stretch' : 'center', gap: '8px' }}>
+                {/* Search bar - always visible */}
+                <Input
+                    placeholder="חיפוש לפי שם..."
+                    prefix={<SearchOutlined />}
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: mobile ? '100%' : '220px' }}
+                    allowClear
+                />
                 <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1890ff' }}>
                     סה"כ רשומות בארכיון: {filteredData.length}
                 </div>
+                {!mobile && (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <Button
                         className="export-btn-3d"
@@ -654,6 +704,7 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                         הדפס
                     </Button>
                 </div>
+                )}
             </div>
             <Table
                 dataSource={sortedFilteredData}

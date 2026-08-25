@@ -4,7 +4,7 @@ import { EditOutlined, DeleteOutlined, SearchOutlined, HistoryOutlined, PrinterO
 import { getDaysSinceAliyah, getYahrzeitIfInCurrentWeek, getYahrzeitIfWithin30Days, getUpcomingShabbatInfo, parseHebrewDate, getHebrewMonthNumber, getShmitaYearStatus, getAbsDate } from '../utils/hebrewDateUtils';
 import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
-import { API_BASE } from '../config';
+import { API_BASE, isMobile } from '../config';
 
 const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId }) => {
     const [searchText, setSearchText] = useState('');
@@ -15,10 +15,18 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
 
     // Filter and sort members by last name and first name
     const filteredMembers = useMemo(() => {
+        const query = searchText.trim().toLowerCase();
         return members
-            .filter(member =>
-                member.lastName?.toLowerCase().includes(searchText.toLowerCase())
-            )
+            .filter(member => {
+                if (!query) return true;
+                return (
+                    (member.lastName || '').toLowerCase().includes(query) ||
+                    (member.firstName || '').toLowerCase().includes(query) ||
+                    (member.fatherName || '').toLowerCase().includes(query) ||
+                    `${member.firstName || ''} ${member.lastName || ''}`.toLowerCase().includes(query) ||
+                    `${member.lastName || ''} ${member.firstName || ''}`.toLowerCase().includes(query)
+                );
+            })
             .sort((a, b) => {
                 const lastNameCompare = (a.lastName || '').localeCompare(b.lastName || '', 'he');
                 if (lastNameCompare !== 0) return lastNameCompare;
@@ -464,161 +472,204 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 </body>
                 </html>
             `;
+
             printWindow.document.write(html);
             printWindow.document.close();
-
             printWindow.focus();
             setTimeout(() => {
                 printWindow.print();
-                printWindow.close();
             }, 500);
         } catch (error) {
-            console.error("Print error:", error);
+            console.error('Error generating print view:', error);
+            alert('שגיאה ביצירת תצוגת הדפסה');
         }
     };
 
-    const columns = useMemo(() => [
-        {
-            title: 'אורח',
-            dataIndex: 'letter',
-            key: 'letter',
-            width: 60,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } }),
-            render: (tags) => (Array.isArray(tags) ? tags.join(', ') : tags)
-        },
-        {
-            title: 'מעמד',
-            dataIndex: 'status',
-            key: 'status',
-            width: 80,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'תואר',
-            dataIndex: 'title',
-            key: 'title',
-            width: 70,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'שם משפחה',
-            dataIndex: 'lastName',
-            key: 'lastName',
-            width: 120,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'שם פרטי',
-            dataIndex: 'firstName',
-            key: 'firstName',
-            width: 120,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'שם אב',
-            dataIndex: 'fatherName',
-            key: 'fatherName',
-            width: 110,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'פרשת בר מצווה',
-            dataIndex: 'barMitzvahParasha',
-            key: 'barMitzvahParasha',
-            width: 120,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'תאריך פטירת אב',
-            dataIndex: 'father_death_date',
-            key: 'father_death_date',
-            width: 150,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'תאריך פטירת אם',
-            dataIndex: 'mother_death_date',
-            key: 'mother_death_date',
-            width: 150,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'תאריך עליה',
-            dataIndex: 'aliyah_date',
-            key: 'aliyah_date',
-            width: 120,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'פרשת עליה',
-            dataIndex: 'aliyah_parasha',
-            key: 'aliyah_parasha',
-            width: 120,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } }),
-            render: (text) => text ? text.replace('פרשת ', '').replace(/[^\u0590-\u05FF\s"\-'\u05F3\u05F4]/g, '').trim() : '-'
-        },
-        {
-            title: 'סוג עליה',
-            dataIndex: 'aliyah_type',
-            key: 'aliyah_type',
-            width: 100,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
-        },
-        {
-            title: 'פעולות',
-            key: 'actions',
-            width: 110,
-            onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-            render: (_, record) => (
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                    <Button
-                        type="link"
-                        icon={<HistoryOutlined />}
-                        onClick={() => onViewHistory(record.id)}
-                        title="היסטוריית שינויים"
-                        style={{ color: '#1890ff' }}
-                    />
-                    {isAdmin && (
+    const mobile = isMobile();
+
+    const columns = useMemo(() => {
+        // עמודות למובייל: תואר, שם משפחה, שם פרטי, שם אב בלבד
+        const mobileColumns = [
+            {
+                title: 'תואר',
+                dataIndex: 'title',
+                key: 'title',
+                width: '18%',
+                onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', padding: '6px 4px', textAlign: 'center' } }),
+                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px', textAlign: 'center' } })
+            },
+            {
+                title: 'שם משפחה',
+                dataIndex: 'lastName',
+                key: 'lastName',
+                width: '28%',
+                onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', padding: '6px 4px' } }),
+                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px' } })
+            },
+            {
+                title: 'שם פרטי',
+                dataIndex: 'firstName',
+                key: 'firstName',
+                width: '27%',
+                onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', padding: '6px 4px' } }),
+                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px' } })
+            },
+            {
+                title: 'שם אב',
+                dataIndex: 'fatherName',
+                key: 'fatherName',
+                width: '27%',
+                onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', padding: '6px 4px' } }),
+                onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '6px 4px' } })
+            },
+        ];
+
+        if (mobile) return mobileColumns;
+
+        // עמודות מלאות לדסקטופ
+        return [
+            {
+                title: 'אורח',
+                dataIndex: 'letter',
+                key: 'letter',
+                width: 60,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } }),
+                render: (tags) => (Array.isArray(tags) ? tags.join(', ') : tags)
+            },
+            {
+                title: 'מעמד',
+                dataIndex: 'status',
+                key: 'status',
+                width: 80,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+            },
+            {
+                title: 'תואר',
+                dataIndex: 'title',
+                key: 'title',
+                width: 70,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+            },
+            {
+                title: 'שם משפחה',
+                dataIndex: 'lastName',
+                key: 'lastName',
+                width: 120,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+            },
+            {
+                title: 'שם פרטי',
+                dataIndex: 'firstName',
+                key: 'firstName',
+                width: 120,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+            },
+            {
+                title: 'שם אב',
+                dataIndex: 'fatherName',
+                key: 'fatherName',
+                width: 110,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+            },
+            {
+                title: 'פרשת בר מצווה',
+                dataIndex: 'barMitzvahParasha',
+                key: 'barMitzvahParasha',
+                width: 120,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+            },
+            {
+                title: 'תאריך פטירת אב',
+                dataIndex: 'father_death_date',
+                key: 'father_death_date',
+                width: 150,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+            },
+            {
+                title: 'תאריך פטירת אם',
+                dataIndex: 'mother_death_date',
+                key: 'mother_death_date',
+                width: 150,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+            },
+            {
+                title: 'תאריך עליה',
+                dataIndex: 'aliyah_date',
+                key: 'aliyah_date',
+                width: 120,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+            },
+            {
+                title: 'פרשת עליה',
+                dataIndex: 'aliyah_parasha',
+                key: 'aliyah_parasha',
+                width: 120,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } }),
+                render: (text) => text ? text.replace('פרשת ', '').replace(/[^\u0590-\u05FF\s"'-\u05F3\u05F4]/g, '').trim() : '-'
+            },
+            {
+                title: 'סוג עליה',
+                dataIndex: 'aliyah_type',
+                key: 'aliyah_type',
+                width: 100,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                onCell: () => ({ style: { fontSize: '18px', lineHeight: '1.25', padding: '4px 8px' } })
+            },
+            {
+                title: 'פעולות',
+                key: 'actions',
+                width: 110,
+                onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
+                render: (_, record) => (
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                         <Button
                             type="link"
-                            icon={<EditOutlined />}
-                            onClick={() => onEdit(record)}
-                            title="עריכה"
-                            style={{ padding: '4px' }}
+                            icon={<HistoryOutlined />}
+                            onClick={() => onViewHistory(record.id)}
+                            title="היסטוריית שינויים"
+                            style={{ color: '#1890ff' }}
                         />
-                    )}
-                    {isAdmin && (
-                        <Popconfirm
-                            title="האם למחוק מתפלל זה?"
-                            onConfirm={() => onDelete(record.id)}
-                            okText="כן"
-                            cancelText="לא"
-                        >
+                        {isAdmin && (
                             <Button
                                 type="link"
-                                danger
-                                icon={<DeleteOutlined />}
-                                title="מחיקה"
+                                icon={<EditOutlined />}
+                                onClick={() => onEdit(record)}
+                                title="עריכה"
                                 style={{ padding: '4px' }}
                             />
-                        </Popconfirm>
-                    )}
-                </div>
-            ),
-        }
-    ], [onViewHistory, onEdit, onDelete, isAdmin]);
+                        )}
+                        {isAdmin && (
+                            <Popconfirm
+                                title="האם למחוק מתפלל זה?"
+                                onConfirm={() => onDelete(record.id)}
+                                okText="כן"
+                                cancelText="לא"
+                            >
+                                <Button
+                                    type="link"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    title="מחיקה"
+                                    style={{ padding: '4px' }}
+                                />
+                            </Popconfirm>
+                        )}
+                    </div>
+                ),
+            }
+        ];
+    }, [onViewHistory, onEdit, onDelete, isAdmin, mobile]);
 
     return (
         <Modal
@@ -651,6 +702,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 הוספת מתפלל
                             </Button>
                         )}
+                        {!mobile && (
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -716,6 +768,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 </Tooltip>
                             </div>
                         </div>
+                        )}
+                        {!mobile && (
                         <Button
                             icon={<PrinterOutlined style={{ fontSize: '16px' }} />}
                             onClick={handlePrint}
@@ -723,7 +777,9 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         >
                             הדפס
                         </Button>
+                        )}
 
+                        {!mobile && (
                         <Button
                             icon={<PrinterOutlined style={{ fontSize: '16px' }} />}
                             onClick={handlePrintAllMembers}
@@ -731,7 +787,10 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         >
                             הדפס מתפללים
                         </Button>
+                        )}
 
+                        {!mobile && (
+                        <>
                         <Button
                             icon={<DownloadOutlined style={{ fontSize: '16px' }} />}
                             onClick={() => saveJsonFile(members, 'members.json')}
@@ -802,6 +861,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         >
                             ייבוא
                         </Button>
+                        </>
+                        )}
                     </div>
                 </div>
             }
@@ -822,13 +883,20 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 content: { height: '100vh', display: 'flex', flexDirection: 'column' }
             }}
         >
-            <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{
+                marginBottom: '16px',
+                display: 'flex',
+                flexDirection: mobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: mobile ? 'stretch' : 'center',
+                gap: '8px'
+            }}>
                 <Input
-                    placeholder="חיפוש לפי שם משפחה..."
+                    placeholder="חיפוש לפי שם משפחה, פרטי, אב..."
                     prefix={<SearchOutlined />}
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
-                    style={{ width: '300px' }}
+                    style={{ width: mobile ? '100%' : '300px' }}
                     allowClear
                 />
                 <span style={{ fontSize: '14px', fontWeight: 'bold' }}>

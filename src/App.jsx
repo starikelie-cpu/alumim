@@ -1176,7 +1176,7 @@ function App() {
                     justifyContent: 'center',
                     width: isMobile() ? '100%' : 'auto',
                 }}>
-                    {isAdmin ? (
+                    {isAdmin && (
                         <Button
                             type="primary"
                             size="large"
@@ -1185,16 +1185,6 @@ function App() {
                             onClick={() => setIsModalVisible(true)}
                         >
                             הוסף מתפלל חדש
-                        </Button>
-                    ) : (
-                        <Button
-                            type="primary"
-                            size="large"
-                            block={isMobile()}
-                            style={{ fontSize: '18px', fontWeight: 'bold' }}
-                            onClick={() => setIsLoginVisible(true)}
-                        >
-                            התחבר כמנהל
                         </Button>
                     )}
                     <Button
