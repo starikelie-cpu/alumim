@@ -5,7 +5,7 @@ import { CalendarOutlined, SearchOutlined, QuestionCircleOutlined } from '@ant-d
 import { HebrewCalendarComponent } from './HebrewCalendarComponent';
 import { formatHebrewDateToNumeric, formatHebrewDateToTextual, calculateAliyahInfo, getHebrewMonthNumber, gematriaToNum } from '../utils/hebrewDateUtils';
 import { API_BASE, isMobile } from '../config';
-import { resolveEffectiveSynagogueId } from '../../accessControl';
+import { resolveEffectiveSynagogueId, isSuperAdmin } from '../../accessControl';
 
 const { Option } = Select;
 
@@ -333,22 +333,10 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                             </Col>
                         </Row>
 
-                        {currentUser?.role === 'synagogue_admin' && currentUser?.synagogueId ? (
+                        {isSuperAdmin(currentUser?.role) && synagogues.length > 0 && (
                             <Row gutter={[16, 12]} style={{ marginBottom: 4 }}>
                                 <Col span={24}>
-                                    <Form.Item name="synagogueId" label="בית כנסת">
-                                        <Input 
-                                            value={currentUserSynagogueName || synagogues.find(s => s.id === currentUser.synagogueId)?.name || 'בית הכנסת שלי'}
-                                            disabled
-                                            style={{ width: '100%' }}
-                                        />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        ) : synagogues.length > 0 && (
-                            <Row gutter={[16, 12]} style={{ marginBottom: 4 }}>
-                                <Col span={24}>
-                                    <Form.Item name="synagogueId" label="בית כנסת">
+                                    <Form.Item name="synagogueId" label="בית כנסת" rules={[{ required: true, message: 'נא לבחור בית כנסת' }]}>
                                         <Select
                                             placeholder="בחר בית כנסת..."
                                             allowClear
