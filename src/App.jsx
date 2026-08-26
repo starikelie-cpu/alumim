@@ -12,7 +12,7 @@ import AddNiftarModal from './components/AddNiftarModal';
 import NiftarimListModal from './components/NiftarimListModal';
 import LoginModal from './components/LoginModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
-import { API_BASE, isMobile, isElectron } from './config';
+import { API_BASE, isMobile, isElectron, getPlatform } from './config';
 
 function App() {
     const [members, setMembers] = useState([]);
@@ -237,6 +237,36 @@ function App() {
             }
         });
     }, [token]);
+
+    // Log app visit / guest open
+    useEffect(() => {
+        try {
+            const sessionKey = 'app_visit_logged_' + new Date().toISOString().slice(0, 13);
+            if (!sessionStorage.getItem(sessionKey)) {
+                sessionStorage.setItem(sessionKey, '1');
+                const platform = getPlatform();
+                const synId = guestSynagogueId || user?.synagogueId || localStorage.getItem('guestSynagogueId');
+                const synName = localSynagogueName || localStorage.getItem('localSynagogueName');
+                const screen = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : '';
+                
+                fetch(`${API_BASE}/api/logs/guest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        platform,
+                        synagogueId: synId,
+                        synagogueName: synName,
+                        screen,
+                        userRole: user?.role || 'guest',
+                        username: user?.username || 'אורח',
+                        timestamp: new Date().toISOString()
+                    })
+                }).catch(err => console.debug('Guest log silent error:', err));
+            }
+        } catch (e) {
+            // silent catch
+        }
+    }, [user, guestSynagogueId, localSynagogueName]);
 
     const handleLoginSuccess = (newToken, loggedInUser) => {
         localStorage.setItem('token', newToken);

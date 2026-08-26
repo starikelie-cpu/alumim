@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Modal, Tabs, Table, Button, Form, Input, Select, AutoComplete, Popconfirm, Space,
     message, Tag, Card, Statistic, Row, Col, Tooltip, Badge, Divider, Typography
@@ -6,7 +6,8 @@ import {
 import {
     PlusOutlined, DeleteOutlined, KeyOutlined, EditOutlined, BankOutlined,
     TeamOutlined, BarChartOutlined, CheckOutlined, CloseOutlined, CrownOutlined,
-    UserOutlined, EnvironmentOutlined
+    UserOutlined, EnvironmentOutlined, EyeOutlined, ReloadOutlined,
+    MobileOutlined, GlobalOutlined, WindowsOutlined, AppleOutlined, SearchOutlined
 } from '@ant-design/icons';
 import { API_BASE } from '../config';
 import { normalizeRole } from '../../accessControl';
@@ -22,8 +23,12 @@ const ROLE_LABELS = {
 const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = [], niftarim = [] }) => {
     const [synagogues, setSynagogues] = useState([]);
     const [users, setUsers] = useState([]);
+    const [guestLogs, setGuestLogs] = useState([]);
     const [loadingSyn, setLoadingSyn] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
+    const [loadingLogs, setLoadingLogs] = useState(false);
+    const [logSearchText, setLogSearchText] = useState('');
+    const [logPlatformFilter, setLogPlatformFilter] = useState('all');
 
     // Israeli cities and streets data from OpenStreetMap with local caching
     const [cities, setCities] = useState([]);
@@ -125,12 +130,40 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
         finally { setLoadingUsers(false); }
     };
 
+    const fetchGuestLogs = async () => {
+        if (!isSuperAdmin) return;
+        setLoadingLogs(true);
+        try {
+            const res = await fetch(`${API_BASE}/api/logs/guest?limit=1000`, { headers });
+            if (!res.ok) throw new Error();
+            setGuestLogs(await res.json());
+        } catch {
+            message.error('שגיאה בטעינת יומן כניסות');
+        } finally {
+            setLoadingLogs(false);
+        }
+    };
+
+    const handleClearGuestLogs = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/api/logs/guest`, { method: 'DELETE', headers });
+            if (!res.ok) throw new Error();
+            message.success('יומן הכניסות נוקה בהצלחה');
+            setGuestLogs([]);
+        } catch {
+            message.error('שגיאה בניקוי יומן כניסות');
+        }
+    };
+
     useEffect(() => {
         if (visible && token) {
             fetchSynagogues();
             fetchUsers();
+            if (isSuperAdmin) {
+                fetchGuestLogs();
+            }
         }
-    }, [visible, token]);
+    }, [visible, token, isSuperAdmin]);
 
     // Load cities only when the add synagogue modal is opened
     useEffect(() => {
@@ -521,6 +554,101 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
         }
     }, [mySynagogue?.name]);
 
+    const filteredGuestLogs = useMemo(() => {
+        return guestLogs.filter(log => {
+            if (logPlatformFilter !== 'all' && log.platform !== logPlatformFilter) {
+                return false;
+            }
+            if (!logSearchText.trim()) return true;
+            const q = logSearchText.trim().toLowerCase();
+            const synName = log.synagogueName || synagogues.find(s => s.id === log.synagogueId)?.name || '';
+            return (
+                (log.username || '').toLowerCase().includes(q) ||
+                (log.ip || '').toLowerCase().includes(q) ||
+                (log.hebrewDate || '').toLowerCase().includes(q) ||
+                synName.toLowerCase().includes(q) ||
+                (log.userAgent || '').toLowerCase().includes(q)
+            );
+        });
+    }, [guestLogs, logSearchText, logPlatformFilter, synagogues]);
+
+    const logColumns = [
+        {
+            title: 'זמן',
+            dataIndex: 'timestamp',
+            key: 'timestamp',
+            width: 150,
+            render: (t) => {
+                if (!t) return '-';
+                try {
+                    const d = new Date(t);
+                    return d.toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'medium' });
+                } catch {
+                    return t;
+                }
+            }
+        },
+        {
+            title: 'תאריך עברי',
+            dataIndex: 'hebrewDate',
+            key: 'hebrewDate',
+            width: 140,
+            render: (hd) => <span style={{ color: '#003a8c', fontWeight: 'bold' }}>{hd || '-'}</span>
+        },
+        {
+            title: 'מכשיר / פלטפורמה',
+            dataIndex: 'platform',
+            key: 'platform',
+            width: 130,
+            render: (p) => {
+                switch (p) {
+                    case 'android':
+                        return <Tag color="green" icon={<MobileOutlined />}>Android</Tag>;
+                    case 'ios':
+                        return <Tag color="cyan" icon={<AppleOutlined />}>iOS</Tag>;
+                    case 'electron':
+                        return <Tag color="blue" icon={<WindowsOutlined />}>Windows App</Tag>;
+                    case 'web':
+                    default:
+                        return <Tag color="purple" icon={<GlobalOutlined />}>Web</Tag>;
+                }
+            }
+        },
+        {
+            title: 'משתמש / מעמד',
+            key: 'userRole',
+            width: 140,
+            render: (_, r) => {
+                if (r.userRole === 'super_admin') return <Tag color="gold">מנהל על ({r.username})</Tag>;
+                if (r.userRole === 'synagogue_admin') return <Tag color="blue">מנהל ({r.username})</Tag>;
+                return <Tag color="default">אורח ({r.username || 'צפייה'})</Tag>;
+            }
+        },
+        {
+            title: 'בית כנסת',
+            key: 'synagogue',
+            width: 170,
+            render: (_, r) => {
+                const synName = r.synagogueName || synagogues.find(s => s.id === r.synagogueId)?.name;
+                return synName ? <Tag color="geekblue">{synName}</Tag> : <Text type="secondary">כללי / לא נבחר</Text>;
+            }
+        },
+        {
+            title: 'כתובת IP',
+            dataIndex: 'ip',
+            key: 'ip',
+            width: 130,
+            render: (ip) => <Text code>{ip || '-'}</Text>
+        },
+        {
+            title: 'מסך',
+            dataIndex: 'screen',
+            key: 'screen',
+            width: 100,
+            render: (s) => s || '-'
+        }
+    ];
+
     const tabs = [
         isSuperAdmin && {
             key: 'synagogues',
@@ -670,7 +798,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                                             placeholder="כללי"
                                         >
                                             {synagogues.map(s => (
-                                                <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
+                                                 <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
                                             ))}
                                         </Select>
                                     </Form.Item>
@@ -698,6 +826,67 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                             pageSizeOptions: ['10', '20', '50', '100']
                         }}
                         locale={{ emptyText: 'אין משתמשים' }}
+                        scroll={{ y: 400 }}
+                    />
+                </div>
+            )
+        },
+        isSuperAdmin && {
+            key: 'guest_logs',
+            label: <span><EyeOutlined /> יומן כניסות אורחים ({guestLogs.length})</span>,
+            children: (
+                <div>
+                    <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                        <Title level={5} style={{ margin: 0 }}>יומן פתיחת אפליקציה וכניסות אורחים</Title>
+                        <Space wrap>
+                            <Input
+                                placeholder="חיפוש לפי בית כנסת / IP / משתמש..."
+                                prefix={<SearchOutlined />}
+                                value={logSearchText}
+                                onChange={(e) => setLogSearchText(e.target.value)}
+                                style={{ width: 230 }}
+                                allowClear
+                            />
+                            <Select
+                                value={logPlatformFilter}
+                                onChange={setLogPlatformFilter}
+                                style={{ width: 130 }}
+                            >
+                                <Select.Option value="all">כל המכשירים</Select.Option>
+                                <Select.Option value="android">Android 📱</Select.Option>
+                                <Select.Option value="ios">iOS 🍏</Select.Option>
+                                <Select.Option value="web">Web 🌐</Select.Option>
+                                <Select.Option value="electron">Windows 💻</Select.Option>
+                            </Select>
+                            <Button icon={<ReloadOutlined />} onClick={fetchGuestLogs} loading={loadingLogs}>
+                                רענן
+                            </Button>
+                            <Popconfirm
+                                title="האם אתה בטוח שברצונך למחוק את כל יומן הכניסות?"
+                                onConfirm={handleClearGuestLogs}
+                                okText="כן, נקה"
+                                cancelText="ביטול"
+                            >
+                                <Button danger icon={<DeleteOutlined />}>
+                                    נקה יומן
+                                </Button>
+                            </Popconfirm>
+                        </Space>
+                    </div>
+
+                    <Table
+                        dataSource={filteredGuestLogs}
+                        columns={logColumns}
+                        rowKey="id"
+                        loading={loadingLogs}
+                        size="small"
+                        pagination={{
+                            pageSize: 15,
+                            showSizeChanger: true,
+                            showTotal: (total) => `סה"כ: ${total} רשומות כניסה`,
+                            pageSizeOptions: ['15', '30', '50', '100']
+                        }}
+                        locale={{ emptyText: 'אין רשומות כניסה עדיין' }}
                         scroll={{ y: 400 }}
                     />
                 </div>
@@ -809,7 +998,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             }
             onCancel={onCancel}
             footer={null}
-            width={900}
+            width={1050}
             destroyOnClose
             styles={{
                 header: { background: 'linear-gradient(135deg, #001d6c 0%, #003a8c 100%)', color: '#fff', borderRadius: '8px 8px 0 0' },

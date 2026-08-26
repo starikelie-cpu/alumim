@@ -40,9 +40,12 @@ import {
     getCachedStreets,
     cacheCities,
     cacheStreets,
-    loadGeocodingCacheAfterConnection
+    loadGeocodingCacheAfterConnection,
+    addGuestLog,
+    getGuestLogs,
+    clearGuestLogs
 } from './db.js';
-import { normalizeRole, isAdminRole, resolveEffectiveSynagogueId } from './accessControl.js';
+import { normalizeRole, isAdminRole, isSuperAdmin, resolveEffectiveSynagogueId } from './accessControl.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -175,6 +178,20 @@ function requireAdmin(req, res, next) {
     if (!session || !isAdminRole(session.role)) {
         console.warn(`[AUTH] Unauthorized write attempt: ${req.method} ${req.path} - Invalid session or not admin`);
         return res.status(401).json({ error: 'Unauthorized. Admin credentials required.' });
+    }
+    req.currentUser = session;
+    next();
+}
+
+function requireSuperAdmin(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized. Super Admin credentials required.' });
+    }
+    const token = authHeader.substring(7);
+    const session = activeSessions.get(token);
+    if (!session || !isSuperAdmin(session.role)) {
+        return res.status(403).json({ error: 'Forbidden. Super Admin credentials required.' });
     }
     req.currentUser = session;
     next();
@@ -526,6 +543,56 @@ app.delete('/api/users/:username', requireAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error deleting user:', error);
         res.status(400).json({ error: error.message || 'Failed to delete user' });
+    }
+});
+
+// === Guest / App Access Logs APIs ===
+app.post('/api/logs/guest', async (req, res) => {
+    try {
+        const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || req.ip || 'Unknown';
+        const userAgent = req.headers['user-agent'] || 'Unknown';
+        const now = new Date();
+        const hebrewDateStr = new HDate(now).renderGematriya(true);
+
+        const logEntry = {
+            platform: req.body.platform || 'web',
+            synagogueId: req.body.synagogueId || null,
+            synagogueName: req.body.synagogueName || null,
+            screen: req.body.screen || null,
+            userAgent: userAgent,
+            ip: clientIp,
+            hebrewDate: hebrewDateStr,
+            clientTimestamp: req.body.timestamp || now.toISOString(),
+            userRole: req.body.userRole || 'guest',
+            username: req.body.username || 'אורח'
+        };
+
+        const saved = await addGuestLog(logEntry);
+        res.json({ success: true, log: saved });
+    } catch (error) {
+        console.error('Error logging guest visit:', error);
+        res.status(500).json({ error: 'Failed to record log' });
+    }
+});
+
+app.get('/api/logs/guest', requireSuperAdmin, async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 1000;
+        const logs = await getGuestLogs(limit);
+        res.json(logs);
+    } catch (error) {
+        console.error('Error fetching guest logs:', error);
+        res.status(500).json({ error: 'Failed to fetch guest logs' });
+    }
+});
+
+app.delete('/api/logs/guest', requireSuperAdmin, async (req, res) => {
+    try {
+        const success = await clearGuestLogs();
+        res.json({ success });
+    } catch (error) {
+        console.error('Error clearing guest logs:', error);
+        res.status(500).json({ error: 'Failed to clear guest logs' });
     }
 });
 

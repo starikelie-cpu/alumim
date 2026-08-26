@@ -14,6 +14,7 @@ const ARCHIVE_FILE = path.join(DATA_DIR, 'archive.json');
 const NIFTARIM_FILE = path.join(DATA_DIR, 'niftarim.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SYNAGOGUES_FILE = path.join(DATA_DIR, 'synagogues.json');
+const GUEST_LOGS_FILE = path.join(DATA_DIR, 'guest_logs.json');
 
 const logPath = process.env.APP_DATA_PATH ? path.join(path.dirname(process.env.APP_DATA_PATH), 'app.log') : null;
 function log(msg) {
@@ -979,5 +980,58 @@ export function cacheStreets(city, streets) {
     if (city && Array.isArray(streets)) {
         geocodingCache.streets.set(city, new Set(streets));
         saveGeocodingCacheToMongo().catch(e => log(`Error saving streets cache to MongoDB: ${e.message}`));
+    }
+}
+
+// === Guest Access Logs ===
+export async function addGuestLog(logEntry) {
+    const entry = {
+        id: crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2)),
+        timestamp: new Date().toISOString(),
+        ...logEntry
+    };
+    try {
+        if (useMongoDB && db) {
+            await db.collection('guest_logs').insertOne(entry);
+        } else {
+            const logs = await readJsonFile(GUEST_LOGS_FILE, []);
+            logs.unshift(entry);
+            // Keep up to 2000 most recent logs
+            const trimmed = logs.slice(0, 2000);
+            await writeLocalFile(GUEST_LOGS_FILE, trimmed);
+        }
+        return entry;
+    } catch (e) {
+        log(`Error saving guest log: ${e.message}`);
+        return null;
+    }
+}
+
+export async function getGuestLogs(limit = 1000) {
+    try {
+        if (useMongoDB && db) {
+            const cursor = db.collection('guest_logs').find({}).sort({ timestamp: -1 }).limit(limit);
+            const logs = await cursor.toArray();
+            return logs.map(({ _id, ...rest }) => rest);
+        } else {
+            const logs = await readJsonFile(GUEST_LOGS_FILE, []);
+            return logs.slice(0, limit);
+        }
+    } catch (e) {
+        log(`Error fetching guest logs: ${e.message}`);
+        return [];
+    }
+}
+
+export async function clearGuestLogs() {
+    try {
+        if (useMongoDB && db) {
+            await db.collection('guest_logs').deleteMany({});
+        }
+        await writeLocalFile(GUEST_LOGS_FILE, []);
+        return true;
+    } catch (e) {
+        log(`Error clearing guest logs: ${e.message}`);
+        return false;
     }
 }
