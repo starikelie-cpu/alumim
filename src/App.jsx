@@ -1053,8 +1053,13 @@ function App() {
             <div style={{ display: 'flex', flexDirection: isMobile() ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile() ? 'flex-start' : 'center', width: '100%', padding: isMobile() ? '10px 14px' : '12px 24px', borderBottom: '1px solid #e8e8e8', background: '#fafafa', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', gap: isMobile() ? '8px' : '0', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', width: isMobile() ? '100%' : 'auto', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                        <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold' }}>
-                            בית כנסת - ניהול מתפללים v{pkg.version}
+                        <div>
+                            <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold', lineHeight: '1.2' }}>
+                                בית כנסת - ניהול מתפללים v{pkg.version}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#777', marginTop: '2px' }}>
+                                להתקשרות: <a href="tel:0523375529" style={{ color: '#1890ff', textDecoration: 'none', fontWeight: '500' }}>אלי סטריק - 052-3375529</a>
+                            </div>
                         </div>
                         <div 
                             onClick={() => {
