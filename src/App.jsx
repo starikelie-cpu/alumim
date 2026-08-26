@@ -268,6 +268,14 @@ function App() {
         }
     }, [user, guestSynagogueId, localSynagogueName]);
 
+    // Keep-alive ping to prevent server idling while app is open (every 10 minutes)
+    useEffect(() => {
+        const pingTimer = setInterval(() => {
+            fetch(`${API_BASE}/api/ping`).catch(() => {});
+        }, 10 * 60 * 1000);
+        return () => clearInterval(pingTimer);
+    }, []);
+
     const handleLoginSuccess = (newToken, loggedInUser) => {
         localStorage.setItem('token', newToken);
         setToken(newToken);

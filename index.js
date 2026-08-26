@@ -546,6 +546,23 @@ app.delete('/api/users/:username', requireAdmin, async (req, res) => {
     }
 });
 
+// === Ping / Health Keep-Alive APIs ===
+app.get('/api/ping', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        serverUptime: Math.floor(process.uptime())
+    });
+});
+
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        memoryUsage: process.memoryUsage().rss
+    });
+});
+
 // === Guest / App Access Logs APIs ===
 app.post('/api/logs/guest', async (req, res) => {
     try {
@@ -1036,4 +1053,24 @@ app.listen(port, () => {
     } else if (process.send) {
         process.send('server-ready');
     }
+
+    // Keep-alive self-ping every 10 minutes (prevents cloud/Render sleep when active)
+    const PING_INTERVAL_MS = 10 * 60 * 1000;
+    const externalUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+
+    setInterval(async () => {
+        try {
+            const pingUrl = `${externalUrl}/api/ping`;
+            const res = await fetch(pingUrl);
+            if (res.ok) {
+                log(`[KEEP-ALIVE] Self-ping successful: ${pingUrl}`);
+            } else {
+                log(`[KEEP-ALIVE] Self-ping status: ${res.status}`);
+            }
+        } catch (err) {
+            log(`[KEEP-ALIVE] Self-ping failed: ${err.message}`);
+        }
+    }, PING_INTERVAL_MS);
+
+    log(`[KEEP-ALIVE] Self-ping service started (every 10m to ${externalUrl}/api/ping)`);
 });
