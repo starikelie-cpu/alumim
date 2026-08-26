@@ -93,6 +93,7 @@ function createSplashWindow() {
 <body>
   <div class="icon">🕍</div>
   <h1>ניהול בית כנסת</h1>
+  <div style="font-size: 13px; color: #ffd54f; margin-bottom: 6px; font-weight: 600;">להתקשרות: אלי סטריק - 052-3375529</div>
   <div class="sub">מאתחל את המערכת...</div>
   <div class="bar-wrap"><div class="bar"></div></div>
   <div class="status">מתחבר לשרת...</div>
@@ -109,6 +110,7 @@ function createWindow(backendPort) {
     if (backendPort) currentBackendPort = backendPort;
 
     mainWindow = new BrowserWindow({
+        title: 'בית כנסת - ניהול מתפללים | אלי סטריק - 052-3375529',
         width: 1200,
         height: 800,
         show: false,

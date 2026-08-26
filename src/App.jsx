@@ -1033,6 +1033,9 @@ function App() {
                     <div style={{ fontSize: '24px', fontWeight: 700, marginBottom: '6px', letterSpacing: '0.5px', color: '#fff' }}>
                         ניהול בית כנסת
                     </div>
+                    <div style={{ fontSize: '13px', color: '#ffd54f', marginBottom: '8px', fontWeight: 'bold' }}>
+                        להתקשרות: אלי סטריק - 052-3375529
+                    </div>
                     <div style={{ fontSize: '14px', color: '#a8c8e8', marginBottom: '28px' }}>
                         מאתחל את המערכת...
                     </div>
@@ -1570,6 +1573,11 @@ function App() {
                         </Form.Item>
                     </Form>
                 </Modal>
+
+                {/* Footer with contact info */}
+                <div style={{ textAlign: 'center', padding: '16px 8px', fontSize: '12px', color: '#888', borderTop: '1px solid #e8e8e8', width: '100%', marginTop: '36px', background: '#fafafa' }}>
+                    בית כנסת - ניהול מתפללים | פיתוח והתקשרות: <a href="tel:0523375529" style={{ color: '#1890ff', textDecoration: 'none', fontWeight: 'bold' }}>אלי סטריק - 052-3375529</a>
+                </div>
             </div>
         </ConfigProvider>
     );
