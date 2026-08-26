@@ -1,31 +1,46 @@
-﻿{
+{
     "name": "ניהול בית כנסת",
     "short_name": "בית כנסת",
-    "description": "מערכת ניהול מתפללים, ארכיון ולוח עברי",
+    "description": "מערכת ניהול מתפללים, זמני תפילות וארכיון בית כנסת",
+    "id": "com.synagogue.management",
     "start_url": "/",
+    "scope": "/",
     "display": "standalone",
-    "orientation": "portrait",
+    "orientation": "portrait-primary",
     "background_color": "#1a3a5c",
-    "theme_color": "#1677ff",
+    "theme_color": "#1a3a5c",
     "lang": "he",
     "dir": "rtl",
+    "categories": ["lifestyle", "utilities"],
     "icons": [
-        {
-            "src": "/favicon.ico",
-            "sizes": "48x48",
-            "type": "image/x-icon"
-        },
         {
             "src": "/icon-192.png",
             "sizes": "192x192",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
         },
         {
             "src": "/icon-512.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/favicon.ico",
+            "sizes": "48x48",
+            "type": "image/x-icon"
         }
     ]
 }

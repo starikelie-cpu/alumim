@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
 import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip } from 'antd';
-import { DownloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, UploadOutlined, PoweroffOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
 import pkg from '../package.json';
@@ -277,6 +277,73 @@ function App() {
         }, 10 * 60 * 1000);
         return () => clearInterval(pingTimer);
     }, []);
+
+    // Android hardware / gesture back button and clean exit handler
+    const anyModalOpen = isModalVisible || isListVisible || isArchiveVisible || isNiftarModalVisible ||
+        isNiftarimListVisible || isLoginVisible || isUserMgmtVisible || isDbStatusModalVisible ||
+        isAdminCredentialsVisible || showFirstTimePrompt;
+
+    const closeAllModals = useCallback(() => {
+        setIsModalVisible(false);
+        setIsListVisible(false);
+        setIsArchiveVisible(false);
+        setIsNiftarModalVisible(false);
+        setIsNiftarimListVisible(false);
+        setIsLoginVisible(false);
+        setIsUserMgmtVisible(false);
+        setIsDbStatusModalVisible(false);
+        setIsAdminCredentialsVisible(false);
+        setShowFirstTimePrompt(false);
+    }, []);
+
+    const handleMobileExit = useCallback(() => {
+        if (typeof window !== 'undefined' && window.Capacitor?.Plugins?.App?.exitApp) {
+            window.Capacitor.Plugins.App.exitApp();
+            return;
+        }
+        // In mobile browser / PWA: close or return cleanly to home screen
+        try {
+            window.close();
+        } catch (e) {}
+        if (typeof window !== 'undefined') {
+            // If window.close is restricted, minimize history impact
+            window.location.replace('about:blank');
+        }
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        // 1. Capacitor native app back button
+        let capListener = null;
+        if (window.Capacitor?.Plugins?.App?.addListener) {
+            window.Capacitor.Plugins.App.addListener('backButton', () => {
+                if (anyModalOpen) {
+                    closeAllModals();
+                } else {
+                    window.Capacitor.Plugins.App.exitApp();
+                }
+            }).then(l => { capListener = l; }).catch(() => {});
+        }
+
+        // 2. Web / PWA back gesture navigation
+        const handlePopState = (e) => {
+            if (anyModalOpen) {
+                closeAllModals();
+                window.history.pushState({ app: 'synagogue' }, '');
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        if (!window.history.state) {
+            window.history.replaceState({ app: 'synagogue' }, '');
+        }
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+            if (capListener && capListener.remove) capListener.remove();
+        };
+    }, [anyModalOpen, closeAllModals]);
 
     const handleLoginSuccess = (newToken, loggedInUser) => {
         localStorage.setItem('token', newToken);
@@ -984,40 +1051,54 @@ function App() {
                 </div>
             )}
             <div style={{ display: 'flex', flexDirection: isMobile() ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile() ? 'flex-start' : 'center', width: '100%', padding: isMobile() ? '10px 14px' : '12px 24px', borderBottom: '1px solid #e8e8e8', background: '#fafafa', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', gap: isMobile() ? '8px' : '0', boxSizing: 'border-box' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold' }}>
-                        בית כנסת - ניהול מתפללים v{pkg.version}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', width: isMobile() ? '100%' : 'auto', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold' }}>
+                            בית כנסת - ניהול מתפללים v{pkg.version}
+                        </div>
+                        <div 
+                            onClick={() => {
+                                fetchDbStatus();
+                                setIsDbStatusModalVisible(true);
+                            }}
+                            title="לחץ להצגת פרטי החיבור"
+                            style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '6px', 
+                                fontSize: '12px', 
+                                cursor: 'pointer',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                background: dbStatusBg,
+                                border: `1px solid ${dbStatusBorder}`,
+                                color: dbStatusTextColor,
+                                fontWeight: 'bold',
+                                userSelect: 'none'
+                            }}
+                        >
+                            <span style={{ 
+                                width: '8px', 
+                                height: '8px', 
+                                borderRadius: '50%', 
+                                background: dbStatusColor,
+                                display: 'inline-block'
+                            }} />
+                            {dbStatusText}
+                        </div>
                     </div>
-                    <div 
-                        onClick={() => {
-                            fetchDbStatus();
-                            setIsDbStatusModalVisible(true);
-                        }}
-                        title="לחץ להצגת פרטי החיבור"
-                        style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '6px', 
-                            fontSize: '12px', 
-                            cursor: 'pointer',
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            background: dbStatusBg,
-                            border: `1px solid ${dbStatusBorder}`,
-                            color: dbStatusTextColor,
-                            fontWeight: 'bold',
-                            userSelect: 'none'
-                        }}
-                    >
-                        <span style={{ 
-                            width: '8px', 
-                            height: '8px', 
-                            borderRadius: '50%', 
-                            background: dbStatusColor,
-                            display: 'inline-block'
-                        }} />
-                        {dbStatusText}
-                    </div>
+                    {isMobile() && (
+                        <Button
+                            type="text"
+                            danger
+                            size="small"
+                            icon={<PoweroffOutlined />}
+                            onClick={handleMobileExit}
+                            style={{ fontSize: '12px', fontWeight: 'bold' }}
+                        >
+                            יציאה מהירה
+                        </Button>
+                    )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     {user ? (
