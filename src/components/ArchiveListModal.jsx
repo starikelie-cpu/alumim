@@ -11,6 +11,7 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
     const [archiveData, setArchiveData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
+    const [searchFirstName, setSearchFirstName] = useState('');
     const [selectedAliyahType, setSelectedAliyahType] = useState('');
     const [dateSortOrder, setDateSortOrder] = useState(null); // null, 'asc', 'desc'
     const [selectedLastName, setSelectedLastName] = useState('');
@@ -362,7 +363,13 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                     `}</style>
                     <button
                         className="clear-names-btn"
-                        onClick={(e) => { e.stopPropagation(); setSelectedLastName(''); setSelectedFirstName(''); }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedLastName('');
+                            setSelectedFirstName('');
+                            setSearchText('');
+                            setSearchFirstName('');
+                        }}
                     >
                         מחק
                     </button>
@@ -510,15 +517,24 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
     }, [selectedLastName, selectedFirstName, uniqueLastNames, filteredFirstNames, dateSortOrder, onEdit, onDelete, isAdmin, mobile]);
 
     const filteredData = useMemo(() => {
+        const query = searchText.trim().toLowerCase();
+        const firstQuery = searchFirstName.trim().toLowerCase();
         return archiveData.filter(item => {
-            const matchesSearch = (item.lastName?.toLowerCase().includes(searchText.toLowerCase())) ||
-                (item.firstName?.toLowerCase().includes(searchText.toLowerCase()));
+            if (firstQuery && !(item.firstName || '').toLowerCase().includes(firstQuery)) {
+                return false;
+            }
+            const matchesSearch = !query ||
+                (item.lastName?.toLowerCase().includes(query)) ||
+                (item.firstName?.toLowerCase().includes(query)) ||
+                (item.fatherName?.toLowerCase().includes(query)) ||
+                `${item.firstName || ''} ${item.lastName || ''}`.toLowerCase().includes(query) ||
+                `${item.lastName || ''} ${item.firstName || ''}`.toLowerCase().includes(query);
             const matchesAliyahType = !selectedAliyahType || item.aliyah_type === selectedAliyahType;
             const matchesLastName = !selectedLastName || item.lastName === selectedLastName;
             const matchesFirstName = !selectedFirstName || item.firstName === selectedFirstName;
             return matchesSearch && matchesAliyahType && matchesLastName && matchesFirstName;
         });
-    }, [archiveData, searchText, selectedAliyahType, selectedLastName, selectedFirstName]);
+    }, [archiveData, searchText, searchFirstName, selectedAliyahType, selectedLastName, selectedFirstName]);
 
     const sortedFilteredData = useMemo(() => {
         const sorted = [...filteredData];
@@ -593,18 +609,42 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                 content: { height: '100vh', display: 'flex', flexDirection: 'column' }
             }}
         >
-            <div style={{ marginBottom: '8px', display: 'flex', flexDirection: mobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: mobile ? 'stretch' : 'center', gap: '8px' }}>
-                {/* Search bar - always visible */}
-                <Input
-                    placeholder="חיפוש לפי שם..."
-                    prefix={<SearchOutlined />}
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    style={{ width: mobile ? '100%' : '220px' }}
-                    allowClear
-                />
+            <div style={{
+                marginBottom: '8px',
+                display: 'flex',
+                flexDirection: mobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: mobile ? 'stretch' : 'center',
+                gap: '8px'
+            }}>
+                {/* Search bar row */}
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    gap: '8px',
+                    width: mobile ? '100%' : 'auto',
+                    flex: mobile ? 1 : 'none',
+                    maxWidth: mobile ? '100%' : '500px'
+                }}>
+                    <Input
+                        placeholder={mobile ? "שם משפחה..." : "חיפוש לפי שם משפחה / כללי..."}
+                        prefix={<SearchOutlined />}
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        style={{ flex: 1, minWidth: 0, width: mobile ? 'auto' : '220px' }}
+                        allowClear
+                    />
+                    <Input
+                        placeholder={mobile ? "שם פרטי..." : "חיפוש לפי שם פרטי..."}
+                        prefix={<SearchOutlined />}
+                        value={searchFirstName}
+                        onChange={(e) => setSearchFirstName(e.target.value)}
+                        style={{ flex: 1, minWidth: 0, width: mobile ? 'auto' : '180px' }}
+                        allowClear
+                    />
+                </div>
                 <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1890ff' }}>
-                    סה"כ רשומות בארכיון: {filteredData.length}
+                    סה"כ רשומות בארכיון: {filteredData.length} {(searchText || searchFirstName) && `(מתוך ${archiveData.length})`}
                 </div>
                 {!mobile && (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
