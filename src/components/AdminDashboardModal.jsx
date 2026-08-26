@@ -637,8 +637,12 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             title: 'כתובת IP',
             dataIndex: 'ip',
             key: 'ip',
-            width: 130,
-            render: (ip) => <Text code>{ip || '-'}</Text>
+            width: 220,
+            render: (ip) => (
+                <Text code style={{ whiteSpace: 'nowrap', display: 'inline-block', direction: 'ltr' }}>
+                    {ip || '-'}
+                </Text>
+            )
         },
         {
             title: 'מסך',
@@ -887,7 +891,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                             pageSizeOptions: ['15', '30', '50', '100']
                         }}
                         locale={{ emptyText: 'אין רשומות כניסה עדיין' }}
-                        scroll={{ y: 400 }}
+                        scroll={{ x: 'max-content', y: 400 }}
                     />
                 </div>
             )
