@@ -1052,11 +1052,30 @@ app.post('/api/niftarim/import', requireAdmin, async (req, res) => {
     }
 });
 
-const staticPath = fsSync.existsSync(path.join(__dirname, 'dist')) 
-    ? path.join(__dirname, 'dist') 
-    : path.join(__dirname, 'public');
+const distPath = path.join(__dirname, 'dist');
+const publicPath = path.join(__dirname, 'public');
 
-app.use(express.static(staticPath));
+if (fsSync.existsSync(distPath)) {
+    app.use(express.static(distPath));
+}
+if (fsSync.existsSync(publicPath)) {
+    app.use(express.static(publicPath));
+}
+
+// Explicit ICO and icon download handlers
+app.get(['/favicon.ico', '/synagogue.ico', '/app.ico', '/icon.ico', '/prague_synagogue_icon.ico'], (req, res) => {
+    const icoPath = fsSync.existsSync(path.join(distPath, 'favicon.ico')) 
+        ? path.join(distPath, 'favicon.ico') 
+        : path.join(publicPath, 'favicon.ico');
+    if (fsSync.existsSync(icoPath)) {
+        res.setHeader('Content-Type', 'image/x-icon');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.sendFile(icoPath);
+    }
+    res.status(404).send('Icon not found');
+});
+
+const staticPath = fsSync.existsSync(distPath) ? distPath : publicPath;
 
 // Fallback to index.html for SPA - Use app.use at the end to catch all remaining GET requests
 app.use((req, res) => {

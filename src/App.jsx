@@ -1052,7 +1052,7 @@ function App() {
             )}
             <div style={{ display: 'flex', flexDirection: isMobile() ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile() ? 'flex-start' : 'center', width: '100%', padding: isMobile() ? '10px 14px' : '12px 24px', borderBottom: '1px solid #e8e8e8', background: '#fafafa', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', gap: isMobile() ? '8px' : '0', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', width: isMobile() ? '100%' : 'auto', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                         <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold' }}>
                             בית כנסת - ניהול מתפללים v{pkg.version}
                         </div>
@@ -1086,6 +1086,31 @@ function App() {
                             }} />
                             {dbStatusText}
                         </div>
+                        {!isMobile() && (
+                            <Tooltip title="הורד קובץ סמל (synagogue.ico) להגדרת סמל בקיצור הדרך במחשב (בלחיצה ימנית > מאפיינים > שנה סמל)">
+                                <a
+                                    href="/synagogue.ico"
+                                    download="synagogue.ico"
+                                    onClick={() => message.info('קובץ הסמל (synagogue.ico) הורד. כעת ניתן להיכנס למאפייני קיצור הדרך במחשב ולבחור "שנה סמל".')}
+                                    style={{
+                                        fontSize: '11px',
+                                        color: '#0958d9',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        textDecoration: 'none',
+                                        padding: '2px 8px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #91caff',
+                                        background: '#e6f4ff',
+                                        cursor: 'pointer',
+                                        fontWeight: '500'
+                                    }}
+                                >
+                                    🕍 הורדת סמל לקיצור דרך (.ico)
+                                </a>
+                            </Tooltip>
+                        )}
                     </div>
                     {isMobile() && (
                         <Button

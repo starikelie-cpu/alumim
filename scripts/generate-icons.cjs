@@ -103,7 +103,7 @@ const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" w
   </g>
 </svg>`;
 
-// Pure JS minimal PNG generator (RGBC / RGBA PNG chunk builder)
+// Pure JS minimal PNG generator
 function createRawPng(width, height, renderPixelFn) {
     const rawData = Buffer.alloc(height * (1 + width * 4));
     let offset = 0;
@@ -132,7 +132,6 @@ function createRawPng(width, height, renderPixelFn) {
         return Buffer.concat([len, data.length ? body : typeBuf, crcBuf]);
     }
 
-    // CRC32 table & calculation
     const crcTable = [];
     for (let n = 0; n < 256; n++) {
         let c = n;
@@ -154,11 +153,11 @@ function createRawPng(width, height, renderPixelFn) {
     const ihdr = Buffer.alloc(13);
     ihdr.writeUInt32BE(width, 0);
     ihdr.writeUInt32BE(height, 4);
-    ihdr[8] = 8; // bit depth
-    ihdr[9] = 6; // color type RGBA
-    ihdr[10] = 0; // compression
-    ihdr[11] = 0; // filter
-    ihdr[12] = 0; // interlace
+    ihdr[8] = 8;
+    ihdr[9] = 6;
+    ihdr[10] = 0;
+    ihdr[11] = 0;
+    ihdr[12] = 0;
 
     const ihdrChunk = makeChunk('IHDR', ihdr);
     const idatChunk = makeChunk('IDAT', compressed);
@@ -167,19 +166,15 @@ function createRawPng(width, height, renderPixelFn) {
     return Buffer.concat([header, ihdrChunk, idatChunk, iendChunk]);
 }
 
-// Procedural renderer for high-quality Synagogue icon in pure code
 function renderSynagoguePixel(u, v, isMaskable = false) {
-    // Coordinate space centered at 0,0 from -1 to 1
     const pad = isMaskable ? 0.75 : 0.92;
     const px = (u - 0.5) * 2 / pad;
     const py = (v - 0.5) * 2 / pad;
 
-    // Base background: Deep gradient
     const bgR = Math.floor(15 + (1 - v) * 12);
     const bgG = Math.floor(43 + (1 - v) * 20);
     const bgB = Math.floor(75 + (1 - v) * 35);
 
-    // Rounded rectangle / squircle bounds if not maskable
     if (!isMaskable) {
         const cornerR = 0.42;
         const ax = Math.abs((u - 0.5) * 2);
@@ -188,19 +183,17 @@ function renderSynagoguePixel(u, v, isMaskable = false) {
         const qy = Math.max(ay - (1 - cornerR), 0);
         const d = Math.sqrt(qx * qx + qy * qy);
         if (d > cornerR) {
-            return [0, 0, 0, 0]; // transparent outside squircle
+            return [0, 0, 0, 0];
         }
     }
 
     let r = bgR, g = bgG, b = bgB, a = 255;
 
-    // Gold colors
     const goldLight = [255, 224, 130];
     const goldMid   = [255, 179, 0];
     const goldDark  = [218, 140, 0];
 
-    // Synagogue structure coordinates:
-    // Base: py between 0.55 and 0.72, px between -0.7 and 0.7
+    // Base:
     if (py >= 0.58 && py <= 0.68 && Math.abs(px) <= 0.65 - (py - 0.58) * 0.3) {
         return [goldMid[0], goldMid[1], goldMid[2], 255];
     }
@@ -208,7 +201,7 @@ function renderSynagoguePixel(u, v, isMaskable = false) {
         return [goldLight[0], goldLight[1], goldLight[2], 255];
     }
 
-    // 4 Columns:
+    // Columns:
     const inCol = (py >= -0.05 && py <= 0.50) && (
         (px >= -0.55 && px <= -0.42) ||
         (px >= -0.34 && px <= -0.23) ||
@@ -219,46 +212,38 @@ function renderSynagoguePixel(u, v, isMaskable = false) {
         return [goldMid[0] + Math.floor((1 - py) * 15), goldMid[1] + Math.floor((1 - py) * 15), goldMid[2], 255];
     }
 
-    // Arch (Aron Kodesh): py in [-0.05, 0.50], px in [-0.20, 0.20]
+    // Arch (Aron Kodesh):
     if (px >= -0.20 && px <= 0.20 && py >= -0.05 && py <= 0.50) {
         const archTopY = -0.05 + Math.sqrt(Math.max(0, 0.04 - px * px)) * 0.8;
         if (py >= archTopY) {
-            // Check arch border
             if (Math.abs(px) >= 0.16 || Math.abs(py - archTopY) <= 0.04) {
                 return [goldLight[0], goldLight[1], goldLight[2], 255];
             }
-            // Inner Ark
             return [14, 35, 60, 255];
         }
     }
 
     // Menorah shape inside Ark:
     if (px >= -0.12 && px <= 0.12 && py >= 0.12 && py <= 0.44) {
-        // Central stem
         if (Math.abs(px) <= 0.02 && py <= 0.42) return [255, 235, 59, 255];
-        // Branches
         const b1 = Math.abs(py - (0.28 + px * px * 8));
         const b2 = Math.abs(py - (0.34 + px * px * 14));
         if ((b1 < 0.025 || b2 < 0.025) && Math.abs(px) <= 0.11) {
             return [255, 224, 130, 255];
         }
-        // Base
         if (py >= 0.40 && py <= 0.44 && Math.abs(px) <= 0.06) {
             return [255, 224, 130, 255];
         }
     }
 
-    // Roof Triangular Pediment:
-    // py from -0.52 to -0.05, apex at (0, -0.52), base at px in [-0.65, 0.65]
+    // Roof:
     if (py >= -0.52 && py <= -0.05) {
         const roofHalfWidth = (py - (-0.52)) / 0.47 * 0.65;
         if (Math.abs(px) <= roofHalfWidth) {
-            // Border of roof
             if (Math.abs(px) >= roofHalfWidth - 0.06 || py <= -0.46 || py >= -0.10) {
                 return [goldMid[0], goldMid[1], goldMid[2], 255];
             }
-
-            // Luchot HaBrit (Tablets of Stone) inside pediment
+            // Luchot HaBrit:
             if (py >= -0.36 && py <= -0.14 && Math.abs(px) <= 0.16) {
                 const tabletCenterX = px < 0 ? -0.08 : 0.08;
                 const tx = px - tabletCenterX;
@@ -270,12 +255,11 @@ function renderSynagoguePixel(u, v, isMaskable = false) {
                     return [255, 248, 225, 255];
                 }
             }
-
             return [20, 50, 85, 255];
         }
     }
 
-    // Magen David (Star of David) on top peak
+    // Magen David:
     if (py >= -0.70 && py <= -0.54 && Math.abs(px) <= 0.09) {
         const starPy = (py - (-0.62)) * 14;
         const starPx = px * 14;
@@ -289,59 +273,78 @@ function renderSynagoguePixel(u, v, isMaskable = false) {
     return [r, g, b, a];
 }
 
-// Generate files
-const publicDir = path.join(__dirname, '..', 'public');
-if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-
-// 1. Write SVG
-fs.writeFileSync(path.join(publicDir, 'favicon.svg'), svgIcon, 'utf8');
-console.log('Created favicon.svg');
-
-// 2. Generate PNG 192x192
-const png192 = createRawPng(192, 192, (u, v) => renderSynagoguePixel(u, v, false));
-fs.writeFileSync(path.join(publicDir, 'icon-192.png'), png192);
-console.log('Created icon-192.png');
-
-// 3. Generate PNG 512x512
-const png512 = createRawPng(512, 512, (u, v) => renderSynagoguePixel(u, v, false));
-fs.writeFileSync(path.join(publicDir, 'icon-512.png'), png512);
-console.log('Created icon-512.png');
-
-// 4. Generate Maskable PNG 192x192 & 512x512
-const maskable192 = createRawPng(192, 192, (u, v) => renderSynagoguePixel(u, v, true));
-fs.writeFileSync(path.join(publicDir, 'icon-maskable-192.png'), maskable192);
-console.log('Created icon-maskable-192.png');
-
-const maskable512 = createRawPng(512, 512, (u, v) => renderSynagoguePixel(u, v, true));
-fs.writeFileSync(path.join(publicDir, 'icon-maskable-512.png'), maskable512);
-console.log('Created icon-maskable-512.png');
-
-// 5. Generate apple-touch-icon.png (180x180)
-const appleIcon = createRawPng(180, 180, (u, v) => renderSynagoguePixel(u, v, false));
-fs.writeFileSync(path.join(publicDir, 'apple-touch-icon.png'), appleIcon);
-console.log('Created apple-touch-icon.png');
-
-// 6. Generate simple favicon.ico from 48x48 PNG
-const png48 = createRawPng(48, 48, (u, v) => renderSynagoguePixel(u, v, false));
-function makeIcoFromPng(pngBuffer) {
+// Windows Multi-Resolution ICO Builder
+function makeMultiResolutionIco(pngEntries) {
+    const count = pngEntries.length;
     const header = Buffer.alloc(6);
     header.writeUInt16LE(0, 0); // Reserved
     header.writeUInt16LE(1, 2); // Type 1 = ICO
-    header.writeUInt16LE(1, 4); // 1 Image
+    header.writeUInt16LE(count, 4); // Count of images
 
-    const entry = Buffer.alloc(16);
-    entry.writeUInt8(48, 0); // Width
-    entry.writeUInt8(48, 1); // Height
-    entry.writeUInt8(0, 2);  // Colors
-    entry.writeUInt8(0, 3);  // Reserved
-    entry.writeUInt16LE(1, 4); // Planes
-    entry.writeUInt16LE(32, 6); // Bit count
-    entry.writeUInt32LE(pngBuffer.length, 8); // Size of image data
-    entry.writeUInt32LE(22, 12); // Offset (6 + 16 = 22)
+    let offset = 6 + (16 * count);
+    const directoryEntries = [];
+    const imageBuffers = [];
 
-    return Buffer.concat([header, entry, pngBuffer]);
+    for (const { size, buf } of pngEntries) {
+        const entry = Buffer.alloc(16);
+        entry.writeUInt8(size >= 256 ? 0 : size, 0); // Width
+        entry.writeUInt8(size >= 256 ? 0 : size, 1); // Height
+        entry.writeUInt8(0, 2);  // Colors
+        entry.writeUInt8(0, 3);  // Reserved
+        entry.writeUInt16LE(1, 4); // Planes
+        entry.writeUInt16LE(32, 6); // Bit count
+        entry.writeUInt32LE(buf.length, 8); // Size of image data
+        entry.writeUInt32LE(offset, 12); // Offset to image data
+        
+        directoryEntries.push(entry);
+        imageBuffers.push(buf);
+        offset += buf.length;
+    }
+
+    return Buffer.concat([header, ...directoryEntries, ...imageBuffers]);
 }
-fs.writeFileSync(path.join(publicDir, 'favicon.ico'), makeIcoFromPng(png48));
-console.log('Created favicon.ico');
 
-console.log('All icons generated successfully in public/');
+const rootDir = path.join(__dirname, '..');
+const publicDir = path.join(rootDir, 'public');
+const buildDir = path.join(rootDir, 'build');
+if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+if (!fs.existsSync(buildDir)) fs.mkdirSync(buildDir, { recursive: true });
+
+// 1. Write SVG
+fs.writeFileSync(path.join(publicDir, 'favicon.svg'), svgIcon, 'utf8');
+
+// 2. Generate multi-size PNGs
+const sizes = [16, 32, 48, 64, 128, 180, 192, 256, 512];
+const pngEntriesForIco = [];
+
+for (const sz of sizes) {
+    const png = createRawPng(sz, sz, (u, v) => renderSynagoguePixel(u, v, false));
+    fs.writeFileSync(path.join(publicDir, `icon-${sz}.png`), png);
+    if (sz === 180) {
+        fs.writeFileSync(path.join(publicDir, 'apple-touch-icon.png'), png);
+    }
+    if ([16, 32, 48, 64, 128, 256].includes(sz)) {
+        pngEntriesForIco.push({ size: sz, buf: png });
+    }
+}
+
+// 3. Generate Maskable PNGs for Android Adaptive Icons
+const maskable192 = createRawPng(192, 192, (u, v) => renderSynagoguePixel(u, v, true));
+fs.writeFileSync(path.join(publicDir, 'icon-maskable-192.png'), maskable192);
+
+const maskable512 = createRawPng(512, 512, (u, v) => renderSynagoguePixel(u, v, true));
+fs.writeFileSync(path.join(publicDir, 'icon-maskable-512.png'), maskable512);
+
+// 4. Generate Windows standard multi-resolution ICO file
+const multiIco = makeMultiResolutionIco(pngEntriesForIco);
+
+// Save ICO file to all standard locations
+fs.writeFileSync(path.join(publicDir, 'favicon.ico'), multiIco);
+fs.writeFileSync(path.join(publicDir, 'synagogue.ico'), multiIco);
+fs.writeFileSync(path.join(publicDir, 'app.ico'), multiIco);
+fs.writeFileSync(path.join(buildDir, 'synagogue_icon.ico'), multiIco);
+fs.writeFileSync(path.join(buildDir, 'prague_synagogue_icon.ico'), multiIco);
+fs.writeFileSync(path.join(rootDir, 'synagogue.ico'), multiIco);
+fs.writeFileSync(path.join(rootDir, 'prague_synagogue_icon.ico'), multiIco);
+
+console.log('All multi-resolution icons & Windows ICO files created successfully!');
