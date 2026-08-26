@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
 import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip } from 'antd';
-import { DownloadOutlined, UploadOutlined, PoweroffOutlined } from '@ant-design/icons';
+import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
 import pkg from '../package.json';
@@ -1060,8 +1060,31 @@ function App() {
                             <div style={{ fontSize: '14px', color: '#888', fontWeight: 'bold', lineHeight: '1.2' }}>
                                 בית כנסת - ניהול מתפללים v{pkg.version}
                             </div>
-                            <div style={{ fontSize: '11px', color: '#777', marginTop: '2px' }}>
-                                להתקשרות: <a href="tel:0523375529" style={{ color: '#1890ff', textDecoration: 'none', fontWeight: '500' }}>אלי סטריק - 052-3375529</a>
+                            <div style={{ fontSize: '11px', color: '#777', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <span>להתקשרות:</span>
+                                <a href="tel:0523375529" style={{ color: '#1890ff', textDecoration: 'none', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '2px' }} title="חיוג טלפוני">
+                                    <PhoneOutlined style={{ fontSize: '10px' }} /> אלי סטריק - 052-3375529
+                                </a>
+                                <a 
+                                    href="https://wa.me/972523375529?text=%D7%A9%D7%9C%D7%95%D7%9D%20%D7%90%D7%9C%D7%99%2C%20%D7%A4%D7%A0%D7%99%D7%99%D7%94%20%D7%9E%D7%AA%D7%95%D7%9A%20%D7%9E%D7%A2%D7%A8%D7%9B%D7%AA%20%D7%A0%D7%99%D7%94%D7%95%D7%9C%20%D7%91%D7%99%D7%AA%20%D7%9B%D7%A0%D7%A1%D7%AA" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{
+                                        color: '#fff',
+                                        background: '#25D366',
+                                        borderRadius: '10px',
+                                        padding: '1px 7px',
+                                        textDecoration: 'none',
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '3px'
+                                    }}
+                                    title="פתיחת שיחת וואטסאפ עם אלי סטריק"
+                                >
+                                    <WhatsAppOutlined style={{ fontSize: '12px' }} /> וואטסאפ
+                                </a>
                             </div>
                         </div>
                         <div 
@@ -1575,8 +1598,32 @@ function App() {
                 </Modal>
 
                 {/* Footer with contact info */}
-                <div style={{ textAlign: 'center', padding: '16px 8px', fontSize: '12px', color: '#888', borderTop: '1px solid #e8e8e8', width: '100%', marginTop: '36px', background: '#fafafa' }}>
-                    בית כנסת - ניהול מתפללים | פיתוח והתקשרות: <a href="tel:0523375529" style={{ color: '#1890ff', textDecoration: 'none', fontWeight: 'bold' }}>אלי סטריק - 052-3375529</a>
+                <div style={{ textAlign: 'center', padding: '16px 8px', fontSize: '12px', color: '#888', borderTop: '1px solid #e8e8e8', width: '100%', marginTop: '36px', background: '#fafafa', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <span>בית כנסת - ניהול מתפללים | פיתוח והתקשרות: אלי סטריק</span>
+                    <a href="tel:0523375529" style={{ color: '#1890ff', textDecoration: 'none', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <PhoneOutlined /> 052-3375529
+                    </a>
+                    <a 
+                        href="https://wa.me/972523375529?text=%D7%A9%D7%9C%D7%95%D7%9D%20%D7%90%D7%9C%D7%99%2C%20%D7%A4%D7%A0%D7%99%D7%99%D7%94%20%D7%9E%D7%AA%D7%95%D7%9A%20%D7%9E%D7%A2%D7%A8%D7%9B%D7%AA%20%D7%A0%D7%99%D7%94%D7%95%D7%9C%20%D7%91%D7%99%D7%AA%20%D7%9B%D7%A0%D7%A1%D7%AA" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{
+                            color: '#fff',
+                            background: '#25D366',
+                            borderRadius: '12px',
+                            padding: '2px 10px',
+                            textDecoration: 'none',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            boxShadow: '0 1px 3px rgba(37, 211, 102, 0.3)'
+                        }}
+                        title="שלח הודעה בוואטסאפ"
+                    >
+                        <WhatsAppOutlined /> שלח הודעה בוואטסאפ
+                    </a>
                 </div>
             </div>
         </ConfigProvider>
