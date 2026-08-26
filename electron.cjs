@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, utilityProcess } = require('electron');
+const { app, BrowserWindow, dialog, utilityProcess, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -125,6 +125,22 @@ function createWindow(backendPort) {
     if (isDev) {
         mainWindow.webContents.openDevTools();
     }
+
+    // Open external links (WhatsApp, phone, websites) in default system browser / WhatsApp app
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith('https://wa.me/') || url.startsWith('https://web.whatsapp.com') || url.startsWith('tel:') || url.startsWith('http://') || url.startsWith('https://')) {
+            shell.openExternal(url);
+            return { action: 'deny' };
+        }
+        return { action: 'allow' };
+    });
+
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        if (url.startsWith('https://wa.me/') || url.startsWith('tel:')) {
+            event.preventDefault();
+            shell.openExternal(url);
+        }
+    });
 
     mainWindow.once('ready-to-show', () => {
         // Close splash first, then reveal main window
