@@ -227,6 +227,44 @@ app.post('/api/auth/login', async (req, res) => {
         }
         const token = crypto.randomBytes(32).toString('hex');
         activeSessions.set(token, user);
+
+        // Record admin / user login in guest & access logs
+        try {
+            const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || req.ip || 'Unknown';
+            const userAgent = req.headers['user-agent'] || 'Unknown';
+            const now = new Date();
+            const hebrewDateStr = new HDate(now).renderGematriya(true);
+
+            let synagogueName = req.body.synagogueName || null;
+            if (!synagogueName && user.synagogueId) {
+                const synagogues = await getSynagogues();
+                const syn = synagogues.find(s => s.id === user.synagogueId);
+                if (syn) synagogueName = syn.name;
+            }
+
+            let platform = req.body.platform || 'web';
+            if (!req.body.platform && userAgent) {
+                if (/android/i.test(userAgent)) platform = 'android';
+                else if (/iphone|ipad|ipod/i.test(userAgent)) platform = 'ios';
+                else if (/electron/i.test(userAgent)) platform = 'electron';
+            }
+
+            await addGuestLog({
+                platform,
+                synagogueId: user.synagogueId || null,
+                synagogueName: synagogueName || null,
+                screen: req.body.screen || null,
+                userAgent,
+                ip: clientIp,
+                hebrewDate: hebrewDateStr,
+                clientTimestamp: now.toISOString(),
+                userRole: user.role || 'synagogue_admin',
+                username: user.username
+            });
+        } catch (logErr) {
+            console.error('Error logging user login:', logErr);
+        }
+
         res.json({ success: true, token, user });
     } catch (error) {
         console.error('Login error:', error);

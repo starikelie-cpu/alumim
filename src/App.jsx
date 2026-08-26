@@ -241,7 +241,9 @@ function App() {
     // Log app visit / guest open
     useEffect(() => {
         try {
-            const sessionKey = 'app_visit_logged_' + new Date().toISOString().slice(0, 13);
+            const role = user?.role || 'guest';
+            const username = user?.username || 'אורח';
+            const sessionKey = `app_visit_logged_${role}_${username}_` + new Date().toISOString().slice(0, 13);
             if (!sessionStorage.getItem(sessionKey)) {
                 sessionStorage.setItem(sessionKey, '1');
                 const platform = getPlatform();
@@ -257,8 +259,8 @@ function App() {
                         synagogueId: synId,
                         synagogueName: synName,
                         screen,
-                        userRole: user?.role || 'guest',
-                        username: user?.username || 'אורח',
+                        userRole: role,
+                        username: username,
                         timestamp: new Date().toISOString()
                     })
                 }).catch(err => console.debug('Guest log silent error:', err));

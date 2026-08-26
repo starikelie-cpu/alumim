@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Form, Input, Button, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { API_BASE } from '../config';
+import { API_BASE, getPlatform } from '../config';
 
 const LoginModal = ({ visible, onCancel, onLoginSuccess }) => {
     const [loading, setLoading] = useState(false);
@@ -10,9 +10,15 @@ const LoginModal = ({ visible, onCancel, onLoginSuccess }) => {
     const handleLogin = async (values) => {
         setLoading(true);
         try {
+            const platform = getPlatform ? getPlatform() : 'web';
+            const synName = localStorage.getItem('localSynagogueName') || null;
+            const screen = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : null;
             const cleanValues = {
                 username: values.username ? String(values.username).trim() : '',
-                password: values.password ? String(values.password).trim() : ''
+                password: values.password ? String(values.password).trim() : '',
+                platform,
+                synagogueName: synName,
+                screen
             };
             const response = await fetch(`${API_BASE}/api/auth/login`, {
                 method: 'POST',

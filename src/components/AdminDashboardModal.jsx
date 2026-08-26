@@ -582,18 +582,18 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                 if (!t) return '-';
                 try {
                     const d = new Date(t);
-                    return d.toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'medium' });
+                    if (isNaN(d.getTime())) return t;
+                    const pad = (n) => String(n).padStart(2, '0');
+                    const day = pad(d.getDate());
+                    const month = pad(d.getMonth() + 1);
+                    const year = d.getFullYear();
+                    const hours = pad(d.getHours());
+                    const minutes = pad(d.getMinutes());
+                    return `${day}/${month}/${year} ${hours}:${minutes}`;
                 } catch {
                     return t;
                 }
             }
-        },
-        {
-            title: 'תאריך עברי',
-            dataIndex: 'hebrewDate',
-            key: 'hebrewDate',
-            width: 140,
-            render: (hd) => <span style={{ color: '#003a8c', fontWeight: 'bold' }}>{hd || '-'}</span>
         },
         {
             title: 'מכשיר / פלטפורמה',
@@ -617,7 +617,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
         {
             title: 'משתמש / מעמד',
             key: 'userRole',
-            width: 140,
+            width: 150,
             render: (_, r) => {
                 if (r.userRole === 'super_admin') return <Tag color="gold">מנהל על ({r.username})</Tag>;
                 if (r.userRole === 'synagogue_admin') return <Tag color="blue">מנהל ({r.username})</Tag>;
@@ -627,7 +627,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
         {
             title: 'בית כנסת',
             key: 'synagogue',
-            width: 170,
+            width: 180,
             render: (_, r) => {
                 const synName = r.synagogueName || synagogues.find(s => s.id === r.synagogueId)?.name;
                 return synName ? <Tag color="geekblue">{synName}</Tag> : <Text type="secondary">כללי / לא נבחר</Text>;
@@ -643,13 +643,6 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                     {ip || '-'}
                 </Text>
             )
-        },
-        {
-            title: 'מסך',
-            dataIndex: 'screen',
-            key: 'screen',
-            width: 100,
-            render: (s) => s || '-'
         }
     ];
 
