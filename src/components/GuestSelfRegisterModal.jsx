@@ -49,7 +49,7 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
             const memberData = {
                 ...values,
                 synagogueId: synagogueId,
-                letter: values.letter && values.letter.length > 0 ? values.letter : ['א'], // Default 'א' if empty
+                letter: values.letter || [],
                 father_death_date: formatHebrewDateToTextual(values.father_death_date || ''),
                 mother_death_date: formatHebrewDateToTextual(values.mother_death_date || ''),
                 isSelfRegistered: true,
@@ -180,7 +180,6 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                     onFinish={handleFinish}
                     direction="rtl"
                     style={{ color: '#002766' }}
-                    initialValues={{ letter: ['א'] }}
                 >
                     <div className="premium-card">
                         <Row gutter={[16, 12]}>
@@ -193,7 +192,7 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                                             <Tooltip
                                                 title={
                                                     <div style={{ color: '#006400', direction: 'rtl' }}>
-                                                        <div>א=אורח (ברירת מחדל להרשמה עצמית)</div>
+                                                        <div>א=אורח או הקלד אות כרצונך</div>
                                                     </div>
                                                 }
                                                 placement="bottomLeft"
@@ -214,7 +213,7 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                                     <Select 
                                         ref={letterSelectRef}
                                         mode="tags" 
-                                        placeholder="א' או הקלד..." 
+                                        placeholder="בחר או הקלד אות..." 
                                         allowClear 
                                         tokenSeparators={[',']}
                                         onChange={() => {

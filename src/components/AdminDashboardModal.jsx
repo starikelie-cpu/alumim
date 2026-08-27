@@ -1122,11 +1122,11 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                                 </Row>
                             </div>
 
-                            <Divider style={{ margin: '8px 0' }}>חסימה ונעילה אוטומטית לפי זמן</Divider>
+                            <Divider style={{ margin: '8px 0' }}>קביעת זמן נעילה אוטומטי</Divider>
 
                             <Row gutter={[16, 16]} align="middle">
-                                <Col xs={24} sm={14}>
-                                    <Form.Item label="זמן נעילה אוטומטי למערכת" style={{ marginBottom: 0 }}>
+                                <Col span={24}>
+                                    <Form.Item label="נעילה אוטומטית לאחר פרק זמן" style={{ marginBottom: 0 }}>
                                         <Select
                                             placeholder="בחר זמן נעילה..."
                                             style={{ width: '100%' }}
@@ -1134,25 +1134,13 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                                             value={!selfRegConfig.guestSelfRegistrationExpiresAt ? 'unlimited' : undefined}
                                         >
                                             <Option value="unlimited">ללא הגבלת זמן (פתוח תמיד)</Option>
-                                            <Option value="15m">בעוד 15 דקות</Option>
-                                            <Option value="1h">בעוד שעה אחת</Option>
-                                            <Option value="24h">בעוד 24 שעות</Option>
-                                            <Option value="48h">בעוד 48 שעות</Option>
-                                            <Option value="7d">בעוד 7 ימים</Option>
+                                            <Option value="15m">נעל אוטומטית בעוד 15 דקות</Option>
+                                            <Option value="1h">נעל אוטומטית בעוד שעה אחת</Option>
+                                            <Option value="24h">נעל אוטומטית בעוד 24 שעות</Option>
+                                            <Option value="48h">נעל אוטומטית בעוד 48 שעות</Option>
+                                            <Option value="7d">נעל אוטומטית בעוד 7 ימים</Option>
                                         </Select>
                                     </Form.Item>
-                                </Col>
-                                <Col xs={24} sm={10}>
-                                    <Button
-                                        danger
-                                        type="primary"
-                                        icon={<LockOutlined />}
-                                        loading={savingSelfReg}
-                                        style={{ width: '100%', fontWeight: 'bold', height: 38 }}
-                                        onClick={handleLockSelfRegNow}
-                                    >
-                                        🔒 חסום הרשמה עצמית עכשיו
-                                    </Button>
                                 </Col>
                             </Row>
                         </Space>
