@@ -89,10 +89,33 @@ function App() {
 
     // Guest self-registration modal state
     const [isGuestSelfRegModalVisible, setIsGuestSelfRegModalVisible] = useState(false);
-    const [selfRegConfig, setSelfRegConfig] = useState({ allowGuestSelfRegistration: true, guestSelfRegistrationExpiresAt: null });
+    const [selfRegConfig, setSelfRegConfig] = useState({ allowGuestSelfRegistration: true, guestSelfRegistrationExpiresAt: null, synagogueSelfReg: {} });
 
     // App loading state for splash screen
     const [isAppLoading, setIsAppLoading] = useState(true);
+
+    const loadPreferences = useCallback(async () => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2500);
+            const res = await fetch(`${API_BASE}/api/preferences`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                const prefs = await res.json();
+                if (prefs.cachedSynagogues && Array.isArray(prefs.cachedSynagogues)) {
+                    setSynagogues(prefs.cachedSynagogues);
+                    setIsUsingCachedSynagogues(true);
+                }
+                setSelfRegConfig({
+                    allowGuestSelfRegistration: prefs.allowGuestSelfRegistration !== false,
+                    guestSelfRegistrationExpiresAt: prefs.guestSelfRegistrationExpiresAt || null,
+                    synagogueSelfReg: prefs.synagogueSelfReg || {}
+                });
+            }
+        } catch (e) {
+            console.error('Failed to load preferences:', e);
+        }
+    }, []);
 
     const getHeaders = (extraHeaders = {}) => {
         const headers = { ...extraHeaders };
@@ -140,29 +163,6 @@ function App() {
         fetchAllData();
 
         // Background non-blocking preferences fetch
-        const loadPreferences = async () => {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000);
-                const res = await fetch(`${API_BASE}/api/preferences`, { signal: controller.signal });
-                clearTimeout(timeoutId);
-                if (res.ok) {
-                    const prefs = await res.json();
-                    if (prefs.cachedSynagogues && Array.isArray(prefs.cachedSynagogues)) {
-                        setSynagogues(prefs.cachedSynagogues);
-                        setIsUsingCachedSynagogues(true);
-                    }
-                    if (prefs.allowGuestSelfRegistration !== undefined || prefs.guestSelfRegistrationExpiresAt !== undefined) {
-                        setSelfRegConfig({
-                            allowGuestSelfRegistration: prefs.allowGuestSelfRegistration !== false,
-                            guestSelfRegistrationExpiresAt: prefs.guestSelfRegistrationExpiresAt || null
-                        });
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load preferences:', e);
-            }
-        };
         loadPreferences();
 
         // Background auth token validation
@@ -191,7 +191,7 @@ function App() {
         }
 
         return () => clearTimeout(safetyTimer);
-    }, [token]);
+    }, [token, loadPreferences]);
 
     // Log app visit / guest open: 30-second delay for guests and single-row session update for logged-in users
     useEffect(() => {
