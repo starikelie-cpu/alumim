@@ -700,6 +700,53 @@ app.post('/api/members', requireAdmin, async (req, res) => {
     }
 });
 
+// Guest self-registration endpoint (allows guests to register themselves once if enabled by admin)
+app.post('/api/members/self-register', async (req, res) => {
+    try {
+        const prefPath = path.join(DATA_DIR, 'preferences.json');
+        let prefs = {};
+        if (fsSync.existsSync(prefPath)) {
+            try {
+                prefs = JSON.parse(fsSync.readFileSync(prefPath, 'utf8'));
+            } catch (e) {}
+        }
+
+        const allowGuest = prefs.allowGuestSelfRegistration !== false;
+        const expiresAt = prefs.guestSelfRegistrationExpiresAt;
+
+        if (!allowGuest) {
+            return res.status(403).json({ success: false, error: 'ההרשמה העצמית סגורה כעת על ידי מנהל המערכת' });
+        }
+
+        if (expiresAt && new Date() > new Date(expiresAt)) {
+            return res.status(403).json({ success: false, error: 'זמן ההרשמה העצמית תם והיא סגורה כעת' });
+        }
+
+        const synagogueId = req.body.synagogueId;
+        const firstName = req.body.firstName ? String(req.body.firstName).trim() : '';
+        const lastName = req.body.lastName ? String(req.body.lastName).trim() : '';
+
+        if (!synagogueId || !firstName || !lastName) {
+            return res.status(400).json({ success: false, error: 'יש להזין שם פרטי, שם משפחה ובית כנסת' });
+        }
+
+        const newMember = {
+            ...req.body,
+            id: Date.now(),
+            synagogueId: synagogueId,
+            letter: req.body.letter || ['א'],
+            isSelfRegistered: true,
+            registeredAt: new Date().toISOString()
+        };
+
+        const saved = await addMember(newMember);
+        res.json({ success: true, member: saved });
+    } catch (error) {
+        console.error('Error in guest self-register:', error);
+        res.status(500).json({ success: false, error: 'נכשלה הרשמת מתפלל עצמית' });
+    }
+});
+
 // Update existing member
 app.put('/api/members/:id', requireAdmin, async (req, res) => {
     try {

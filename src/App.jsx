@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
-import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip } from 'antd';
-import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined } from '@ant-design/icons';
+import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip, Tag } from 'antd';
+import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
+import GuestSelfRegisterModal from './components/GuestSelfRegisterModal';
 import pkg from '../package.json';
 import { loadJsonFile, saveJsonFile } from './utils/fileUtils';
 import MembersListModal from './components/MembersListModal';
@@ -86,6 +87,10 @@ function App() {
     const [isSavingAdminCredentials, setIsSavingAdminCredentials] = useState(false);
     const [adminCredentialsForm] = Form.useForm();
 
+    // Guest self-registration modal state
+    const [isGuestSelfRegModalVisible, setIsGuestSelfRegModalVisible] = useState(false);
+    const [selfRegConfig, setSelfRegConfig] = useState({ allowGuestSelfRegistration: true, guestSelfRegistrationExpiresAt: null });
+
     // App loading state for splash screen
     const [isAppLoading, setIsAppLoading] = useState(true);
 
@@ -146,6 +151,12 @@ function App() {
                     if (prefs.cachedSynagogues && Array.isArray(prefs.cachedSynagogues)) {
                         setSynagogues(prefs.cachedSynagogues);
                         setIsUsingCachedSynagogues(true);
+                    }
+                    if (prefs.allowGuestSelfRegistration !== undefined || prefs.guestSelfRegistrationExpiresAt !== undefined) {
+                        setSelfRegConfig({
+                            allowGuestSelfRegistration: prefs.allowGuestSelfRegistration !== false,
+                            guestSelfRegistrationExpiresAt: prefs.guestSelfRegistrationExpiresAt || null
+                        });
                     }
                 }
             } catch (e) {
@@ -1326,6 +1337,30 @@ function App() {
                             הוסף מתפלל חדש
                         </Button>
                     )}
+                    {!isAdmin && (guestSynagogueId || localSynagogueName) && (
+                        localStorage.getItem(`guest_self_registered_${guestSynagogueId || synagogues.find(s => s.name === localSynagogueName)?.id}`) ? (
+                            <Tag color="success" style={{ fontSize: '15px', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'center' }}>
+                                ✅ נרשמת כמתפלל בבית כנסת זה
+                            </Tag>
+                        ) : (selfRegConfig.allowGuestSelfRegistration !== false && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date())) && (
+                            <Button
+                                type="primary"
+                                size="large"
+                                block={isMobile()}
+                                style={{
+                                    fontSize: '17px',
+                                    fontWeight: 'bold',
+                                    background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                                    borderColor: '#389e0d',
+                                    boxShadow: '0 4px 12px rgba(82, 196, 26, 0.35)'
+                                }}
+                                icon={<UserAddOutlined />}
+                                onClick={() => setIsGuestSelfRegModalVisible(true)}
+                            >
+                                ➕ הרשמה עצמית כמתפלל
+                            </Button>
+                        )
+                    )}
                     <Button
                         size="large"
                         block={isMobile()}
@@ -1558,6 +1593,18 @@ function App() {
                         </Form.Item>
                     </Form>
                 </Modal>
+
+                {/* Guest Self-Registration Modal */}
+                <GuestSelfRegisterModal
+                    visible={isGuestSelfRegModalVisible}
+                    onCancel={() => setIsGuestSelfRegModalVisible(false)}
+                    onSuccess={() => {
+                        setIsGuestSelfRegModalVisible(false);
+                        fetchAllData();
+                    }}
+                    synagogueId={guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id)}
+                    synagogueName={localSynagogueName || synagogues.find(s => s.id === (guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id)))?.name || ''}
+                />
 
                 {/* Footer with contact info */}
                 <div style={{ textAlign: 'center', padding: '16px 8px', fontSize: '12px', color: '#888', borderTop: '1px solid #e8e8e8', width: '100%', marginTop: '36px', background: '#fafafa', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>

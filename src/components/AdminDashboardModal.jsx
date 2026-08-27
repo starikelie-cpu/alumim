@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     Modal, Tabs, Table, Button, Form, Input, Select, AutoComplete, Popconfirm, Space,
-    message, Tag, Card, Statistic, Row, Col, Tooltip, Badge, Divider, Typography
+    message, Tag, Card, Statistic, Row, Col, Tooltip, Badge, Divider, Typography, Switch
 } from 'antd';
 import {
     PlusOutlined, DeleteOutlined, KeyOutlined, EditOutlined, BankOutlined,
     TeamOutlined, BarChartOutlined, CheckOutlined, CloseOutlined, CrownOutlined,
     UserOutlined, EnvironmentOutlined, EyeOutlined, ReloadOutlined,
-    MobileOutlined, GlobalOutlined, WindowsOutlined, AppleOutlined, SearchOutlined
+    MobileOutlined, GlobalOutlined, WindowsOutlined, AppleOutlined, SearchOutlined,
+    LockOutlined, UnlockOutlined, UserAddOutlined
 } from '@ant-design/icons';
 import { API_BASE } from '../config';
 import { normalizeRole } from '../../accessControl';
@@ -55,8 +56,80 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
     const [savingSyn, setSavingSyn] = useState(false);
     const [savingUser, setSavingUser] = useState(false);
     const [savingMySyn, setSavingMySyn] = useState(false);
+    const [selfRegConfig, setSelfRegConfig] = useState({ allowGuestSelfRegistration: true, guestSelfRegistrationExpiresAt: null });
+    const [savingSelfReg, setSavingSelfReg] = useState(false);
 
     const isSuperAdmin = currentUser?.role === 'super_admin';
+
+    const fetchSelfRegConfig = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/api/preferences`);
+            if (res.ok) {
+                const prefs = await res.json();
+                setSelfRegConfig({
+                    allowGuestSelfRegistration: prefs.allowGuestSelfRegistration !== false,
+                    guestSelfRegistrationExpiresAt: prefs.guestSelfRegistrationExpiresAt || null
+                });
+            }
+        } catch (e) {}
+    };
+
+    const saveSelfRegConfig = async (newConfig) => {
+        setSavingSelfReg(true);
+        try {
+            const res = await fetch(`${API_BASE}/api/preferences`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(newConfig)
+            });
+            const data = await res.json();
+            if (data.success) {
+                setSelfRegConfig(data.preferences || newConfig);
+                message.success('הגדרות הרשמה עצמית עודכנו בהצלחה');
+            }
+        } catch (e) {
+            console.error('Failed to save self-reg preferences:', e);
+            message.error('שגיאה בשמירת הגדרות הרשמה עצמית');
+        } finally {
+            setSavingSelfReg(false);
+        }
+    };
+
+    const handleToggleSelfReg = (checked) => {
+        const newConfig = {
+            ...selfRegConfig,
+            allowGuestSelfRegistration: checked,
+            guestSelfRegistrationExpiresAt: checked ? selfRegConfig.guestSelfRegistrationExpiresAt : null
+        };
+        saveSelfRegConfig(newConfig);
+    };
+
+    const handleLockSelfRegNow = () => {
+        const newConfig = {
+            ...selfRegConfig,
+            allowGuestSelfRegistration: false,
+            guestSelfRegistrationExpiresAt: new Date().toISOString()
+        };
+        saveSelfRegConfig(newConfig);
+        message.success('ההרשמה העצמית נחסמה וננעלה בהצלחה');
+    };
+
+    const handleSetSelfRegTimeout = (val) => {
+        let expiresAt = null;
+        const now = new Date();
+        if (val === '15m') expiresAt = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
+        else if (val === '1h') expiresAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+        else if (val === '24h') expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        else if (val === '48h') expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString();
+        else if (val === '7d') expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+        const newConfig = {
+            ...selfRegConfig,
+            allowGuestSelfRegistration: true,
+            guestSelfRegistrationExpiresAt: expiresAt
+        };
+        saveSelfRegConfig(newConfig);
+    };
 
     const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
@@ -156,11 +229,14 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
     };
 
     useEffect(() => {
-        if (visible && token) {
-            fetchSynagogues();
-            fetchUsers();
-            if (isSuperAdmin) {
-                fetchGuestLogs();
+        if (visible) {
+            fetchSelfRegConfig();
+            if (token) {
+                fetchSynagogues();
+                fetchUsers();
+                if (isSuperAdmin) {
+                    fetchGuestLogs();
+                }
             }
         }
     }, [visible, token, isSuperAdmin]);
@@ -977,6 +1053,110 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                     ) : (
                         <Text type="secondary">לא שויכת לבית כנסת</Text>
                     )}
+                </div>
+            )
+        },
+        isSuperAdmin && {
+            key: 'selfRegistration',
+            label: (
+                <Space>
+                    <UserAddOutlined style={{ color: '#52c41a' }} />
+                    <span>הגדרות הרשמה עצמית</span>
+                </Space>
+            ),
+            children: (
+                <div style={{ padding: '8px 0' }}>
+                    <Card
+                        title={
+                            <Space>
+                                <UserAddOutlined style={{ color: '#52c41a', fontSize: 20 }} />
+                                <span style={{ fontSize: 17, fontWeight: 700 }}>ניהול הרשמה עצמית לאורחים</span>
+                            </Space>
+                        }
+                        style={{ borderRadius: 10, border: '1px solid #d9d9d9' }}
+                    >
+                        <Space direction="vertical" style={{ width: '100%' }} size="large">
+                            <div style={{
+                                background: (selfRegConfig.allowGuestSelfRegistration && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date())) ? '#f6ffed' : '#fff1f0',
+                                border: `1px solid ${(selfRegConfig.allowGuestSelfRegistration && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date())) ? '#b7eb8f' : '#ffa39e'}`,
+                                padding: '16px 20px',
+                                borderRadius: 10
+                            }}>
+                                <Row align="middle" justify="space-between">
+                                    <Col>
+                                        <Space size="middle">
+                                            {(selfRegConfig.allowGuestSelfRegistration && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date())) ? (
+                                                <UnlockOutlined style={{ color: '#52c41a', fontSize: 28 }} />
+                                            ) : (
+                                                <LockOutlined style={{ color: '#ff4d4f', fontSize: 28 }} />
+                                            )}
+                                            <div>
+                                                <div style={{ fontSize: 16, fontWeight: 'bold' }}>
+                                                    סטטוס הרשמה עצמית: {(selfRegConfig.allowGuestSelfRegistration && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date())) ? (
+                                                        <Tag color="success" style={{ fontSize: 14, padding: '2px 10px' }}>פתוחה לאורחים</Tag>
+                                                    ) : (
+                                                        <Tag color="error" style={{ fontSize: 14, padding: '2px 10px' }}>נעולה / חסומה</Tag>
+                                                    )}
+                                                </div>
+                                                {selfRegConfig.guestSelfRegistrationExpiresAt && new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date() ? (
+                                                    <Text type="secondary" style={{ fontSize: 13, display: 'block', marginTop: 4 }}>
+                                                        ⏰ פתוחה עד תאריך: <b>{new Date(selfRegConfig.guestSelfRegistrationExpiresAt).toLocaleString('he-IL')}</b> (תינעל אוטומטית)
+                                                    </Text>
+                                                ) : (
+                                                    <Text type="secondary" style={{ fontSize: 13, display: 'block', marginTop: 4 }}>
+                                                        אורחים שיבחרו בית כנסת יוכלו להוסיף את עצמם כמתפללים באופן חד-פעמי
+                                                    </Text>
+                                                )}
+                                            </div>
+                                        </Space>
+                                    </Col>
+                                    <Col>
+                                        <Switch
+                                            checked={selfRegConfig.allowGuestSelfRegistration && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date())}
+                                            checkedChildren="פתוח"
+                                            unCheckedChildren="חסום"
+                                            loading={savingSelfReg}
+                                            onChange={handleToggleSelfReg}
+                                        />
+                                    </Col>
+                                </Row>
+                            </div>
+
+                            <Divider style={{ margin: '8px 0' }}>חסימה ונעילה אוטומטית לפי זמן</Divider>
+
+                            <Row gutter={[16, 16]} align="middle">
+                                <Col xs={24} sm={14}>
+                                    <Form.Item label="זמן נעילה אוטומטי למערכת" style={{ marginBottom: 0 }}>
+                                        <Select
+                                            placeholder="בחר זמן נעילה..."
+                                            style={{ width: '100%' }}
+                                            onChange={handleSetSelfRegTimeout}
+                                            value={!selfRegConfig.guestSelfRegistrationExpiresAt ? 'unlimited' : undefined}
+                                        >
+                                            <Option value="unlimited">ללא הגבלת זמן (פתוח תמיד)</Option>
+                                            <Option value="15m">בעוד 15 דקות</Option>
+                                            <Option value="1h">בעוד שעה אחת</Option>
+                                            <Option value="24h">בעוד 24 שעות</Option>
+                                            <Option value="48h">בעוד 48 שעות</Option>
+                                            <Option value="7d">בעוד 7 ימים</Option>
+                                        </Select>
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={10}>
+                                    <Button
+                                        danger
+                                        type="primary"
+                                        icon={<LockOutlined />}
+                                        loading={savingSelfReg}
+                                        style={{ width: '100%', fontWeight: 'bold', height: 38 }}
+                                        onClick={handleLockSelfRegNow}
+                                    >
+                                        🔒 חסום הרשמה עצמית עכשיו
+                                    </Button>
+                                </Col>
+                            </Row>
+                        </Space>
+                    </Card>
                 </div>
             )
         }
