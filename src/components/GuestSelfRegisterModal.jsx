@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Modal, Form, Input, Select, Row, Col, Button, message } from 'antd';
-import { UserAddOutlined, CheckCircleOutlined, SafetyOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Modal, Form, Input, Select, Row, Col, Divider, Button, Tooltip, AutoComplete, message } from 'antd';
+import { UserAddOutlined, CalendarOutlined, QuestionCircleOutlined, SafetyOutlined } from '@ant-design/icons';
+import { HebrewCalendarComponent } from './HebrewCalendarComponent';
+import { formatHebrewDateToTextual } from '../utils/hebrewDateUtils';
 import { API_BASE, isMobile } from '../config';
 
 const { Option } = Select;
@@ -8,6 +10,33 @@ const { Option } = Select;
 const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, synagogueName }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
+    const [calendar, setCalendar] = useState({ isOpen: false, field: null });
+    const [parashot, setParashot] = useState([]);
+    const letterSelectRef = React.useRef(null);
+
+    useEffect(() => {
+        if (visible) {
+            fetch(`${API_BASE}/api/parshot`)
+                .then(res => res.json())
+                .then(data => setParashot(data))
+                .catch(err => console.error("Failed to fetch parashot:", err));
+        }
+    }, [visible]);
+
+    const formatHebrewDate = (dateObj) => {
+        if (!dateObj || typeof dateObj !== 'object') return dateObj;
+        return `${dateObj.hDayGematria} ${dateObj.hMonthName} ${dateObj.hYearGematria}`;
+    };
+
+    const openCalendar = (field) => {
+        setCalendar({ isOpen: true, field });
+    };
+
+    const handleDateSelect = (dateObj) => {
+        const dateString = formatHebrewDate(dateObj);
+        form.setFieldsValue({ [calendar.field]: dateString });
+        setCalendar({ isOpen: false, field: null });
+    };
 
     const handleFinish = async (values) => {
         if (!synagogueId) {
@@ -20,7 +49,9 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
             const memberData = {
                 ...values,
                 synagogueId: synagogueId,
-                letter: ['א'], // Default 'א' for guest worshipper
+                letter: values.letter && values.letter.length > 0 ? values.letter : ['א'], // Default 'א' if empty
+                father_death_date: formatHebrewDateToTextual(values.father_death_date || ''),
+                mother_death_date: formatHebrewDateToTextual(values.mother_death_date || ''),
                 isSelfRegistered: true,
                 registeredAt: new Date().toISOString()
             };
@@ -37,7 +68,6 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                 throw new Error(data.error || 'הרשמה עצמית נכשלה');
             }
 
-            // Save registration token locally for one-time protection
             try {
                 localStorage.setItem(`guest_self_registered_${synagogueId}`, data.member.id || 'registered');
                 localStorage.setItem(`guest_self_registered_date_${synagogueId}`, new Date().toISOString());
@@ -55,123 +85,247 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
     };
 
     return (
-        <Modal
-            open={visible}
-            title={
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#002766' }}>
-                    <UserAddOutlined style={{ color: '#52c41a', fontSize: 22 }} />
-                    <span style={{ fontSize: 18, fontWeight: 700 }}>
-                        הרשמה עצמית כמתפלל {synagogueName ? `בבית הכנסת: ${synagogueName}` : ''}
-                    </span>
-                </div>
-            }
-            onCancel={onCancel}
-            footer={null}
-            width={isMobile() ? '96vw' : 650}
-            centered
-            destroyOnClose
-            styles={{
-                header: { background: 'linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%)', padding: '14px 20px', borderRadius: '12px 12px 0 0', borderBottom: '1px solid #91d5ff' },
-                content: { borderRadius: 12, overflow: 'hidden' }
-            }}
-        >
-            <div style={{ background: '#f6ffed', border: '1px solid #b7eb8f', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14, color: '#274e13', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 18 }} />
-                <span>ניתן להירשם כמתפלל **חד-פעמי** בבית כנסת זה. הפרטים יישמרו ישירות במערכת בית הכנסת.</span>
-            </div>
-
-            <Form
-                form={form}
-                layout="vertical"
-                onFinish={handleFinish}
-                direction="rtl"
+        <>
+            <Modal
+                title={
+                    <div style={{
+                        textAlign: 'center',
+                        fontSize: '22px',
+                        fontWeight: '800',
+                        color: '#002766',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                        letterSpacing: '1px'
+                    }}>
+                        הרשמה עצמית כמתפלל {synagogueName ? `(${synagogueName})` : ''}
+                    </div>
+                }
+                open={visible}
+                onCancel={onCancel}
+                onOk={() => form.submit()}
+                width={isMobile() ? '96vw' : 840}
+                style={{ top: isMobile() ? 10 : 80, maxWidth: '100vw' }}
+                zIndex={1050}
+                okText="אישור והרשמה"
+                cancelText="ביטול"
+                confirmLoading={loading}
+                styles={{
+                    body: {
+                        backgroundColor: '#f0f2f5',
+                        padding: isMobile() ? '10px 8px' : '16px',
+                        borderRadius: '12px',
+                        boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.06)',
+                        maxHeight: isMobile() ? '82vh' : 'auto',
+                        overflowY: 'auto'
+                    },
+                    content: {
+                        backgroundColor: '#ffffff',
+                        color: '#002766',
+                        borderRadius: '16px',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.15), 0 5px 15px rgba(0,0,0,0.1)',
+                        padding: isMobile() ? '10px 8px' : '20px 24px'
+                    },
+                    header: {
+                        background: '#bae7ff',
+                        color: '#002766',
+                        padding: '12px 24px',
+                        marginBottom: 0,
+                        border: '8px solid #52c41a',
+                        borderTopLeftRadius: '16px',
+                        borderTopRightRadius: '16px'
+                    }
+                }}
             >
-                {synagogueName && (
-                    <Form.Item label="בית כנסת" style={{ marginBottom: 12 }}>
-                        <Input value={synagogueName} disabled style={{ fontWeight: 'bold', background: '#f5f5f5', color: '#002766' }} />
-                    </Form.Item>
-                )}
+                <style>{`
+                    .ant-form-item { margin-bottom: 12px !important; }
+                    .ant-form-item-label > label { 
+                        font-weight: 600 !important; 
+                        color: #002766 !important;
+                        font-size: 17px;
+                    }
+                    .ant-input, .ant-select-selector, .ant-input-affix-wrapper { 
+                        border-radius: 8px !important;
+                        border: 1px solid #d9d9d9 !important;
+                        box-shadow: 0 2px 0 rgba(0,0,0,0.02) !important;
+                        transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1) !important;
+                        background: #fff !important;
+                        font-size: 16px !important;
+                    }
+                    .ant-input:hover, .ant-select-selector:hover, .ant-input-affix-wrapper:hover {
+                        border-color: #52c41a !important;
+                        box-shadow: 0 4px 12px rgba(82, 196, 26, 0.15) !important;
+                        transform: translateY(-1px);
+                    }
+                    .ant-input:focus, .ant-select-focused .ant-select-selector, .ant-input-affix-wrapper-focused {
+                        border-color: #52c41a !important;
+                        box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.2), 0 8px 16px rgba(82, 196, 26, 0.1) !important;
+                        transform: translateY(-2px);
+                    }
+                    .premium-card {
+                        background: #ffffff;
+                        padding: 16px;
+                        border-radius: 12px;
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+                        margin-bottom: 16px;
+                        border: 1px solid #f0f0f0;
+                    }
+                    .ant-divider-horizontal.ant-divider-with-text { 
+                        margin: 16px 0 !important;
+                        font-weight: 700 !important;
+                        color: #003a8c !important;
+                    }
+                `}</style>
+                <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={handleFinish}
+                    direction="rtl"
+                    style={{ color: '#002766' }}
+                    initialValues={{ letter: ['א'] }}
+                >
+                    <div className="premium-card">
+                        <Row gutter={[16, 12]}>
+                            <Col xs={24} sm={8}>
+                                <Form.Item
+                                    name="letter"
+                                    label={
+                                        <span>
+                                            אות{' '}
+                                            <Tooltip
+                                                title={
+                                                    <div style={{ color: '#006400', direction: 'rtl' }}>
+                                                        <div>א=אורח (ברירת מחדל להרשמה עצמית)</div>
+                                                    </div>
+                                                }
+                                                placement="bottomLeft"
+                                                zIndex={1100}
+                                                overlayInnerStyle={{
+                                                    backgroundColor: '#ffffcc',
+                                                    border: '1px solid #d9d9d9',
+                                                    borderRadius: '8px',
+                                                    padding: '8px',
+                                                    maxWidth: '350px'
+                                                }}
+                                            >
+                                                <QuestionCircleOutlined style={{ color: '#52c41a', cursor: 'help', fontSize: '14px' }} />
+                                            </Tooltip>
+                                        </span>
+                                    }
+                                >
+                                    <Select 
+                                        ref={letterSelectRef}
+                                        mode="tags" 
+                                        placeholder="א' או הקלד..." 
+                                        allowClear 
+                                        tokenSeparators={[',']}
+                                        onChange={() => {
+                                            if (letterSelectRef.current) {
+                                                letterSelectRef.current.blur();
+                                            }
+                                        }}
+                                    >
+                                        <Option value="א">א</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Form.Item name="status" label="מעמד">
+                                    <Select placeholder="בחר מעמד" allowClear>
+                                        <Option value="">ריק</Option>
+                                        <Option value="כהן">כהן</Option>
+                                        <Option value="לוי">לוי</Option>
+                                        <Option value="ישראל">ישראל</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Form.Item name="title" label="תואר">
+                                    <Select placeholder="בחר תואר" allowClear>
+                                        <Option value="הרב">הרב</Option>
+                                        <Option value="מר">מר</Option>
+                                        <Option value="ה'">ה'</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                        </Row>
 
-                <Row gutter={12}>
-                    <Col xs={24} sm={12}>
-                        <Form.Item
-                            name="lastName"
-                            label="שם משפחה"
-                            rules={[{ required: true, message: 'נא להזין שם משפחה' }]}
-                            style={{ marginBottom: 12 }}
-                        >
-                            <Input placeholder="לדוגמה: כהן" size="large" />
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                        <Form.Item
-                            name="firstName"
-                            label="שם פרטי"
-                            rules={[{ required: true, message: 'נא להזין שם פרטי' }]}
-                            style={{ marginBottom: 12 }}
-                        >
-                            <Input placeholder="לדוגמה: אברהם" size="large" />
-                        </Form.Item>
-                    </Col>
-                </Row>
+                        <Row gutter={[16, 12]}>
+                            <Col xs={24} sm={8}>
+                                <Form.Item name="lastName" label="שם משפחה" rules={[{ required: true, message: 'שדה חובה' }]}>
+                                    <Input placeholder="הקלד שם משפחה..." allowClear />
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Form.Item name="firstName" label="שם פרטי" rules={[{ required: true, message: 'שדה חובה' }]}>
+                                    <Input placeholder="הקלד שם פרטי..." allowClear />
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Form.Item name="fatherName" label="שם האב">
+                                    <Input placeholder="למשל: אברהם" allowClear />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                    </div>
 
-                <Row gutter={12}>
-                    <Col xs={24} sm={8}>
-                        <Form.Item name="fatherName" label="שם האב" style={{ marginBottom: 12 }}>
-                            <Input placeholder="לדוגמה: יצחק" />
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={8}>
-                        <Form.Item name="status" label="מעמד" style={{ marginBottom: 12 }}>
-                            <Select placeholder="בחר מעמד" allowClear>
-                                <Option value="כהן">כהן</Option>
-                                <Option value="לוי">לוי</Option>
-                                <Option value="ישראל">ישראל</Option>
-                            </Select>
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={8}>
-                        <Form.Item name="title" label="תואר" style={{ marginBottom: 12 }}>
-                            <Select placeholder="בחר תואר" allowClear>
-                                <Option value="הרב">הרב</Option>
-                                <Option value="מר">מר</Option>
-                                <Option value="ה'">ה'</Option>
-                            </Select>
-                        </Form.Item>
-                    </Col>
-                </Row>
+                    <Divider orientation="right">תאריכי פטירה (לוח עברי)</Divider>
 
-                <Row gutter={12}>
-                    <Col xs={24} sm={12}>
-                        <Form.Item name="phone" label="מספר טלפון / נייד" style={{ marginBottom: 12 }}>
-                            <Input placeholder="050-0000000" />
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                        <Form.Item name="barMitzvahParasha" label="פרשת בר מצווה" style={{ marginBottom: 12 }}>
-                            <Input placeholder="לדוגמה: בראשית" />
-                        </Form.Item>
-                    </Col>
-                </Row>
+                    <div className="premium-card">
+                        <Row gutter={[16, 12]}>
+                            <Col xs={24} sm={8}>
+                                <Form.Item name="father_death_date" label="תאריך פטירת אב">
+                                    <Input
+                                        readOnly
+                                        allowClear
+                                        placeholder="בחר תאריך..."
+                                        onClick={(e) => {
+                                            if (e.target.tagName !== 'INPUT') return;
+                                            openCalendar('father_death_date');
+                                        }}
+                                        suffix={<CalendarOutlined style={{ color: '#52c41a' }} />}
+                                    />
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Form.Item name="mother_death_date" label="תאריך פטירת אם">
+                                    <Input
+                                        readOnly
+                                        allowClear
+                                        placeholder="בחר תאריך..."
+                                        onClick={(e) => {
+                                            if (e.target.tagName !== 'INPUT') return;
+                                            openCalendar('mother_death_date');
+                                        }}
+                                        suffix={<CalendarOutlined style={{ color: '#52c41a' }} />}
+                                    />
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Form.Item name="barMitzvahParasha" label="פרשת בר מצווה">
+                                    <AutoComplete
+                                        placeholder="בחר או הקלד פרשה..."
+                                        allowClear
+                                        options={parashot.map(p => ({ value: p }))}
+                                        filterOption={(inputValue, option) =>
+                                            option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                        }
+                                        onChange={(val) => {
+                                            form.setFieldsValue({ barMitzvahParasha: val });
+                                        }}
+                                    />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                    </div>
+                </Form>
+            </Modal>
 
-                <Form.Item name="address" label="כתובת / הערות נוספות" style={{ marginBottom: 20 }}>
-                    <Input.TextArea rows={2} placeholder="כתובת מגורים או הערות..." />
-                </Form.Item>
-
-                <div style={{ textAlign: 'center', marginTop: 10 }}>
-                    <Button
-                        type="primary"
-                        htmlType="submit"
-                        loading={loading}
-                        size="large"
-                        icon={<SafetyOutlined />}
-                        style={{ background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)', borderColor: '#389e0d', fontWeight: 'bold', minWidth: 200 }}
-                    >
-                        אישור והרשמה
-                    </Button>
-                </div>
-            </Form>
-        </Modal>
+            <HebrewCalendarComponent
+                isOpen={calendar.isOpen}
+                onClose={() => setCalendar({ isOpen: false, field: null })}
+                onSelect={handleDateSelect}
+                selectedValue={calendar.field ? form.getFieldValue(calendar.field) : null}
+            />
+        </>
     );
 };
 
