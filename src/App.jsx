@@ -1337,30 +1337,46 @@ function App() {
                             הוסף מתפלל חדש
                         </Button>
                     )}
-                    {!isAdmin && (guestSynagogueId || localSynagogueName) && (
-                        localStorage.getItem(`guest_self_registered_${guestSynagogueId || synagogues.find(s => s.name === localSynagogueName)?.id}`) ? (
-                            <Tag color="success" style={{ fontSize: '15px', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'center' }}>
-                                ✅ נרשמת כמתפלל בבית כנסת זה
-                            </Tag>
-                        ) : (selfRegConfig.allowGuestSelfRegistration !== false && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date())) && (
-                            <Button
-                                type="primary"
-                                size="large"
-                                block={isMobile()}
-                                style={{
-                                    fontSize: '17px',
-                                    fontWeight: 'bold',
-                                    background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
-                                    borderColor: '#389e0d',
-                                    boxShadow: '0 4px 12px rgba(82, 196, 26, 0.35)'
-                                }}
-                                icon={<UserAddOutlined />}
-                                onClick={() => setIsGuestSelfRegModalVisible(true)}
-                            >
-                                ➕ הרשמה עצמית כמתפלל
-                            </Button>
-                        )
-                    )}
+                    {!isAdmin && (guestSynagogueId || localSynagogueName) && (() => {
+                        const targetSynId = guestSynagogueId || synagogues.find(s => s.name === localSynagogueName)?.id;
+                        const isGlobalActive = selfRegConfig.allowGuestSelfRegistration !== false && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date());
+                        const isSynActive = selfRegConfig.synagogueSelfReg && targetSynId && selfRegConfig.synagogueSelfReg[targetSynId] !== undefined
+                            ? selfRegConfig.synagogueSelfReg[targetSynId]
+                            : true;
+                        const isOpenForThisSyn = isGlobalActive && isSynActive;
+                        const isRegisteredLocally = localStorage.getItem(`guest_self_registered_${targetSynId}`);
+
+                        if (isRegisteredLocally) {
+                            return (
+                                <Tag color="success" style={{ fontSize: '15px', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'center' }}>
+                                    ✅ נרשמת כמתפלל בבית כנסת זה
+                                </Tag>
+                            );
+                        }
+
+                        if (isOpenForThisSyn) {
+                            return (
+                                <Button
+                                    type="primary"
+                                    size="large"
+                                    block={isMobile()}
+                                    style={{
+                                        fontSize: '17px',
+                                        fontWeight: 'bold',
+                                        background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                                        borderColor: '#389e0d',
+                                        boxShadow: '0 4px 12px rgba(82, 196, 26, 0.35)'
+                                    }}
+                                    icon={<UserAddOutlined />}
+                                    onClick={() => setIsGuestSelfRegModalVisible(true)}
+                                >
+                                    ➕ הרשמה עצמית כמתפלל
+                                </Button>
+                            );
+                        }
+
+                        return null;
+                    })()}
                     <Button
                         size="large"
                         block={isMobile()}

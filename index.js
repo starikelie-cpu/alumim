@@ -723,6 +723,12 @@ app.post('/api/members/self-register', async (req, res) => {
         }
 
         const synagogueId = req.body.synagogueId;
+        const synStatus = prefs.synagogueSelfReg ? prefs.synagogueSelfReg[synagogueId] : undefined;
+
+        if (synStatus === false) {
+            return res.status(403).json({ success: false, error: 'ההרשמה העצמית לבית כנסת זה סגורה כעת' });
+        }
+
         const firstName = req.body.firstName ? String(req.body.firstName).trim() : '';
         const lastName = req.body.lastName ? String(req.body.lastName).trim() : '';
 
