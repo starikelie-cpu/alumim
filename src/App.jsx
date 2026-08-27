@@ -182,23 +182,30 @@ function App() {
         return () => clearTimeout(safetyTimer);
     }, [token]);
 
-    // Log app visit / guest open
+    // Log app visit / guest open: 30-second delay for guests and single-row session update for logged-in users
     useEffect(() => {
-        try {
-            const role = user?.role || 'guest';
-            const username = user?.username || 'אורח';
-            const sessionKey = `app_visit_logged_${role}_${username}_` + new Date().toISOString().slice(0, 13);
-            if (!sessionStorage.getItem(sessionKey)) {
-                sessionStorage.setItem(sessionKey, '1');
+        if (typeof window === 'undefined') return;
+
+        let sessionVisitId = sessionStorage.getItem('app_session_visit_id');
+        if (!sessionVisitId) {
+            sessionVisitId = 'v_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+            sessionStorage.setItem('app_session_visit_id', sessionVisitId);
+        }
+
+        const sendLog = () => {
+            try {
+                const role = user?.role || 'guest';
+                const username = user?.username || 'אורח';
                 const platform = getPlatform();
                 const synId = guestSynagogueId || user?.synagogueId || localStorage.getItem('guestSynagogueId');
                 const synName = localSynagogueName || localStorage.getItem('localSynagogueName');
                 const screen = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : '';
-                
+
                 fetch(`${API_BASE}/api/logs/guest`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        sessionVisitId,
                         platform,
                         synagogueId: synId,
                         synagogueName: synName,
@@ -208,10 +215,21 @@ function App() {
                         timestamp: new Date().toISOString()
                     })
                 }).catch(err => console.debug('Guest log silent error:', err));
-            }
-        } catch (e) {
-            // silent catch
+            } catch (e) {}
+        };
+
+        // If user logged in as Admin/Manager, send/update log immediately
+        if (user && user.username) {
+            sendLog();
+            return;
         }
+
+        // For guests, wait 30 seconds before logging visit (prevents double logging when guest logs in as manager)
+        const timer = setTimeout(() => {
+            sendLog();
+        }, 30000);
+
+        return () => clearTimeout(timer);
     }, [user, guestSynagogueId, localSynagogueName]);
 
     // Keep-alive ping to prevent server idling while app is open (every 10 minutes)

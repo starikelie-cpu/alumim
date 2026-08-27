@@ -985,18 +985,31 @@ export function cacheStreets(city, streets) {
 
 // === Guest Access Logs ===
 export async function addGuestLog(logEntry) {
+    const sessionVisitId = logEntry.sessionVisitId || logEntry.id;
+    const entryId = sessionVisitId || (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2)));
+
     const entry = {
-        id: crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2)),
-        timestamp: new Date().toISOString(),
+        id: entryId,
+        sessionVisitId: sessionVisitId || entryId,
+        timestamp: logEntry.timestamp || new Date().toISOString(),
         ...logEntry
     };
+
     try {
         if (useMongoDB && db) {
-            await db.collection('guest_logs').insertOne(entry);
+            await db.collection('guest_logs').updateOne(
+                { sessionVisitId: entry.sessionVisitId },
+                { $set: entry },
+                { upsert: true }
+            );
         } else {
             const logs = await readJsonFile(GUEST_LOGS_FILE, []);
-            logs.unshift(entry);
-            // Keep up to 2000 most recent logs
+            const existingIdx = logs.findIndex(l => l.sessionVisitId === entry.sessionVisitId || l.id === entry.id);
+            if (existingIdx !== -1) {
+                logs[existingIdx] = { ...logs[existingIdx], ...entry };
+            } else {
+                logs.unshift(entry);
+            }
             const trimmed = logs.slice(0, 2000);
             await writeLocalFile(GUEST_LOGS_FILE, trimmed);
         }

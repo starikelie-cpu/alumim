@@ -610,6 +610,7 @@ app.post('/api/logs/guest', async (req, res) => {
         const hebrewDateStr = new HDate(now).renderGematriya(true);
 
         const logEntry = {
+            sessionVisitId: req.body.sessionVisitId || null,
             platform: req.body.platform || 'web',
             synagogueId: req.body.synagogueId || null,
             synagogueName: req.body.synagogueName || null,
