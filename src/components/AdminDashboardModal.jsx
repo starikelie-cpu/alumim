@@ -109,10 +109,19 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
         saveSelfRegConfig(newConfig);
     };
 
-    const handleToggleSynagogueSelfReg = (synId, checked) => {
+    const handleToggleSynagogueSelfReg = (synRecord, checked) => {
         const currentMap = selfRegConfig.synagogueSelfReg || {};
-        const strId = String(synId);
-        const updatedMap = { ...currentMap, [synId]: checked, [strId]: checked };
+        const synId = synRecord?.id;
+        const synName = synRecord?.name;
+        const strId = synId !== undefined ? String(synId) : '';
+        const updatedMap = {
+            ...currentMap,
+            ...(synId !== undefined ? { [synId]: checked, [strId]: checked } : {})
+        };
+        if (synName) {
+            updatedMap[synName] = checked;
+            updatedMap[synName.trim()] = checked;
+        }
         const newConfig = {
             ...selfRegConfig,
             synagogueSelfReg: updatedMap
@@ -515,9 +524,13 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             key: 'selfReg',
             align: 'center',
             render: (_, record) => {
-                const isSynOpen = selfRegConfig.synagogueSelfReg && selfRegConfig.synagogueSelfReg[record.id] !== undefined
-                    ? selfRegConfig.synagogueSelfReg[record.id]
-                    : true;
+                const synMap = selfRegConfig.synagogueSelfReg || {};
+                let isSynOpen = true;
+                if (record.id !== undefined && synMap[record.id] !== undefined) isSynOpen = synMap[record.id];
+                else if (record.id !== undefined && synMap[String(record.id)] !== undefined) isSynOpen = synMap[String(record.id)];
+                else if (record.name && synMap[record.name] !== undefined) isSynOpen = synMap[record.name];
+                else if (record.name && synMap[record.name.trim()] !== undefined) isSynOpen = synMap[record.name.trim()];
+
                 const isGlobalActive = selfRegConfig.allowGuestSelfRegistration !== false && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date());
                 
                 return (
@@ -528,7 +541,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                             checked={isGlobalActive && isSynOpen}
                             checkedChildren="פתוח"
                             unCheckedChildren="סגור"
-                            onChange={(checked) => handleToggleSynagogueSelfReg(record.id, checked)}
+                            onChange={(checked) => handleToggleSynagogueSelfReg(record, checked)}
                         />
                     </Tooltip>
                 );

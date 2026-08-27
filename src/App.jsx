@@ -1339,11 +1339,32 @@ function App() {
                     )}
                     {!isAdmin && (guestSynagogueId || localSynagogueName) && (() => {
                         const targetSynId = guestSynagogueId || synagogues.find(s => s.name === localSynagogueName)?.id;
+                        const targetSynName = localSynagogueName || synagogues.find(s => String(s.id) === String(targetSynId))?.name;
                         const isGlobalActive = selfRegConfig.allowGuestSelfRegistration !== false && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date());
                         const synMap = selfRegConfig.synagogueSelfReg || {};
-                        const strId = targetSynId !== undefined && targetSynId !== null ? String(targetSynId) : '';
-                        const numId = targetSynId !== undefined && targetSynId !== null ? Number(targetSynId) : NaN;
-                        const isSynActive = synMap[strId] !== undefined ? synMap[strId] : (!isNaN(numId) && synMap[numId] !== undefined ? synMap[numId] : true);
+
+                        let isSynActive = true;
+                        if (targetSynId !== undefined && targetSynId !== null && synMap[targetSynId] !== undefined) {
+                            isSynActive = synMap[targetSynId];
+                        } else if (targetSynId !== undefined && targetSynId !== null && synMap[String(targetSynId)] !== undefined) {
+                            isSynActive = synMap[String(targetSynId)];
+                        } else if (targetSynName && synMap[targetSynName] !== undefined) {
+                            isSynActive = synMap[targetSynName];
+                        } else if (targetSynName && synMap[targetSynName.trim()] !== undefined) {
+                            isSynActive = synMap[targetSynName.trim()];
+                        } else if (synMap && Object.keys(synMap).length > 0) {
+                            for (const [k, val] of Object.entries(synMap)) {
+                                if (targetSynId && String(k) === String(targetSynId)) {
+                                    isSynActive = val;
+                                    break;
+                                }
+                                if (targetSynName && String(k).trim() === String(targetSynName).trim()) {
+                                    isSynActive = val;
+                                    break;
+                                }
+                            }
+                        }
+
                         const isOpenForThisSyn = isGlobalActive && isSynActive;
                         const isRegisteredLocally = localStorage.getItem(`guest_self_registered_${targetSynId}`);
 
