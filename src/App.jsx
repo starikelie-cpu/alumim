@@ -98,6 +98,11 @@ function App() {
     };
 
     useEffect(() => {
+        // Guaranteed safety timer: Splash screen disappears after 1.5s MAX
+        const safetyTimer = setTimeout(() => {
+            setIsAppLoading(false);
+        }, 1500);
+
         // Load cached synagogues from localStorage IMMEDIATELY - no server wait
         const cachedSynagogues = localStorage.getItem('cachedSynagogues');
         if (cachedSynagogues) {
@@ -108,18 +113,14 @@ function App() {
                     setIsUsingCachedSynagogues(true);
                     console.log('Loaded cached synagogues from localStorage immediately');
 
-                    // תיקון מיידי: בדוק אם localSynagogueName תואם שם קיים ב-cache
                     const currentName = localStorage.getItem('localSynagogueName');
                     if (currentName && !parsed.find(s => s.name === currentName)) {
-                        // השם לא תואם - נסה לתקן לפי guestSynagogueId
                         const savedGuestId = localStorage.getItem('guestSynagogueId');
                         const correctSyn = savedGuestId ? parsed.find(s => s.id === savedGuestId) : null;
                         if (correctSyn) {
-                            console.log('Fixed localSynagogueName (from cache) to:', correctSyn.name);
                             localStorage.setItem('localSynagogueName', correctSyn.name);
                             setLocalSynagogueName(correctSyn.name);
                         } else {
-                            console.log('Cleared invalid localSynagogueName (from cache):', currentName);
                             localStorage.removeItem('localSynagogueName');
                             setLocalSynagogueName(null);
                         }
@@ -130,112 +131,55 @@ function App() {
             }
         }
 
-        // Load preferences from local file first - COMPLETELY LOCAL
+        // Fetch data immediately - DO NOT wait for preferences or auth checks
+        fetchAllData();
+
+        // Background non-blocking preferences fetch
         const loadPreferences = async () => {
             try {
-                const res = await fetch(`${API_BASE}/api/preferences`);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
+                const res = await fetch(`${API_BASE}/api/preferences`, { signal: controller.signal });
+                clearTimeout(timeoutId);
                 if (res.ok) {
                     const prefs = await res.json();
-                    // Load cached synagogue names with their IDs - COMPLETELY LOCAL
                     if (prefs.cachedSynagogues && Array.isArray(prefs.cachedSynagogues)) {
                         setSynagogues(prefs.cachedSynagogues);
                         setIsUsingCachedSynagogues(true);
-                        console.log('Loaded cached synagogue names from local file');
                     }
                 }
             } catch (e) {
                 console.error('Failed to load preferences:', e);
             }
         };
+        loadPreferences();
 
-        loadPreferences().then(() => {
-            // ONLY load from server in background to update cache - NO BLOCKING
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            fetch(`${API_BASE}/api/synagogues`, { headers })
-                .then(res => res.json())
-                .then(data => {
-                    if (Array.isArray(data) && data.length > 0) {
-                        setSynagogues(data);
-                        localStorage.setItem('cachedSynagogues', JSON.stringify(data));
-                        localStorage.setItem('cachedSynagoguesTimestamp', Date.now().toString());
-                        setIsUsingCachedSynagogues(false);
-                        
-                        // Save to local file for persistence across installations
-                        fetch(`${API_BASE}/api/preferences`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ cachedSynagogues: data })
-                        }).catch(e => console.error('Failed to save cached synagogues:', e));
-                        
-                        console.log('Updated synagogues from server in background');
+        // Background auth token validation
+        if (token) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            fetch(`${API_BASE}/api/auth/me`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+                signal: controller.signal
+            })
+            .then(res => res.json())
+            .then(data => {
+                clearTimeout(timeoutId);
+                if (data.loggedIn) {
+                    setUser(data.user);
+                } else {
+                    localStorage.removeItem('token');
+                    setToken(null);
+                    setUser(null);
+                }
+            })
+            .catch(err => {
+                clearTimeout(timeoutId);
+                console.error("Auth check failed:", err);
+            });
+        }
 
-                        // תיקון: בדוק אם localSynagogueName תואם לשם בית כנסת קיים
-                        // אם לא (למשל נשמרה כתובת בגרסה ישנה), תקן אוטומטית
-                        const savedLocalName = localStorage.getItem('localSynagogueName');
-                        if (savedLocalName) {
-                            const nameMatch = data.find(s => s.name === savedLocalName);
-                            if (!nameMatch) {
-                                // השם לא נמצא - ייתכן שנשמרה כתובת במקום שם
-                                // נסה לתקן לפי guestSynagogueId
-                                const savedGuestId = localStorage.getItem('guestSynagogueId');
-                                if (savedGuestId) {
-                                    const correctSyn = data.find(s => s.id === savedGuestId);
-                                    if (correctSyn) {
-                                        console.log('Fixing localSynagogueName from', savedLocalName, 'to', correctSyn.name);
-                                        localStorage.setItem('localSynagogueName', correctSyn.name);
-                                        setLocalSynagogueName(correctSyn.name);
-                                    }
-                                } else {
-                                    // אין guestSynagogueId - נסה לתקן לפי כתובת
-                                    const addressMatch = data.find(s => s.address === savedLocalName || savedLocalName.includes(s.address) || s.address.includes(savedLocalName));
-                                    if (addressMatch) {
-                                        console.log('Fixing localSynagogueName (by address) from', savedLocalName, 'to', addressMatch.name);
-                                        localStorage.setItem('localSynagogueName', addressMatch.name);
-                                        setLocalSynagogueName(addressMatch.name);
-                                    } else {
-                                        // לא נמצאה התאמה - נקה
-                                        console.log('Clearing invalid localSynagogueName:', savedLocalName);
-                                        localStorage.removeItem('localSynagogueName');
-                                        setLocalSynagogueName(null);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    // Show first-time prompt if guest has no synagogue selected and synagogues are loaded
-                    if (!token && !guestSynagogueId && Array.isArray(data) && data.length > 0 && data[0].name) {
-                        setShowFirstTimePrompt(true);
-                    }
-                })
-                .catch(err => console.error('Failed to fetch synagogues from server:', err));
-
-            if (token) {
-                fetch(`${API_BASE}/api/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.loggedIn) {
-                        setUser(data.user);
-                        // Token is valid - fetch data with valid session
-                        fetchAllData();
-                    } else {
-                        // Token is stale - clear it and fetch as guest
-                        localStorage.removeItem('token');
-                        setToken(null);
-                        setUser(null);
-                        fetchAllData();
-                    }
-                })
-                .catch(err => {
-                    console.error("Auth check failed:", err);
-                    fetchAllData(); // fallback
-                });
-            } else {
-                // No token - fetch as guest with the saved synagogueId
-                fetchAllData();
-            }
-        });
+        return () => clearTimeout(safetyTimer);
     }, [token]);
 
     // Log app visit / guest open
