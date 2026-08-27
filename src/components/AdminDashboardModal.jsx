@@ -1040,30 +1040,6 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                             { title: 'מתפללים', dataIndex: 'memberCount', key: 'memberCount', align: 'center', render: v => <Badge count={v} showZero color="#1890ff" /> },
                             { title: 'נפטרים', dataIndex: 'niftarCount', key: 'niftarCount', align: 'center', render: v => <Badge count={v} showZero color="#ff4d4f" /> },
                             { title: 'משתמשים', dataIndex: 'userCount', key: 'userCount', align: 'center', render: v => <Badge count={v} showZero color="#722ed1" /> },
-                            {
-                                title: 'הרשמה עצמית',
-                                key: 'selfReg',
-                                align: 'center',
-                                render: (_, r) => {
-                                    const isSynOpen = selfRegConfig.synagogueSelfReg && selfRegConfig.synagogueSelfReg[r.id] !== undefined
-                                        ? selfRegConfig.synagogueSelfReg[r.id]
-                                        : true;
-                                    const isGlobalActive = selfRegConfig.allowGuestSelfRegistration !== false && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date());
-
-                                    return (
-                                        <Tooltip title={isGlobalActive ? (isSynOpen ? 'פתוח להרשמה עצמית' : 'חסום להרשמה עצמית בבית כנסת זה') : 'חסום גלובלית במערכת'}>
-                                            <Switch
-                                                size="small"
-                                                disabled={!isGlobalActive}
-                                                checked={isGlobalActive && isSynOpen}
-                                                checkedChildren="פתוח"
-                                                unCheckedChildren="סגור"
-                                                onChange={(checked) => handleToggleSynagogueSelfReg(r.id, checked)}
-                                            />
-                                        </Tooltip>
-                                    );
-                                }
-                            }
                         ]}
                         locale={{ emptyText: 'אין נתונים' }}
                     />

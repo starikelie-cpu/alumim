@@ -354,8 +354,28 @@ app.post('/api/preferences', async (req, res) => {
     try {
         const prefPath = path.join(DATA_DIR, 'preferences.json');
         await fs.mkdir(DATA_DIR, { recursive: true });
-        await fs.writeFile(prefPath, JSON.stringify(req.body, null, 2));
-        res.json({ success: true });
+
+        let existing = {};
+        if (fsSync.existsSync(prefPath)) {
+            try {
+                const raw = fsSync.readFileSync(prefPath, 'utf8');
+                existing = JSON.parse(raw);
+            } catch (e) {}
+        }
+
+        const merged = {
+            ...existing,
+            ...req.body,
+            ...(req.body.synagogueSelfReg ? {
+                synagogueSelfReg: {
+                    ...(existing.synagogueSelfReg || {}),
+                    ...req.body.synagogueSelfReg
+                }
+            } : {})
+        };
+
+        await fs.writeFile(prefPath, JSON.stringify(merged, null, 2));
+        res.json({ success: true, preferences: merged });
     } catch (error) {
         console.error('Error saving preferences:', error);
         res.status(500).json({ error: 'Failed to save preferences' });
