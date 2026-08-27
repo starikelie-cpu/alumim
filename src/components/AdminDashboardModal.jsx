@@ -506,6 +506,30 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             }
         },
         {
+            title: 'הרשמה עצמית',
+            key: 'selfReg',
+            align: 'center',
+            render: (_, record) => {
+                const isSynOpen = selfRegConfig.synagogueSelfReg && selfRegConfig.synagogueSelfReg[record.id] !== undefined
+                    ? selfRegConfig.synagogueSelfReg[record.id]
+                    : true;
+                const isGlobalActive = selfRegConfig.allowGuestSelfRegistration !== false && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date());
+                
+                return (
+                    <Tooltip title={isGlobalActive ? (isSynOpen ? 'פתוח להרשמה עצמית' : 'חסום להרשמה עצמית בבית כנסת זה') : 'חסום גלובלית במערכת'}>
+                        <Switch
+                            size="small"
+                            disabled={!isGlobalActive}
+                            checked={isGlobalActive && isSynOpen}
+                            checkedChildren="פתוח"
+                            unCheckedChildren="סגור"
+                            onChange={(checked) => handleToggleSynagogueSelfReg(record.id, checked)}
+                        />
+                    </Tooltip>
+                );
+            }
+        },
+        {
             title: 'פעולות',
             key: 'actions',
             align: 'center',
@@ -1201,15 +1225,16 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             width={1050}
             destroyOnClose
             styles={{
-                header: { background: 'linear-gradient(135deg, #001d6c 0%, #003a8c 100%)', color: '#fff', borderRadius: '8px 8px 0 0' },
-                content: { borderRadius: 8 }
+                header: { background: 'linear-gradient(135deg, #001d6c 0%, #003a8c 100%)', color: '#fff', borderRadius: '8px 8px 0 0', padding: '12px 20px' },
+                content: { borderRadius: 8, padding: '16px 20px' },
+                body: { padding: '10px 4px' }
             }}
         >
             <Tabs
                 defaultActiveKey={isSuperAdmin ? 'synagogues' : 'users'}
                 items={tabs}
-                tabBarStyle={{ marginBottom: 16 }}
-                size="large"
+                tabBarStyle={{ marginBottom: 10 }}
+                size="middle"
             />
         </Modal>
     );
