@@ -21,7 +21,7 @@ const ROLE_LABELS = {
     viewer: { label: 'צופה', color: 'default' },
 };
 
-const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = [], niftarim = [] }) => {
+const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = [], niftarim = [], onUpdatePreferences }) => {
     const [synagogues, setSynagogues] = useState([]);
     const [users, setUsers] = useState([]);
     const [guestLogs, setGuestLogs] = useState([]);
@@ -85,7 +85,11 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             });
             const data = await res.json();
             if (data.success) {
-                setSelfRegConfig(data.preferences || newConfig);
+                const updated = data.preferences || newConfig;
+                setSelfRegConfig(updated);
+                if (onUpdatePreferences) {
+                    onUpdatePreferences(updated);
+                }
                 message.success('הגדרות הרשמה עצמית עודכנו בהצלחה');
             }
         } catch (e) {
@@ -107,7 +111,8 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
 
     const handleToggleSynagogueSelfReg = (synId, checked) => {
         const currentMap = selfRegConfig.synagogueSelfReg || {};
-        const updatedMap = { ...currentMap, [synId]: checked };
+        const strId = String(synId);
+        const updatedMap = { ...currentMap, [synId]: checked, [strId]: checked };
         const newConfig = {
             ...selfRegConfig,
             synagogueSelfReg: updatedMap

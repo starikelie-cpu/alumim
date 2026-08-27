@@ -1340,9 +1340,10 @@ function App() {
                     {!isAdmin && (guestSynagogueId || localSynagogueName) && (() => {
                         const targetSynId = guestSynagogueId || synagogues.find(s => s.name === localSynagogueName)?.id;
                         const isGlobalActive = selfRegConfig.allowGuestSelfRegistration !== false && (!selfRegConfig.guestSelfRegistrationExpiresAt || new Date(selfRegConfig.guestSelfRegistrationExpiresAt) > new Date());
-                        const isSynActive = selfRegConfig.synagogueSelfReg && targetSynId && selfRegConfig.synagogueSelfReg[targetSynId] !== undefined
-                            ? selfRegConfig.synagogueSelfReg[targetSynId]
-                            : true;
+                        const synMap = selfRegConfig.synagogueSelfReg || {};
+                        const strId = targetSynId !== undefined && targetSynId !== null ? String(targetSynId) : '';
+                        const numId = targetSynId !== undefined && targetSynId !== null ? Number(targetSynId) : NaN;
+                        const isSynActive = synMap[strId] !== undefined ? synMap[strId] : (!isNaN(numId) && synMap[numId] !== undefined ? synMap[numId] : true);
                         const isOpenForThisSyn = isGlobalActive && isSynActive;
                         const isRegisteredLocally = localStorage.getItem(`guest_self_registered_${targetSynId}`);
 
@@ -1504,11 +1505,17 @@ function App() {
 
                 <AdminDashboardModal
                     visible={isUserMgmtVisible}
-                    onCancel={() => setIsUserMgmtVisible(false)}
+                    onCancel={() => {
+                        setIsUserMgmtVisible(false);
+                        loadPreferences();
+                    }}
                     token={token}
                     currentUser={user}
                     members={members}
                     niftarim={niftarim}
+                    onUpdatePreferences={(updatedPrefs) => {
+                        setSelfRegConfig(updatedPrefs);
+                    }}
                 />
 
                 <Modal
