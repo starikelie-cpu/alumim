@@ -776,6 +776,28 @@ app.post('/api/members/self-register', async (req, res) => {
     }
 });
 
+// Guest cancel self-registration endpoint (deletes self-registered member record from database)
+app.post('/api/members/cancel-self-register', async (req, res) => {
+    try {
+        const memberId = req.body.memberId ? parseInt(req.body.memberId, 10) : null;
+        if (!memberId) {
+            return res.status(400).json({ success: false, error: 'נדרש מזהה מתפלל' });
+        }
+        const members = await getMembers();
+        const existing = members.find(m => m.id === memberId);
+
+        if (existing && existing.isSelfRegistered) {
+            await deleteMember(memberId);
+            return res.json({ success: true, message: 'ההרשמה העצמית בוטלה ונמחקה מהמערכת בהצלחה' });
+        } else {
+            return res.json({ success: true, message: 'תיוג ההרשמה הוסר' });
+        }
+    } catch (error) {
+        console.error('Error canceling self-registration:', error);
+        res.status(500).json({ success: false, error: 'נכשלה ביטול ההרשמה העצמית' });
+    }
+});
+
 // Update existing member
 app.put('/api/members/:id', requireAdmin, async (req, res) => {
     try {

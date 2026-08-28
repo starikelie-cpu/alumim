@@ -636,7 +636,19 @@ function App() {
         });
     };
 
-    const handleRemoveSelfRegistration = () => {
+    const handleRemoveSelfRegistration = async () => {
+        const lastMemberId = localStorage.getItem('last_self_registered_member_id');
+        if (lastMemberId) {
+            try {
+                await fetch(`${API_BASE}/api/members/cancel-self-register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ memberId: lastMemberId })
+                });
+            } catch (e) {
+                console.error('Failed to cancel self-register on server:', e);
+            }
+        }
         try {
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith('guest_self_registered_') || key === 'last_self_registered_member_id') {
@@ -644,7 +656,7 @@ function App() {
                 }
             });
         } catch (e) {}
-        message.info('הרשמה עצמית מקומית הוסרה. כעת באפשרותך להירשם מחדש.');
+        message.success('ההרשמה העצמית בוטלה ונמחקה מהמערכת! כעת אינך רשום פעמיים.');
         fetchAllData();
     };
 
@@ -1465,13 +1477,14 @@ function App() {
                                     <Tag color="success" style={{ fontSize: '15px', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                         ✅ נרשמת כמתפלל בבית כנסת זה
                                     </Tag>
-                                    <Tooltip title="הסרת תיוג ההרשמה העצמית המקומית">
+                                    <Tooltip title="מחיקת ההרשמה העצמית מהמערכת למניעת כפילות אם אתה כבר רשום">
                                         <Popconfirm
-                                            title="הסרת הרשמה עצמית"
-                                            description="האם ברצונך להסיר את תיוג ההרשמה העצמית כדי שתוכל להירשם מחדש?"
+                                            title="ביטול ומחיקת הרשמה עצמית"
+                                            description="האם ברצונך לבטל ולמחוק את ההרשמה העצמית מהמערכת כדי למנוע הרשמה כפולה?"
                                             onConfirm={handleRemoveSelfRegistration}
-                                            okText="כן, הסר הרשמה"
+                                            okText="כן, מחק הרשמה"
                                             cancelText="ביטול"
+                                            okButtonProps={{ danger: true }}
                                         >
                                             <Button
                                                 size="middle"
@@ -1479,7 +1492,7 @@ function App() {
                                                 danger
                                                 style={{ borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}
                                             >
-                                                ❌ הסר הרשמה עצמית
+                                                ❌ ביטול הרשמה עצמאית (מחיקת הרשמה כפולה)
                                             </Button>
                                         </Popconfirm>
                                     </Tooltip>

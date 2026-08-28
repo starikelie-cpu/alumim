@@ -1209,21 +1209,31 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                             <Divider style={{ margin: '8px 0' }}>שחרור חסימות ואיפוסים לאורחים</Divider>
 
                             <Row align="middle" justify="space-between">
-                                <Col span={16}>
-                                    <Text type="secondary" style={{ fontSize: 13 }}>
-                                        אם אורח חרג ממגבלת 3 האיפוסים, בלחיצה על כפתור זה תוכל לאפס את המכסה ולפתוח עבורו אפשרות איפוס מחדש.
+                                <Col span={15}>
+                                    <Text type="secondary" style={{ fontSize: 13, display: 'block' }}>
+                                        <b>איפוס מונה חסימת אורחים:</b> אם אורח חרג ממגבלת 3 האיפוסים, כפתור זה מאפס את מונה הניסיונות בלבד.
+                                    </Text>
+                                    <Text style={{ fontSize: 12, color: '#52c41a', display: 'block', marginTop: 2 }}>
+                                        🛡️ פקודה זו <b>אינה מוחקת</b> ואינה משנה אף מתפלל במאגר!
                                     </Text>
                                 </Col>
-                                <Col>
-                                    <Button
-                                        type="primary"
-                                        style={{ background: '#722ed1', borderColor: '#722ed1', fontWeight: 'bold' }}
-                                        icon={<ReloadOutlined />}
-                                        loading={savingSelfReg}
-                                        onClick={handleResetAllGuestLimits}
+                                <Col span={9} style={{ textAlign: 'left' }}>
+                                    <Popconfirm
+                                        title="איפוס מונה ניסיונות לאורחים"
+                                        description="האם לאפס את מונה 3 האיפוסים לאורחים שנחסמו? (נתוני המתפללים במאגר יישארו ללא שינוי)"
+                                        onConfirm={handleResetAllGuestLimits}
+                                        okText="כן, אפס מונה לאורחים"
+                                        cancelText="ביטול"
                                     >
-                                        🔓 אפשר איפוס לאורחים שטעו
-                                    </Button>
+                                        <Button
+                                            type="primary"
+                                            style={{ background: '#722ed1', borderColor: '#722ed1', fontWeight: 'bold' }}
+                                            icon={<ReloadOutlined />}
+                                            loading={savingSelfReg}
+                                        >
+                                            🔓 אפשר איפוס מחדש לאורחים
+                                        </Button>
+                                    </Popconfirm>
                                 </Col>
                             </Row>
                         </Space>
