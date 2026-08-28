@@ -71,6 +71,10 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
             try {
                 localStorage.setItem(`guest_self_registered_${synagogueId}`, data.member.id || 'registered');
                 localStorage.setItem(`guest_self_registered_date_${synagogueId}`, new Date().toISOString());
+                if (data.member && data.member.id) {
+                    localStorage.setItem('last_self_registered_member_id', String(data.member.id));
+                    localStorage.setItem('last_self_registered_synagogue_id', String(synagogueId));
+                }
             } catch (e) {}
 
             message.success('נרשמת בהצלחה כמתפלל בבית הכנסת!');

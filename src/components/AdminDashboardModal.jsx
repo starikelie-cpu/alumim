@@ -156,6 +156,15 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
         saveSelfRegConfig(newConfig);
     };
 
+    const handleResetAllGuestLimits = () => {
+        const newConfig = {
+            ...selfRegConfig,
+            guestResetVersion: Date.now()
+        };
+        saveSelfRegConfig(newConfig);
+        message.success('מכסת 3 האיפוסים לאורחים אופסה בהצלחה! אורחים שטעו יוכלו לאפס בית כנסת מחדש.');
+    };
+
     const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
     // Load Israeli cities from backend API
@@ -1194,6 +1203,27 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                                             <Option value="7d">נעל אוטומטית בעוד 7 ימים</Option>
                                         </Select>
                                     </Form.Item>
+                                </Col>
+                            </Row>
+
+                            <Divider style={{ margin: '8px 0' }}>שחרור חסימות ואיפוסים לאורחים</Divider>
+
+                            <Row align="middle" justify="space-between">
+                                <Col span={16}>
+                                    <Text type="secondary" style={{ fontSize: 13 }}>
+                                        אם אורח חרג ממגבלת 3 האיפוסים, בלחיצה על כפתור זה תוכל לאפס את המכסה ולפתוח עבורו אפשרות איפוס מחדש.
+                                    </Text>
+                                </Col>
+                                <Col>
+                                    <Button
+                                        type="primary"
+                                        style={{ background: '#722ed1', borderColor: '#722ed1', fontWeight: 'bold' }}
+                                        icon={<ReloadOutlined />}
+                                        loading={savingSelfReg}
+                                        onClick={handleResetAllGuestLimits}
+                                    >
+                                        🔓 אפשר איפוס לאורחים שטעו
+                                    </Button>
                                 </Col>
                             </Row>
                         </Space>

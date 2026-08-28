@@ -111,6 +111,14 @@ function App() {
                     guestSelfRegistrationExpiresAt: prefs.guestSelfRegistrationExpiresAt || null,
                     synagogueSelfReg: prefs.synagogueSelfReg || {}
                 });
+                if (prefs.guestResetVersion) {
+                    const lastProcessed = localStorage.getItem('last_processed_guest_reset_version');
+                    if (!lastProcessed || Number(prefs.guestResetVersion) > Number(lastProcessed)) {
+                        localStorage.removeItem('guest_reset_count');
+                        localStorage.setItem('last_processed_guest_reset_version', String(prefs.guestResetVersion));
+                        console.log('Guest reset limit cleared by admin reset');
+                    }
+                }
             }
         } catch (e) {
             console.error('Failed to load preferences:', e);
@@ -520,6 +528,18 @@ function App() {
             .then(res => res.json())
             .then(data => {
                 setMembers(data);
+                if (!token && Array.isArray(data)) {
+                    const lastMemberId = localStorage.getItem('last_self_registered_member_id');
+                    if (lastMemberId) {
+                        const existing = data.find(m => String(m.id) === String(lastMemberId));
+                        if (existing) {
+                            const synIdToMark = existing.synagogueId || scopedSynId;
+                            if (synIdToMark) {
+                                localStorage.setItem(`guest_self_registered_${synIdToMark}`, String(existing.id || 'registered'));
+                            }
+                        }
+                    }
+                }
             })
             .catch(err => console.error("Failed to fetch members:", err));
 
@@ -568,13 +588,33 @@ function App() {
     };
 
     const handleResetGuestSynagogueSelection = () => {
+        const currentCount = parseInt(localStorage.getItem('guest_reset_count') || '0', 10);
+        if (currentCount >= 3) {
+            Modal.error({
+                title: 'חסימת איפוס - הגעת למגבלה',
+                content: (
+                    <div style={{ fontSize: '16px', color: '#cf1322', textAlign: 'center', padding: '12px 0', direction: 'rtl' }}>
+                        <strong>הגעת למגבלת 3 איפוסים מורשים!</strong>
+                        <div style={{ marginTop: '10px', fontSize: '14px', color: '#444' }}>
+                            לא ניתן לאפס בית כנסת שוב. אם נפלה טעות, אנא פנה למנהל בית הכנסת לשחרור המגבלה.
+                        </div>
+                    </div>
+                ),
+                okText: 'הבנתי'
+            });
+            return;
+        }
+
+        const newCount = currentCount + 1;
         try {
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith('guest_self_registered_') || key === 'guestSynagogueId' || key === 'localSynagogueName') {
                     localStorage.removeItem(key);
                 }
             });
+            localStorage.setItem('guest_reset_count', String(newCount));
         } catch (e) {}
+
         setGuestSynagogueId(null);
         setLocalSynagogueName('');
         setShowFirstTimePrompt(true);
@@ -582,8 +622,11 @@ function App() {
         Modal.warning({
             title: 'איפוס בית הכנסת',
             content: (
-                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#d4380d', textAlign: 'center', padding: '12px 0', direction: 'rtl' }}>
-                    עליך לצאת ולהכנס מחדש
+                <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#d4380d', textAlign: 'center', padding: '12px 0', direction: 'rtl' }}>
+                    <div>עליך לצאת ולהכנס מחדש</div>
+                    <div style={{ fontSize: '14px', color: '#595959', marginTop: '10px', fontWeight: 'normal' }}>
+                        ביצעת <strong>{newCount}</strong> מתוך <strong>3</strong> איפוסים מורשים.
+                    </div>
                 </div>
             ),
             okText: 'אישור ויציאה',
@@ -591,6 +634,18 @@ function App() {
                 window.location.reload();
             }
         });
+    };
+
+    const handleRemoveSelfRegistration = () => {
+        try {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('guest_self_registered_') || key === 'last_self_registered_member_id') {
+                    localStorage.removeItem(key);
+                }
+            });
+        } catch (e) {}
+        message.info('הרשמה עצמית מקומית הוסרה. כעת באפשרותך להירשם מחדש.');
+        fetchAllData();
     };
 
     const handleAdminViewSynagogueChange = (synId) => {
@@ -1235,21 +1290,7 @@ function App() {
                                     </Tooltip>
                                 </div>
                             )}
-                            {synagogues.length > 0 && !localSynagogueName ? (
-                                <Select
-                                    placeholder="בחר בית כנסת לצפייה..."
-                                    value={guestSynagogueId}
-                                    onChange={handleGuestSynagogueChange}
-                                    allowClear
-                                    style={{ minWidth: '180px', fontWeight: 'bold' }}
-                                    size="small"
-                                    options={synagogues.map(s => ({ value: s.id, label: `🕍 ${s.name}` }))}
-                                    popupMatchSelectWidth={false}
-                                    optionLabelProp="label"
-                                />
-                            ) : (
-                                !localSynagogueName && <span style={{ fontSize: '12px', color: '#999' }}>טוען בתי כנסת...</span>
-                            )}
+
                             <Button type="primary" size="small" onClick={() => setIsLoginVisible(true)}>
                                 התחבר כמנהל
                             </Button>
@@ -1416,16 +1457,36 @@ function App() {
                         const isOpenForThisSyn = isGlobalActive && isSynActive;
                         const isRegisteredLocally = localStorage.getItem(`guest_self_registered_${targetSynId}`);
 
+                        const currentResetCount = parseInt(localStorage.getItem('guest_reset_count') || '0', 10);
+
                         if (isRegisteredLocally) {
                             return (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', alignSelf: 'center' }}>
                                     <Tag color="success" style={{ fontSize: '15px', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                         ✅ נרשמת כמתפלל בבית כנסת זה
                                     </Tag>
+                                    <Tooltip title="הסרת תיוג ההרשמה העצמית המקומית">
+                                        <Popconfirm
+                                            title="הסרת הרשמה עצמית"
+                                            description="האם ברצונך להסיר את תיוג ההרשמה העצמית כדי שתוכל להירשם מחדש?"
+                                            onConfirm={handleRemoveSelfRegistration}
+                                            okText="כן, הסר הרשמה"
+                                            cancelText="ביטול"
+                                        >
+                                            <Button
+                                                size="middle"
+                                                type="default"
+                                                danger
+                                                style={{ borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}
+                                            >
+                                                ❌ הסר הרשמה עצמית
+                                            </Button>
+                                        </Popconfirm>
+                                    </Tooltip>
                                     <Tooltip title="מחיקת נתוני בית הכנסת הנבחר ויציאה">
                                         <Popconfirm
                                             title="איפוס נתוני בית הכנסת"
-                                            description="האם אתה בטוח שברצונך למחוק את נתוני בית הכנסת הנבחר ולהיכנס מחדש?"
+                                            description={`האם אתה בטוח שברצונך למחוק את נתוני בית הכנסת הנבחר ולהיכנס מחדש? (איפוס ${Math.min(currentResetCount + 1, 3)} מתוך 3 מורשים)`}
                                             onConfirm={handleResetGuestSynagogueSelection}
                                             okText="כן, למחוק ולצאת"
                                             cancelText="ביטול"
@@ -1435,9 +1496,9 @@ function App() {
                                                 size="middle"
                                                 type="default"
                                                 danger
-                                                style={{ borderRadius: '8px', fontSize: '14px', fontWeight: 'bold' }}
+                                                style={{ borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}
                                             >
-                                                🔄 איפוס נתוני בית כנסת
+                                                🔄 איפוס נתוני בית כנסת ({currentResetCount}/3)
                                             </Button>
                                         </Popconfirm>
                                     </Tooltip>
