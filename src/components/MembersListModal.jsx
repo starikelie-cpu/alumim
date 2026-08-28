@@ -519,13 +519,13 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
             };
         };
 
-        // עמודות למובייל: תואר, שם משפחה, שם פרטי, שם אב, ואפשרות עדכון למנהל
+        // עמודות למובייל: תואר, שם משפחה, שם פרטי, שם אב, ואפשרויות עדכון ומחיקה למנהל
         const mobileColumns = [
             {
                 title: 'תואר',
                 dataIndex: 'title',
                 key: 'title',
-                width: '12%',
+                width: '10%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 2px', textAlign: 'center' } }),
                 onCell: (record) => ({ style: getCellStyle(record, true, { textAlign: 'center', padding: '6px 2px' }) })
             },
@@ -533,7 +533,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 title: 'שם משפחה',
                 dataIndex: 'lastName',
                 key: 'lastName',
-                width: isAdmin ? '25%' : '30%',
+                width: isAdmin ? '23%' : '30%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
                 onCell: (record) => ({ style: getCellStyle(record, true) })
             },
@@ -541,7 +541,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 title: 'שם פרטי',
                 dataIndex: 'firstName',
                 key: 'firstName',
-                width: isAdmin ? '24%' : '29%',
+                width: isAdmin ? '23%' : '30%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
                 onCell: (record) => ({ style: getCellStyle(record, true) })
             },
@@ -549,25 +549,41 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 title: 'שם אב',
                 dataIndex: 'fatherName',
                 key: 'fatherName',
-                width: isAdmin ? '24%' : '29%',
+                width: isAdmin ? '22%' : '30%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
                 onCell: (record) => ({ style: getCellStyle(record, true) })
             },
             ...(isAdmin ? [
                 {
-                    title: 'עדכון',
-                    key: 'edit',
-                    width: '15%',
+                    title: 'פעולות',
+                    key: 'actions',
+                    width: '22%',
                     onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 2px', textAlign: 'center' } }),
                     onCell: (record) => ({ style: getCellStyle(record, true, { padding: '6px 2px', textAlign: 'center' }) }),
                     render: (_, record) => (
-                        <Button
-                            type="link"
-                            icon={<EditOutlined style={{ fontSize: '18px', color: '#1677ff' }} />}
-                            onClick={() => onEdit(record)}
-                            title="עדכון"
-                            style={{ padding: '0', height: 'auto' }}
-                        />
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center' }}>
+                            <Button
+                                type="link"
+                                icon={<EditOutlined style={{ fontSize: '18px', color: '#1677ff' }} />}
+                                onClick={() => onEdit(record)}
+                                title="עדכון"
+                                style={{ padding: '0 2px', height: 'auto' }}
+                            />
+                            <Popconfirm
+                                title="האם למחוק מתפלל זה?"
+                                onConfirm={() => onDelete(record.id)}
+                                okText="כן"
+                                cancelText="לא"
+                            >
+                                <Button
+                                    type="link"
+                                    danger
+                                    icon={<DeleteOutlined style={{ fontSize: '18px' }} />}
+                                    title="מחיקה"
+                                    style={{ padding: '0 2px', height: 'auto' }}
+                                />
+                            </Popconfirm>
+                        </div>
                     )
                 }
             ] : [])

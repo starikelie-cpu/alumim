@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
 import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip, Tag } from 'antd';
-import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined } from '@ant-design/icons';
+import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
 import GuestSelfRegisterModal from './components/GuestSelfRegisterModal';
@@ -565,6 +565,20 @@ function App() {
             setShowFirstTimePrompt(false); // Hide prompt after selection
         }
         fetchAllData(synId);
+    };
+
+    const handleResetGuestSynagogueSelection = () => {
+        try {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('guest_self_registered_') || key === 'guestSynagogueId' || key === 'localSynagogueName') {
+                    localStorage.removeItem(key);
+                }
+            });
+        } catch (e) {}
+        setGuestSynagogueId(null);
+        setLocalSynagogueName('');
+        setShowFirstTimePrompt(true);
+        message.info('איפוס בית הכנסת בוצע בהצלחה. כעת ניתן לבחור בית כנסת ולהירשם מחדש.');
     };
 
     const handleAdminViewSynagogueChange = (synId) => {
@@ -1183,9 +1197,22 @@ function App() {
                                 🙋 אורח (צופה בלבד)
                             </span>
                             {localSynagogueName && (
-                                <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
-                                    🕍 {localSynagogueName}
-                                </span>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
+                                        🕍 {localSynagogueName}
+                                    </span>
+                                    <Tooltip title="לחץ כאן להחלפת בית כנסת או איפוס בחירה">
+                                        <Button
+                                            size="small"
+                                            type="text"
+                                            icon={<ReloadOutlined style={{ fontSize: '12px', color: '#1890ff' }} />}
+                                            onClick={handleResetGuestSynagogueSelection}
+                                            style={{ fontSize: '12px', color: '#1890ff', padding: '0 4px', height: '24px' }}
+                                        >
+                                            החלף בית כנסת
+                                        </Button>
+                                    </Tooltip>
+                                </div>
                             )}
                             {synagogues.length > 0 && !localSynagogueName ? (
                                 <Select
@@ -1370,9 +1397,22 @@ function App() {
 
                         if (isRegisteredLocally) {
                             return (
-                                <Tag color="success" style={{ fontSize: '15px', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'center' }}>
-                                    ✅ נרשמת כמתפלל בבית כנסת זה
-                                </Tag>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', alignSelf: 'center' }}>
+                                    <Tag color="success" style={{ fontSize: '15px', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                        ✅ נרשמת כמתפלל בבית כנסת זה
+                                    </Tag>
+                                    <Tooltip title="אם נרשמת בטעות לבית כנסת לא נכון, לחץ כאן לאיפוס ולהרשמה בבית הכנסת הנכון">
+                                        <Button
+                                            size="middle"
+                                            type="default"
+                                            danger
+                                            onClick={handleResetGuestSynagogueSelection}
+                                            style={{ borderRadius: '8px', fontSize: '14px', fontWeight: 'bold' }}
+                                        >
+                                            🔄 נרשמת בטעות? איפוס / החלפת בית כנסת
+                                        </Button>
+                                    </Tooltip>
+                                </div>
                             );
                         }
 
