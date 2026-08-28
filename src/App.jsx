@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
-import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip, Tag } from 'antd';
+import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip, Tag, Popconfirm } from 'antd';
 import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
@@ -1214,16 +1214,24 @@ function App() {
                                         🕍 {localSynagogueName}
                                     </span>
                                     <Tooltip title="מחיקת נתוני בית הכנסת הנבחר">
-                                        <Button
-                                            size="small"
-                                            type="text"
-                                            danger
-                                            icon={<ReloadOutlined style={{ fontSize: '12px' }} />}
-                                            onClick={handleResetGuestSynagogueSelection}
-                                            style={{ fontSize: '12px', padding: '0 4px', height: '24px', fontWeight: 'bold' }}
+                                        <Popconfirm
+                                            title="איפוס נתוני בית הכנסת"
+                                            description="האם אתה בטוח שברצונך למחוק את נתוני בית הכנסת הנבחר ולהיכנס מחדש?"
+                                            onConfirm={handleResetGuestSynagogueSelection}
+                                            okText="כן, למחוק ולצאת"
+                                            cancelText="ביטול"
+                                            okButtonProps={{ danger: true }}
                                         >
-                                            איפוס בית כנסת
-                                        </Button>
+                                            <Button
+                                                size="small"
+                                                type="text"
+                                                danger
+                                                icon={<ReloadOutlined style={{ fontSize: '12px' }} />}
+                                                style={{ fontSize: '12px', padding: '0 4px', height: '24px', fontWeight: 'bold' }}
+                                            >
+                                                איפוס בית כנסת
+                                            </Button>
+                                        </Popconfirm>
                                     </Tooltip>
                                 </div>
                             )}
@@ -1415,15 +1423,23 @@ function App() {
                                         ✅ נרשמת כמתפלל בבית כנסת זה
                                     </Tag>
                                     <Tooltip title="מחיקת נתוני בית הכנסת הנבחר ויציאה">
-                                        <Button
-                                            size="middle"
-                                            type="default"
-                                            danger
-                                            onClick={handleResetGuestSynagogueSelection}
-                                            style={{ borderRadius: '8px', fontSize: '14px', fontWeight: 'bold' }}
+                                        <Popconfirm
+                                            title="איפוס נתוני בית הכנסת"
+                                            description="האם אתה בטוח שברצונך למחוק את נתוני בית הכנסת הנבחר ולהיכנס מחדש?"
+                                            onConfirm={handleResetGuestSynagogueSelection}
+                                            okText="כן, למחוק ולצאת"
+                                            cancelText="ביטול"
+                                            okButtonProps={{ danger: true }}
                                         >
-                                            🔄 איפוס נתוני בית כנסת
-                                        </Button>
+                                            <Button
+                                                size="middle"
+                                                type="default"
+                                                danger
+                                                style={{ borderRadius: '8px', fontSize: '14px', fontWeight: 'bold' }}
+                                            >
+                                                🔄 איפוס נתוני בית כנסת
+                                            </Button>
+                                        </Popconfirm>
                                     </Tooltip>
                                 </div>
                             );
