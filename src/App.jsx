@@ -636,19 +636,7 @@ function App() {
         });
     };
 
-    const handleRemoveSelfRegistration = async () => {
-        const lastMemberId = localStorage.getItem('last_self_registered_member_id');
-        if (lastMemberId) {
-            try {
-                await fetch(`${API_BASE}/api/members/cancel-self-register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ memberId: lastMemberId })
-                });
-            } catch (e) {
-                console.error('Failed to cancel self-register on server:', e);
-            }
-        }
+    const handleRemoveSelfRegistration = () => {
         try {
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith('guest_self_registered_') || key === 'last_self_registered_member_id') {
@@ -656,7 +644,7 @@ function App() {
                 }
             });
         } catch (e) {}
-        message.success('ההרשמה העצמית בוטלה ונמחקה מהמערכת! כעת אינך רשום פעמיים.');
+        message.info('תיוג ההרשמה הוסר ממכשיר זה. (נתוני המתפללים במאגר נשמרו ללא שינוי).');
         fetchAllData();
     };
 
@@ -1477,14 +1465,13 @@ function App() {
                                     <Tag color="success" style={{ fontSize: '15px', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                         ✅ נרשמת כמתפלל בבית כנסת זה
                                     </Tag>
-                                    <Tooltip title="מחיקת ההרשמה העצמית מהמערכת למניעת כפילות אם אתה כבר רשום">
+                                    <Tooltip title="הסרת תיוג ההרשמה במכשיר זה (ללא מחיקת מתפללים מהמאגר)">
                                         <Popconfirm
-                                            title="ביטול ומחיקת הרשמה עצמית"
-                                            description="האם ברצונך לבטל ולמחוק את ההרשמה העצמית מהמערכת כדי למנוע הרשמה כפולה?"
+                                            title="הסרת תיוג הרשמה מקומי"
+                                            description="האם להסיר את תיוג ההרשמה במכשיר זה? (נתוני המתפללים במאגר יישארו כפי שהם ולא יימחקו)"
                                             onConfirm={handleRemoveSelfRegistration}
-                                            okText="כן, מחק הרשמה"
+                                            okText="כן, הסר תיוג"
                                             cancelText="ביטול"
-                                            okButtonProps={{ danger: true }}
                                         >
                                             <Button
                                                 size="middle"
@@ -1492,7 +1479,7 @@ function App() {
                                                 danger
                                                 style={{ borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}
                                             >
-                                                ❌ ביטול הרשמה עצמאית (מחיקת הרשמה כפולה)
+                                                ❌ ביטול תיוג הרשמה מקומי
                                             </Button>
                                         </Popconfirm>
                                     </Tooltip>
