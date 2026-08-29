@@ -1197,18 +1197,6 @@ function App() {
                             </Tooltip>
                         )}
                     </div>
-                    {isMobile() && (
-                        <Button
-                            type="text"
-                            danger
-                            size="small"
-                            icon={<PoweroffOutlined />}
-                            onClick={handleMobileExit}
-                            style={{ fontSize: '12px', fontWeight: 'bold' }}
-                        >
-                            יציאה מהירה
-                        </Button>
-                    )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     {user ? (
