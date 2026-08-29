@@ -355,6 +355,7 @@ export async function connectDB() {
             }
             log(`Connected successfully to MongoDB Atlas database! Working URI: ${uri}`);
             await initializeUsers();
+            await getPreferences().catch(err => log('Error preloading preferences: ' + err.message));
             await loadGeocodingCacheAfterConnection();
             isConnecting = false;
             return true;
@@ -1058,6 +1059,16 @@ export async function getPreferences() {
                 const { _id, ...prefs } = doc;
                 await writeJsonFile(PREFERENCES_FILE, prefs);
                 return prefs;
+            } else {
+                const local = await readJsonFile(PREFERENCES_FILE, {});
+                if (Object.keys(local).length > 0) {
+                    await db.collection('preferences').updateOne(
+                        { _id: 'global_preferences' },
+                        { $set: local },
+                        { upsert: true }
+                    );
+                }
+                return local;
             }
         } catch (error) {
             log(`MongoDB error in getPreferences: ${error.message}, falling back to local JSON`);
@@ -1067,28 +1078,15 @@ export async function getPreferences() {
 }
 
 export async function savePreferences(newPrefs) {
-    let existing = {};
-    if (useMongoDB && db) {
-        try {
-            const doc = await db.collection('preferences').findOne({ _id: 'global_preferences' });
-            if (doc) {
-                const { _id, ...rest } = doc;
-                existing = rest;
-            }
-        } catch (e) {}
-    } else {
-        existing = await readJsonFile(PREFERENCES_FILE, {});
-    }
+    const existing = await getPreferences();
 
     const merged = {
         ...existing,
         ...newPrefs,
-        ...(newPrefs.synagogueSelfReg ? {
-            synagogueSelfReg: {
-                ...(existing.synagogueSelfReg || {}),
-                ...newPrefs.synagogueSelfReg
-            }
-        } : {})
+        synagogueSelfReg: {
+            ...(existing.synagogueSelfReg || {}),
+            ...(newPrefs.synagogueSelfReg || {})
+        }
     };
 
     if (useMongoDB && db) {
