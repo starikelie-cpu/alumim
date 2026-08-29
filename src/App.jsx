@@ -1456,33 +1456,19 @@ function App() {
 
                         const isOpenForThisSyn = isGlobalActive && isSynActive;
                         const isRegisteredLocally = localStorage.getItem(`guest_self_registered_${targetSynId}`);
+                        const isJustRegistered = sessionStorage.getItem(`just_self_registered_${targetSynId}`);
 
                         const currentResetCount = parseInt(localStorage.getItem('guest_reset_count') || '0', 10);
 
                         if (isRegisteredLocally) {
+                            const showTag = isJustRegistered && !isMobile();
                             return (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', alignSelf: 'center' }}>
-                                    <Tag color="success" style={{ fontSize: '15px', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                        ✅ נרשמת כמתפלל בבית כנסת זה
-                                    </Tag>
-                                    <Tooltip title="הסרת תיוג ההרשמה במכשיר זה (ללא מחיקת מתפללים מהמאגר)">
-                                        <Popconfirm
-                                            title="הסרת תיוג הרשמה מקומי"
-                                            description="האם להסיר את תיוג ההרשמה במכשיר זה? (נתוני המתפללים במאגר יישארו כפי שהם ולא יימחקו)"
-                                            onConfirm={handleRemoveSelfRegistration}
-                                            okText="כן, הסר תיוג"
-                                            cancelText="ביטול"
-                                        >
-                                            <Button
-                                                size="middle"
-                                                type="default"
-                                                danger
-                                                style={{ borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}
-                                            >
-                                                ❌ ביטול תיוג הרשמה מקומי
-                                            </Button>
-                                        </Popconfirm>
-                                    </Tooltip>
+                                    {showTag && (
+                                        <Tag color="success" style={{ fontSize: '15px', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                            ✅ נרשמת כמתפלל בבית כנסת זה
+                                        </Tag>
+                                    )}
                                     <Tooltip title="מחיקת נתוני בית הכנסת הנבחר ויציאה">
                                         <Popconfirm
                                             title="איפוס נתוני בית הכנסת"

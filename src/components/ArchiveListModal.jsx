@@ -13,12 +13,13 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
     const [searchText, setSearchText] = useState('');
     const [searchFirstName, setSearchFirstName] = useState('');
     const [selectedAliyahType, setSelectedAliyahType] = useState('');
-    const [dateSortOrder, setDateSortOrder] = useState(null); // null, 'asc', 'desc'
+    const [dateSortOrder, setDateSortOrder] = useState('desc'); // 'desc' (newest first) by default
     const [selectedLastName, setSelectedLastName] = useState('');
     const [selectedFirstName, setSelectedFirstName] = useState('');
 
     useEffect(() => {
         if (visible) {
+            setDateSortOrder('desc');
             fetchArchive();
         }
     }, [visible, memberId, refreshKey, guestSynagogueId]);
@@ -42,8 +43,8 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                 _absDate: getAbsDate(item.aliyah_date),
                 _changeDateMs: item.changeDate ? new Date(item.changeDate).getTime() : 0
             }));
-            // Sort by changeDate descending (newest first)
-            const sortedData = enrichedData.sort((a, b) => b._changeDateMs - a._changeDateMs);
+            // Sort by aliyah_date descending (newest aliyah first)
+            const sortedData = enrichedData.sort((a, b) => ((b._absDate || 0) - (a._absDate || 0)) || (b._changeDateMs - a._changeDateMs));
             setArchiveData(sortedData);
         } catch (error) {
             console.error('Failed to fetch archive:', error);
@@ -440,9 +441,8 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                             border: dateSortOrder ? '1px solid #1890ff' : 'none'
                         }}
                         onClick={() => {
-                            if (dateSortOrder === null) setDateSortOrder('asc');
-                            else if (dateSortOrder === 'asc') setDateSortOrder('desc');
-                            else setDateSortOrder(null);
+                            if (dateSortOrder === 'desc') setDateSortOrder('asc');
+                            else setDateSortOrder('desc');
                         }}
                     />
                 </div>
@@ -538,12 +538,13 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
 
     const sortedFilteredData = useMemo(() => {
         const sorted = [...filteredData];
-        if (dateSortOrder) {
-            sorted.sort((a, b) => {
-                const diff = (a._absDate || 0) - (b._absDate || 0);
+        sorted.sort((a, b) => {
+            const diff = (a._absDate || 0) - (b._absDate || 0);
+            if (diff !== 0) {
                 return dateSortOrder === 'asc' ? diff : -diff;
-            });
-        }
+            }
+            return b._changeDateMs - a._changeDateMs;
+        });
         return sorted;
     }, [filteredData, dateSortOrder]);
 
