@@ -43,7 +43,9 @@ import {
     loadGeocodingCacheAfterConnection,
     addGuestLog,
     getGuestLogs,
-    clearGuestLogs
+    clearGuestLogs,
+    getPreferences,
+    savePreferences
 } from './db.js';
 import { normalizeRole, isAdminRole, isSuperAdmin, resolveEffectiveSynagogueId } from './accessControl.js';
 
@@ -334,16 +336,11 @@ app.get('/api/db-status', (req, res) => {
     res.json(getConnectionStatus());
 });
 
-// === Local Preferences API ===
+// === Preferences API ===
 app.get('/api/preferences', async (req, res) => {
     try {
-        const prefPath = path.join(DATA_DIR, 'preferences.json');
-        if (fsSync.existsSync(prefPath)) {
-            const data = await fs.readFile(prefPath, 'utf8');
-            res.json(JSON.parse(data));
-        } else {
-            res.json({});
-        }
+        const prefs = await getPreferences();
+        res.json(prefs);
     } catch (error) {
         console.error('Error reading preferences:', error);
         res.json({});
@@ -352,29 +349,7 @@ app.get('/api/preferences', async (req, res) => {
 
 app.post('/api/preferences', async (req, res) => {
     try {
-        const prefPath = path.join(DATA_DIR, 'preferences.json');
-        await fs.mkdir(DATA_DIR, { recursive: true });
-
-        let existing = {};
-        if (fsSync.existsSync(prefPath)) {
-            try {
-                const raw = fsSync.readFileSync(prefPath, 'utf8');
-                existing = JSON.parse(raw);
-            } catch (e) {}
-        }
-
-        const merged = {
-            ...existing,
-            ...req.body,
-            ...(req.body.synagogueSelfReg ? {
-                synagogueSelfReg: {
-                    ...(existing.synagogueSelfReg || {}),
-                    ...req.body.synagogueSelfReg
-                }
-            } : {})
-        };
-
-        await fs.writeFile(prefPath, JSON.stringify(merged, null, 2));
+        const merged = await savePreferences(req.body);
         res.json({ success: true, preferences: merged });
     } catch (error) {
         console.error('Error saving preferences:', error);
@@ -723,13 +698,7 @@ app.post('/api/members', requireAdmin, async (req, res) => {
 // Guest self-registration endpoint (allows guests to register themselves once if enabled by admin)
 app.post('/api/members/self-register', async (req, res) => {
     try {
-        const prefPath = path.join(DATA_DIR, 'preferences.json');
-        let prefs = {};
-        if (fsSync.existsSync(prefPath)) {
-            try {
-                prefs = JSON.parse(fsSync.readFileSync(prefPath, 'utf8'));
-            } catch (e) {}
-        }
+        const prefs = await getPreferences();
 
         const allowGuest = prefs.allowGuestSelfRegistration !== false;
         const expiresAt = prefs.guestSelfRegistrationExpiresAt;

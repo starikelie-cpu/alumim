@@ -15,6 +15,7 @@ const NIFTARIM_FILE = path.join(DATA_DIR, 'niftarim.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SYNAGOGUES_FILE = path.join(DATA_DIR, 'synagogues.json');
 const GUEST_LOGS_FILE = path.join(DATA_DIR, 'guest_logs.json');
+const PREFERENCES_FILE = path.join(DATA_DIR, 'preferences.json');
 
 const logPath = process.env.APP_DATA_PATH ? path.join(path.dirname(process.env.APP_DATA_PATH), 'app.log') : null;
 function log(msg) {
@@ -1048,3 +1049,61 @@ export async function clearGuestLogs() {
         return false;
     }
 }
+
+export async function getPreferences() {
+    if (useMongoDB && db) {
+        try {
+            const doc = await db.collection('preferences').findOne({ _id: 'global_preferences' });
+            if (doc) {
+                const { _id, ...prefs } = doc;
+                await writeJsonFile(PREFERENCES_FILE, prefs);
+                return prefs;
+            }
+        } catch (error) {
+            log(`MongoDB error in getPreferences: ${error.message}, falling back to local JSON`);
+        }
+    }
+    return await readJsonFile(PREFERENCES_FILE, {});
+}
+
+export async function savePreferences(newPrefs) {
+    let existing = {};
+    if (useMongoDB && db) {
+        try {
+            const doc = await db.collection('preferences').findOne({ _id: 'global_preferences' });
+            if (doc) {
+                const { _id, ...rest } = doc;
+                existing = rest;
+            }
+        } catch (e) {}
+    } else {
+        existing = await readJsonFile(PREFERENCES_FILE, {});
+    }
+
+    const merged = {
+        ...existing,
+        ...newPrefs,
+        ...(newPrefs.synagogueSelfReg ? {
+            synagogueSelfReg: {
+                ...(existing.synagogueSelfReg || {}),
+                ...newPrefs.synagogueSelfReg
+            }
+        } : {})
+    };
+
+    if (useMongoDB && db) {
+        try {
+            await db.collection('preferences').updateOne(
+                { _id: 'global_preferences' },
+                { $set: merged },
+                { upsert: true }
+            );
+        } catch (e) {
+            log(`MongoDB error saving preferences: ${e.message}`);
+        }
+    }
+
+    await writeJsonFile(PREFERENCES_FILE, merged);
+    return merged;
+}
+
