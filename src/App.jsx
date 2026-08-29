@@ -1268,26 +1268,28 @@ function App() {
                                     <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
                                         🕍 {localSynagogueName}
                                     </span>
-                                    <Tooltip title="מחיקת נתוני בית הכנסת הנבחר">
-                                        <Popconfirm
-                                            title="איפוס נתוני בית הכנסת"
-                                            description="האם אתה בטוח שברצונך למחוק את נתוני בית הכנסת הנבחר ולהיכנס מחדש?"
-                                            onConfirm={handleResetGuestSynagogueSelection}
-                                            okText="כן, למחוק ולצאת"
-                                            cancelText="ביטול"
-                                            okButtonProps={{ danger: true }}
-                                        >
-                                            <Button
-                                                size="small"
-                                                type="text"
-                                                danger
-                                                icon={<ReloadOutlined style={{ fontSize: '12px' }} />}
-                                                style={{ fontSize: '12px', padding: '0 4px', height: '24px', fontWeight: 'bold' }}
+                                    {(!isMobile() || !guestSynagogueId || !localStorage.getItem(`guest_self_registered_${guestSynagogueId}`)) && (
+                                        <Tooltip title="מחיקת נתוני בית הכנסת הנבחר">
+                                            <Popconfirm
+                                                title="איפוס נתוני בית הכנסת"
+                                                description="האם אתה בטוח שברצונך למחוק את נתוני בית הכנסת הנבחר ולהיכנס מחדש?"
+                                                onConfirm={handleResetGuestSynagogueSelection}
+                                                okText="כן, למחוק ולצאת"
+                                                cancelText="ביטול"
+                                                okButtonProps={{ danger: true }}
                                             >
-                                                איפוס בית כנסת
-                                            </Button>
-                                        </Popconfirm>
-                                    </Tooltip>
+                                                <Button
+                                                    size="small"
+                                                    type="text"
+                                                    danger
+                                                    icon={<ReloadOutlined style={{ fontSize: '12px' }} />}
+                                                    style={{ fontSize: '12px', padding: '0 4px', height: '24px', fontWeight: 'bold' }}
+                                                >
+                                                    איפוס בית כנסת
+                                                </Button>
+                                            </Popconfirm>
+                                        </Tooltip>
+                                    )}
                                 </div>
                             )}
 
@@ -1462,6 +1464,8 @@ function App() {
 
                         if (isRegisteredLocally) {
                             const showTag = isJustRegistered && !isMobile();
+                            const showResetButton = !isMobile();
+                            if (!showTag && !showResetButton) return null;
                             return (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', alignSelf: 'center' }}>
                                     {showTag && (
@@ -1469,25 +1473,27 @@ function App() {
                                             ✅ נרשמת כמתפלל בבית כנסת זה
                                         </Tag>
                                     )}
-                                    <Tooltip title="מחיקת נתוני בית הכנסת הנבחר ויציאה">
-                                        <Popconfirm
-                                            title="איפוס נתוני בית הכנסת"
-                                            description={`האם אתה בטוח שברצונך למחוק את נתוני בית הכנסת הנבחר ולהיכנס מחדש? (איפוס ${Math.min(currentResetCount + 1, 3)} מתוך 3 מורשים)`}
-                                            onConfirm={handleResetGuestSynagogueSelection}
-                                            okText="כן, למחוק ולצאת"
-                                            cancelText="ביטול"
-                                            okButtonProps={{ danger: true }}
-                                        >
-                                            <Button
-                                                size="middle"
-                                                type="default"
-                                                danger
-                                                style={{ borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}
+                                    {showResetButton && (
+                                        <Tooltip title="מחיקת נתוני בית הכנסת הנבחר ויציאה">
+                                            <Popconfirm
+                                                title="איפוס נתוני בית הכנסת"
+                                                description={`האם אתה בטוח שברצונך למחוק את נתוני בית הכנסת הנבחר ולהיכנס מחדש? (איפוס ${Math.min(currentResetCount + 1, 3)} מתוך 3 מורשים)`}
+                                                onConfirm={handleResetGuestSynagogueSelection}
+                                                okText="כן, למחוק ולצאת"
+                                                cancelText="ביטול"
+                                                okButtonProps={{ danger: true }}
                                             >
-                                                🔄 איפוס נתוני בית כנסת ({currentResetCount}/3)
-                                            </Button>
-                                        </Popconfirm>
-                                    </Tooltip>
+                                                <Button
+                                                    size="middle"
+                                                    type="default"
+                                                    danger
+                                                    style={{ borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}
+                                                >
+                                                    🔄 איפוס נתוני בית כנסת ({currentResetCount}/3)
+                                                </Button>
+                                            </Popconfirm>
+                                        </Tooltip>
+                                    )}
                                 </div>
                             );
                         }
