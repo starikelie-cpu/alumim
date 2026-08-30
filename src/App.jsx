@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
 import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip, Tag, Popconfirm } from 'antd';
-import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined, ReloadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined, ReloadOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
 import GuestSelfRegisterModal from './components/GuestSelfRegisterModal';
@@ -24,6 +24,7 @@ function App() {
     const [editingMember, setEditingMember] = useState(null);
     const [editingArchiveRecord, setEditingArchiveRecord] = useState(null);
     const [archiveRefreshKey, setArchiveRefreshKey] = useState(0);
+    const [selfRegRefreshKey, setSelfRegRefreshKey] = useState(0);
 
     // Niftarim state
     const [niftarim, setNiftarim] = useState([]);
@@ -646,6 +647,18 @@ function App() {
         } catch (e) {}
         message.info('תיוג ההרשמה הוסר ממכשיר זה. (נתוני המתפללים במאגר נשמרו ללא שינוי).');
         fetchAllData();
+    };
+
+    const handleMarkAlreadyRegistered = (synId) => {
+        if (!synId) return;
+        try {
+            localStorage.setItem(`guest_self_registered_${synId}`, 'already_registered');
+            localStorage.setItem(`guest_self_registered_date_${synId}`, new Date().toISOString());
+        } catch (e) {
+            console.error('Failed to save self_registered in localStorage', e);
+        }
+        message.success('תודכנת כרשום במכשיר זה. הכפתור הירוק לא יופיע בכניסות הבאות!');
+        setSelfRegRefreshKey(prev => prev + 1);
     };
 
     const handleAdminViewSynagogueChange = (synId) => {
@@ -1442,22 +1455,48 @@ function App() {
 
                         if (isOpenForThisSyn) {
                             return (
-                                <Button
-                                    type="primary"
-                                    size="large"
-                                    block={isMobile()}
-                                    style={{
-                                        fontSize: '17px',
-                                        fontWeight: 'bold',
-                                        background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
-                                        borderColor: '#389e0d',
-                                        boxShadow: '0 4px 12px rgba(82, 196, 26, 0.35)'
-                                    }}
-                                    icon={<UserAddOutlined />}
-                                    onClick={() => setIsGuestSelfRegModalVisible(true)}
-                                >
-                                    ➕ הרשמה עצמית כמתפלל
-                                </Button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile() ? '10px' : '12px', flexWrap: 'wrap', justifyContent: 'center', width: isMobile() ? '100%' : 'auto' }}>
+                                    <Button
+                                        type="primary"
+                                        size="large"
+                                        block={isMobile()}
+                                        style={{
+                                            fontSize: '17px',
+                                            fontWeight: 'bold',
+                                            background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                                            borderColor: '#389e0d',
+                                            boxShadow: '0 4px 12px rgba(82, 196, 26, 0.35)'
+                                        }}
+                                        icon={<UserAddOutlined />}
+                                        onClick={() => setIsGuestSelfRegModalVisible(true)}
+                                    >
+                                        ➕ הרשמה עצמית כמתפלל
+                                    </Button>
+                                    <Popconfirm
+                                        title="אישור הרשמה קודמת"
+                                        description="האם כבר נרשמת בעבר כמתפלל בבית כנסת זה?"
+                                        onConfirm={() => handleMarkAlreadyRegistered(targetSynId)}
+                                        okText="כן, אני כבר רשום"
+                                        cancelText="ביטול"
+                                        okButtonProps={{ type: 'primary', style: { background: '#52c41a', borderColor: '#52c41a' } }}
+                                    >
+                                        <Button
+                                            size="large"
+                                            block={isMobile()}
+                                            icon={<CheckCircleOutlined />}
+                                            style={{
+                                                fontSize: '16px',
+                                                fontWeight: 'bold',
+                                                color: '#2b7013',
+                                                borderColor: '#b7eb8f',
+                                                background: '#f6ffed',
+                                                boxShadow: '0 2px 6px rgba(82, 196, 26, 0.15)'
+                                            }}
+                                        >
+                                            אני כבר רשום
+                                        </Button>
+                                    </Popconfirm>
+                                </div>
                             );
                         }
 
