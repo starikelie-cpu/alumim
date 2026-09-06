@@ -686,7 +686,8 @@ app.get('/api/members', requireAuthenticatedUser, async (req, res) => {
 app.post('/api/members', requireAdmin, async (req, res) => {
     try {
         const effectiveSynagogueId = resolveEffectiveSynagogueId(req.currentUser, req.body.synagogueId, null);
-        const newMember = { ...req.body, id: Date.now(), synagogueId: effectiveSynagogueId }; // Add simple ID
+        const nowIso = new Date().toISOString();
+        const newMember = { registeredAt: nowIso, createdAt: nowIso, ...req.body, id: Date.now(), synagogueId: effectiveSynagogueId }; // Add simple ID
         const saved = await addMember(newMember);
         res.json(saved);
     } catch (error) {
@@ -728,13 +729,15 @@ app.post('/api/members/self-register', async (req, res) => {
             return res.status(400).json({ success: false, error: 'יש להזין שם פרטי, שם משפחה ובית כנסת' });
         }
 
+        const nowIso = new Date().toISOString();
         const newMember = {
             ...req.body,
             id: Date.now(),
             synagogueId: synagogueId,
             letter: req.body.letter || ['א'],
             isSelfRegistered: true,
-            registeredAt: new Date().toISOString()
+            registeredAt: req.body.registeredAt || nowIso,
+            createdAt: req.body.createdAt || nowIso
         };
 
         const saved = await addMember(newMember);

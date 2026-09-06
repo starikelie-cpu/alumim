@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Modal, Table, Button, Popconfirm, Input, Tooltip, Select } from 'antd';
+import { Modal, Table, Button, Popconfirm, Input, Tooltip, Select, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, SearchOutlined, HistoryOutlined, PrinterOutlined, DownloadOutlined, UploadOutlined, QuestionCircleOutlined } from '@ant-design/icons';
-import { getDaysSinceAliyah, getYahrzeitIfInCurrentWeek, getYahrzeitIfWithin30Days, getUpcomingShabbatInfo, parseHebrewDate, getHebrewMonthNumber, getShmitaYearStatus, getAbsDate } from '../utils/hebrewDateUtils';
+import { getDaysSinceAliyah, getYahrzeitIfInCurrentWeek, getYahrzeitIfWithin30Days, getUpcomingShabbatInfo, parseHebrewDate, getHebrewMonthNumber, getShmitaYearStatus, getAbsDate, isNewlyRegistered } from '../utils/hebrewDateUtils';
 import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 import { API_BASE, isMobile } from '../config';
@@ -50,6 +50,10 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 return (a.firstName || '').localeCompare(b.firstName || '', 'he');
             });
     }, [members, searchText, searchFirstName]);
+
+    const newlyRegisteredCount = useMemo(() => {
+        return filteredMembers.filter(m => isNewlyRegistered(m)).length;
+    }, [filteredMembers]);
 
     const handlePrintAllMembers = () => {
         try {
@@ -505,15 +509,16 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
     const mobile = isMobile();
 
     const columns = useMemo(() => {
-        // Helper function for cell styling (blue text for non-guests)
+        // Helper function for cell styling (green for newly registered within 3 days, blue text for non-guests)
         const getCellStyle = (record, isMobileView = false, extra = {}) => {
+            const isNew = isNewlyRegistered(record);
             const isNonGuest = !isGuestMember(record);
             return {
                 fontSize: isMobileView ? '15px' : '18px',
                 lineHeight: isMobileView ? '1.3' : '1.25',
                 padding: isMobileView ? '6px 4px' : '4px 8px',
-                color: isNonGuest ? '#1677ff' : '#000000',
-                fontWeight: isNonGuest ? 'bold' : 'normal',
+                color: isNew ? '#2e7d32' : (isNonGuest ? '#1677ff' : '#000000'),
+                fontWeight: (isNew || isNonGuest) ? 'bold' : 'normal',
                 ...(isMobileView ? { wordBreak: 'break-word' } : {}),
                 ...extra
             };
@@ -543,7 +548,15 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'firstName',
                 width: isAdmin ? '23%' : '30%',
                 onHeaderCell: () => ({ style: { fontSize: '15px', fontWeight: 'bold', padding: '6px 4px' } }),
-                onCell: (record) => ({ style: getCellStyle(record, true) })
+                onCell: (record) => ({ style: getCellStyle(record, true) }),
+                render: (text, record) => (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        <span>{text || '-'}</span>
+                        {isNewlyRegistered(record) && (
+                            <Tag color="green" style={{ fontSize: '10px', fontWeight: 'bold', margin: 0, padding: '0 4px' }}>חדש!</Tag>
+                        )}
+                    </span>
+                )
             },
             {
                 title: 'שם אב',
@@ -632,7 +645,15 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 key: 'firstName',
                 width: 120,
                 onHeaderCell: () => ({ style: { fontSize: '18px', fontWeight: 'bold' } }),
-                onCell: (record) => ({ style: getCellStyle(record, false) })
+                onCell: (record) => ({ style: getCellStyle(record, false) }),
+                render: (text, record) => (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span>{text || '-'}</span>
+                        {isNewlyRegistered(record) && (
+                            <Tag color="green" style={{ fontSize: '11px', fontWeight: 'bold', margin: 0, padding: '0 5px' }}>חדש!</Tag>
+                        )}
+                    </span>
+                )
             },
             {
                 title: 'שם אב',
@@ -981,8 +1002,13 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         allowClear
                     />
                 </div>
-                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                    סה"כ מתפללים: {filteredMembers.length} {(searchText || searchFirstName) && `(מתוך ${members.length})`}
+                <span style={{ fontSize: '14px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>סה"כ מתפללים: {filteredMembers.length} {(searchText || searchFirstName) && `(מתוך ${members.length})`}</span>
+                    {newlyRegisteredCount > 0 && (
+                        <Tag color="green" style={{ fontSize: '13px', fontWeight: 'bold', margin: 0, padding: '2px 8px' }}>
+                            🌿 {newlyRegisteredCount} נרשמו חדש (ב-3 ימים האחרונים)
+                        </Tag>
+                    )}
                 </span>
             </div>
             <Table
@@ -992,7 +1018,10 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 tableLayout="fixed"
                 pagination={false}
                 scroll={{ y: 'calc(100vh - 250px)' }}
-                rowClassName={(record) => (!isGuestMember(record) ? 'row-non-guest-blue' : '')}
+                rowClassName={(record) => {
+                    if (isNewlyRegistered(record)) return 'row-newly-registered-green';
+                    return (!isGuestMember(record) ? 'row-non-guest-blue' : '');
+                }}
             />
         </Modal>
     );

@@ -66,3 +66,19 @@ body {
   font-weight: bold !important;
 }
 
+/* שורת נרשם חדש (עד 3 ימים) - מוצגת בירוק */
+.ant-table-wrapper .ant-table-tbody > tr.row-newly-registered-green > td,
+.ant-table-wrapper .ant-table-tbody > tr.row-newly-registered-green td,
+.row-newly-registered-green td,
+.row-newly-registered-green {
+  color: #2e7d32 !important;
+  background-color: #f6ffed !important;
+  font-weight: bold !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr.row-newly-registered-green:hover > td,
+.ant-table-wrapper .ant-table-tbody > tr.row-newly-registered-green:hover td {
+  background-color: #d9f7be !important;
+}
+
+

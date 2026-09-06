@@ -41,4 +41,6 @@ URL האפליקציה	beit-knesset.onrender.com
 ריפוזיטורי	github.com/starikelie-cpu/alumim
 Branch	master
 11:38 PM
+סיסמאות לאתר בית כנסת
+סיסמת מנהל על admin9876
 

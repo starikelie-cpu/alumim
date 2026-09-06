@@ -1307,3 +1307,31 @@ export function getParashaForDate(dateString) {
     const info = calculateAliyahInfo(dateString);
     return info && info.parasha ? info.parasha : '';
 }
+
+/**
+ * Check if a record (member / user) was registered within the specified number of days (default 3 days).
+ * Checks registeredAt, createdAt, or millisecond timestamp ID.
+ */
+export function isNewlyRegistered(record, days = 3) {
+    if (!record) return false;
+    let regTime = null;
+
+    if (record.registeredAt) {
+        regTime = new Date(record.registeredAt).getTime();
+    } else if (record.createdAt) {
+        regTime = new Date(record.createdAt).getTime();
+    } else if (typeof record.id === 'number' && record.id > 1600000000000 && record.id < 2500000000000) {
+        regTime = record.id;
+    } else if (typeof record.id === 'string' && !isNaN(Number(record.id)) && Number(record.id) > 1600000000000 && Number(record.id) < 2500000000000) {
+        regTime = Number(record.id);
+    }
+
+    if (!regTime || isNaN(regTime)) return false;
+
+    const limitMs = days * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const diff = now - regTime;
+
+    return diff >= 0 && diff <= limitMs;
+}
+

@@ -3,6 +3,7 @@ import { Modal, Table, Button, Form, Input, Select, Popconfirm, Space, message, 
 import { PlusOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
 import { API_BASE } from '../config';
 import { normalizeRole } from '../../accessControl';
+import { isNewlyRegistered } from '../utils/hebrewDateUtils';
 
 const UserManagementModal = ({ visible, onCancel, token, currentUser }) => {
     const [users, setUsers] = useState([]);
@@ -169,7 +170,14 @@ const UserManagementModal = ({ visible, onCancel, token, currentUser }) => {
             title: 'שם משתמש',
             dataIndex: 'username',
             key: 'username',
-            style: { fontWeight: 'bold' }
+            render: (text, record) => (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: 'bold' }}>{text}</span>
+                    {isNewlyRegistered(record) && (
+                        <Tag color="green" style={{ fontWeight: 'bold' }}>חדש!</Tag>
+                    )}
+                </span>
+            )
         },
         {
             title: 'הרשאה',
@@ -332,6 +340,7 @@ const UserManagementModal = ({ visible, onCancel, token, currentUser }) => {
                 rowKey="username"
                 loading={loading}
                 pagination={false}
+                rowClassName={(record) => (isNewlyRegistered(record) ? 'row-newly-registered-green' : '')}
             />
         </Modal>
     );

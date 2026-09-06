@@ -442,11 +442,14 @@ export async function getUsers() {
 }
 
 export async function addUser(user) {
+    const nowIso = new Date().toISOString();
     const doc = {
         username: user.username,
         password: hashPassword(user.password),
         role: normalizeRole(user.role || 'viewer'),
-        synagogueId: user.synagogueId || null
+        synagogueId: user.synagogueId || null,
+        createdAt: user.createdAt || user.registeredAt || nowIso,
+        registeredAt: user.registeredAt || user.createdAt || nowIso
     };
 
     if (useMongoDB && db) {
@@ -600,7 +603,13 @@ export async function getMembers(user = null) {
 }
 
 export async function addMember(member) {
-    const doc = { ...member, synagogueId: member.synagogueId || null };
+    const nowIso = new Date().toISOString();
+    const doc = {
+        registeredAt: member.registeredAt || member.createdAt || nowIso,
+        createdAt: member.createdAt || member.registeredAt || nowIso,
+        ...member,
+        synagogueId: member.synagogueId || null
+    };
 
     if (useMongoDB && db) {
         await db.collection('members').insertOne(doc);
