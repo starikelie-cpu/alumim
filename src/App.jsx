@@ -185,8 +185,13 @@ function App() {
             .then(res => res.json())
             .then(data => {
                 clearTimeout(timeoutId);
-                if (data.loggedIn) {
+                if (data.loggedIn && data.user) {
                     setUser(data.user);
+                    if (data.user.synagogueId && data.user.role !== 'super_admin') {
+                        const synId = data.user.synagogueId;
+                        localStorage.setItem('guestSynagogueId', synId);
+                        setGuestSynagogueId(synId);
+                    }
                 } else {
                     localStorage.removeItem('token');
                     setToken(null);
@@ -331,31 +336,37 @@ function App() {
         localStorage.setItem('token', newToken);
         setToken(newToken);
         setUser(loggedInUser);
-        setGuestSynagogueId(null);
-        // Clear local file preference on login
-        fetch(`${API_BASE}/api/preferences`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ guestSynagogueId: null })
-        }).catch(e => console.error('Failed to clear preferences:', e));
-        
-        // Save synagogue name for synagogue admin to localStorage IMMEDIATELY
-        if (loggedInUser?.role === 'synagogue_admin' && loggedInUser?.synagogueId) {
-            // Find synagogue name from cached synagogues
+
+        if (loggedInUser?.synagogueId && loggedInUser?.role !== 'super_admin') {
+            const synId = loggedInUser.synagogueId;
+            localStorage.setItem('guestSynagogueId', synId);
+            setGuestSynagogueId(synId);
+
             const cachedSynagogues = localStorage.getItem('cachedSynagogues');
+            let synName = loggedInUser.synagogueName || null;
             if (cachedSynagogues) {
                 try {
                     const cached = JSON.parse(cachedSynagogues);
-                    const syn = cached.find(s => s.id === loggedInUser.synagogueId);
-                    if (syn) {
-                        localStorage.setItem('localSynagogueName', syn.name);
-                        setLocalSynagogueName(syn.name);
-                        console.log('Saved synagogue name for admin to localStorage:', syn.name);
-                    }
+                    const syn = cached.find(s => s.id === synId);
+                    if (syn) synName = syn.name;
                 } catch (e) {
                     console.error('Failed to parse cached synagogues:', e);
                 }
             }
+            if (!synName && synagogues.length > 0) {
+                const syn = synagogues.find(s => s.id === synId);
+                if (syn) synName = syn.name;
+            }
+            if (synName) {
+                localStorage.setItem('localSynagogueName', synName);
+                setLocalSynagogueName(synName);
+            }
+
+            fetch(`${API_BASE}/api/preferences`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ guestSynagogueId: synId })
+            }).catch(e => console.error('Failed to save preferences:', e));
         }
         
         setAdminViewSynagogueId(null);
@@ -404,16 +415,28 @@ function App() {
                 headers: getHeaders()
             }).catch(err => console.error(err));
         }
+
+        // If currently logged in as synagogue admin, preserve their synagogue as guestSynagogueId
+        if (user?.synagogueId && user?.role !== 'super_admin') {
+            const synId = user.synagogueId;
+            localStorage.setItem('guestSynagogueId', synId);
+            setGuestSynagogueId(synId);
+            const syn = synagogues.find(s => s.id === synId);
+            if (syn && syn.name) {
+                localStorage.setItem('localSynagogueName', syn.name);
+                setLocalSynagogueName(syn.name);
+            }
+        }
+
         localStorage.removeItem('token');
         localStorage.removeItem('adminViewSynagogueId');
         setToken(null);
         setUser(null);
         setAdminViewSynagogueId(null);
         
-        // Reset local synagogue name to guest's selection
+        // Ensure localSynagogueName matches guestSynagogueId
         const savedGuestId = localStorage.getItem('guestSynagogueId');
         if (savedGuestId) {
-            // Try to find the synagogue name from cached synagogues
             const cachedSynagogues = localStorage.getItem('cachedSynagogues');
             if (cachedSynagogues) {
                 try {
@@ -427,10 +450,6 @@ function App() {
                     console.error('Failed to parse cached synagogues:', e);
                 }
             }
-        } else {
-            // No guest selection, clear the name
-            setLocalSynagogueName(null);
-            localStorage.removeItem('localSynagogueName');
         }
         
         message.success('התנתקת בהצלחה');
@@ -518,9 +537,11 @@ function App() {
             .then(res => res.json())
             .then(data => {
                 setSynagogues(Array.isArray(data) ? data : []);
-                // Show first-time prompt if guest has no synagogue selected and synagogues are loaded
-                if (!token && !guestSynagogueId && Array.isArray(data) && data.length > 0 && data[0].name) {
+                const savedGuestId = localStorage.getItem('guestSynagogueId');
+                if (!token && !guestSynagogueId && !savedGuestId && Array.isArray(data) && data.length > 0 && data[0].name) {
                     setShowFirstTimePrompt(true);
+                } else {
+                    setShowFirstTimePrompt(false);
                 }
             })
             .catch(err => console.error('Failed to fetch synagogues:', err));
