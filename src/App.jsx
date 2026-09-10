@@ -13,7 +13,6 @@ import AddNiftarModal from './components/AddNiftarModal';
 import NiftarimListModal from './components/NiftarimListModal';
 import LoginModal from './components/LoginModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
-import ZmanimComponent from './components/ZmanimComponent';
 import { API_BASE, isMobile, isElectron, getPlatform } from './config';
 
 function App() {
@@ -1379,8 +1378,6 @@ function App() {
                         </div>
                     </div>
                 )}
-                {/* Zmanim and Date Banner */}
-                <ZmanimComponent />
                 {/* First-time synagogue selection prompt for guests */}
                 {!user && showFirstTimePrompt && !guestSynagogueId && (
                     <div style={{

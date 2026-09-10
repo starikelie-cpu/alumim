@@ -2,9 +2,45 @@ import React, { useState, useMemo } from 'react';
 import { Modal, Table, Button, Popconfirm, Input, Tooltip, Select, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, SearchOutlined, HistoryOutlined, PrinterOutlined, DownloadOutlined, UploadOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { getDaysSinceAliyah, getYahrzeitIfInCurrentWeek, getYahrzeitIfWithin30Days, getUpcomingShabbatInfo, parseHebrewDate, getHebrewMonthNumber, getShmitaYearStatus, getAbsDate, isNewlyRegistered } from '../utils/hebrewDateUtils';
-import { HDate } from '@hebcal/core';
+import { HDate, Zmanim, GeoLocation } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 import { API_BASE, isMobile } from '../config';
+
+const getZmanimPrintHtml = () => {
+    try {
+        const location = new GeoLocation('Israel', 31.778, 35.235, 800, 'Asia/Jerusalem');
+        const now = new Date();
+        const zman = new Zmanim(location, now, false);
+        const sunrise = zman.sunrise();
+        const sunset = zman.sunset();
+
+        if (!sunrise || !sunset) return '';
+
+        const dayMs = sunset.getTime() - sunrise.getTime();
+        const shaahZmanitMs = dayMs / 12;
+
+        const shacharitStart = sunrise;
+        const shacharitEnd = new Date(sunrise.getTime() + 4 * shaahZmanitMs);
+        const minchaGedola = new Date(sunrise.getTime() + 6.5 * shaahZmanitMs);
+        const minchaKetanaStart = new Date(sunrise.getTime() + 9.5 * shaahZmanitMs);
+        const minchaKetanaEnd = sunset;
+        const arvitStart = sunset;
+
+        const formatTime = (d) => d.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
+
+        return `
+            <div style="font-size: 10px; line-height: 1.3; text-align: left; direction: rtl; color: #222; font-weight: 500;">
+                <div><strong>זמן שחרית:</strong> ${formatTime(shacharitStart)} - ${formatTime(shacharitEnd)}</div>
+                <div><strong>מנחה גדולה:</strong> ${formatTime(minchaGedola)}</div>
+                <div><strong>מנחה קטנה:</strong> ${formatTime(minchaKetanaStart)} - ${formatTime(minchaKetanaEnd)}</div>
+                <div><strong>זמן ערבית:</strong> משקיעת החמה (${formatTime(arvitStart)})</div>
+            </div>
+        `;
+    } catch (e) {
+        console.error('Error calculating zmanim for print:', e);
+        return '';
+    }
+};
 
 const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId }) => {
     const [searchText, setSearchText] = useState('');
@@ -98,7 +134,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         .title-center { text-align: center; }
                         .title { font-size: 20px; font-weight: bold; margin: 0; }
                         .page-number { font-size: 13px; margin-top: 5px; font-weight: bold; }
-                        .header-left-spacer { width: 200px; }
+                        .header-left-spacer { width: 220px; text-align: left; }
                         table { width: 100%; border-collapse: collapse; }
                         th { border-bottom: 2px solid #333; font-weight: bold; color: #0066cc; text-align: right; padding: 5px 4px; box-sizing: border-box; font-size: 13px; }
                         td { border-bottom: 1px solid #eee; padding: 5px 4px; box-sizing: border-box; vertical-align: middle; text-align: right; font-size: 13px; }
@@ -124,7 +160,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                     <div class="title">רשימת מתפללים מלאה</div>
                                     <div class="page-number">דף ${pageIndex + 1} מתוך ${totalPages}</div>
                                 </div>
-                                <div class="header-left-spacer"></div>
+                                <div class="header-left-spacer">${getZmanimPrintHtml()}</div>
                             </div>
                             <table>
                                 <thead>
@@ -292,7 +328,10 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                     ${info.daysToPrint.map((dayInfo, index) => `
                     <div class="day-container">
                         <div class="header">
-                            <div class="date-left">${dayInfo.shabbatDateFormatted || dayInfo.shabbatDate}</div>
+                            <div class="date-left">
+                                <div>${dayInfo.shabbatDateFormatted || dayInfo.shabbatDate}</div>
+                                ${getZmanimPrintHtml()}
+                            </div>
                             <div class="shmita-right">
                                 ${info.shmitaStatus || ''}<br/>
                                 ${info.nextBirkatHaChama ? `ברכת החמה הבאה: ${info.nextBirkatHaChama}` : ''}<br/>
