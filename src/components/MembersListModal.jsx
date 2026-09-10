@@ -18,6 +18,7 @@ const getZmanimPrintHtml = () => {
 
         const dayMs = sunset.getTime() - sunrise.getTime();
         const shaahZmanitMs = dayMs / 12;
+        const shaahZmanitMinutes = Math.round(shaahZmanitMs / 60000);
 
         const shacharitStart = sunrise;
         const shacharitEnd = new Date(sunrise.getTime() + 4 * shaahZmanitMs);
@@ -29,7 +30,8 @@ const getZmanimPrintHtml = () => {
         const formatTime = (d) => d.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
 
         return `
-            <div style="font-size: 10px; line-height: 1.3; text-align: left; direction: rtl; color: #222; font-weight: 500;">
+            <div style="font-size: 9.5px; line-height: 1.25; text-align: right; direction: rtl; color: #222; font-weight: 500;">
+                <div><strong>שעה זמנית:</strong> ${shaahZmanitMinutes} דקות</div>
                 <div><strong>זמן שחרית:</strong> ${formatTime(shacharitStart)} - ${formatTime(shacharitEnd)}</div>
                 <div><strong>מנחה גדולה:</strong> ${formatTime(minchaGedola)}</div>
                 <div><strong>מנחה קטנה:</strong> ${formatTime(minchaKetanaStart)} - ${formatTime(minchaKetanaEnd)}</div>
@@ -129,12 +131,12 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         body { font-family: 'Assistant', sans-serif; padding: 0; margin: 0; font-size: 13px; }
                         .page-container { page-break-after: always; box-sizing: border-box; }
                         .page-container:last-child { page-break-after: auto; }
-                        .print-page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+                        .print-page-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #333; padding-bottom: 18px; margin-bottom: 15px; }
                         .date-right { font-size: 12px; font-weight: bold; line-height: 1.4; text-align: right; width: 200px; }
                         .title-center { text-align: center; }
                         .title { font-size: 20px; font-weight: bold; margin: 0; }
                         .page-number { font-size: 13px; margin-top: 5px; font-weight: bold; }
-                        .header-left-spacer { width: 220px; text-align: left; }
+                        .header-left-spacer { width: 220px; text-align: right; }
                         table { width: 100%; border-collapse: collapse; }
                         th { border-bottom: 2px solid #333; font-weight: bold; color: #0066cc; text-align: right; padding: 5px 4px; box-sizing: border-box; font-size: 13px; }
                         td { border-bottom: 1px solid #eee; padding: 5px 4px; box-sizing: border-box; vertical-align: middle; text-align: right; font-size: 13px; }
@@ -312,8 +314,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         body { font-family: 'Assistant', sans-serif; padding: 20px; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         .day-container { page-break-after: always; }
                         .day-container:last-child { page-break-after: auto; }
-                        .header { text-align: center; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 25px; padding-top: 5px; position: relative; }
-                        .date-left { position: absolute; top: 10px; left: 10px; font-size: 14px; font-weight: bold; }
+                        .header { text-align: center; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 32px; padding-top: 5px; position: relative; }
+                        .date-left { position: absolute; top: 10px; left: 10px; font-size: 13px; font-weight: bold; text-align: right; }
                         .shmita-right { position: absolute; top: 10px; right: 10px; font-size: 14px; font-weight: bold; }
                         table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                         th, td { border: none; padding: 2px 4px; text-align: right; line-height: 13pt; }
