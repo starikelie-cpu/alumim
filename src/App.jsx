@@ -1607,6 +1607,9 @@ function App() {
                     isAdmin={isAdmin}
                     token={token}
                     guestSynagogueId={guestSynagogueId}
+                    synagogues={synagogues}
+                    currentUser={user}
+                    localSynagogueName={localSynagogueName}
                 />
 
                 <ArchiveListModal

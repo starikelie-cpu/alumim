@@ -1,35 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Zmanim, GeoLocation, HDate } from '@hebcal/core';
+import { HDate } from '@hebcal/core';
 import { isMobile } from '../config';
+import { calculateZmanim } from '../utils/zmanimUtils';
 
-export const ZmanimComponent = () => {
+export const ZmanimComponent = ({ cityName = '' }) => {
     const [zmanimData, setZmanimData] = useState(null);
 
     useEffect(() => {
         try {
-            const location = new GeoLocation('Israel', 31.778, 35.235, 800, 'Asia/Jerusalem');
             const now = new Date();
-            const zman = new Zmanim(location, now, false);
+            const z = calculateZmanim(now, cityName);
 
-            const sunrise = zman.sunrise();
-            const sunset = zman.sunset();
-
-            if (sunrise && sunset) {
-                const dayMs = sunset.getTime() - sunrise.getTime();
-                const shaahZmanitMs = dayMs / 12;
-
-                const shacharitStart = sunrise;
-                const shacharitEnd = new Date(sunrise.getTime() + 4 * shaahZmanitMs);
-
-                const minchaGedola = new Date(sunrise.getTime() + 6.5 * shaahZmanitMs);
-
-                const minchaKetanaStart = new Date(sunrise.getTime() + 9.5 * shaahZmanitMs);
-                const minchaKetanaEnd = sunset;
-
-                const arvitStart = sunset;
-
-                const formatTime = (d) => d.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
-
+            if (z) {
                 const hd = new HDate(now);
                 const days = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'שבת קודש'];
                 const dayName = days[now.getDay()];
@@ -37,17 +19,18 @@ export const ZmanimComponent = () => {
                 const gregDate = now.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
 
                 setZmanimData({
-                    dateTitle: `${dayName}, ${hebDate} (${gregDate})`,
-                    shacharit: `זמן שחרית: מ- ${formatTime(shacharitStart)} (הנץ החמה) עד ${formatTime(shacharitEnd)} (סוף 4 שעות זמניות)`,
-                    minchaGedola: `זמן מנחה גדולה: ${formatTime(minchaGedola)}`,
-                    minchaKetana: `זמן מנחה קטנה: מ- ${formatTime(minchaKetanaStart)} עד ${formatTime(minchaKetanaEnd)} (זמן שקיעה)`,
-                    arvit: `זמן ערבית: משקיעת החמה (${formatTime(arvitStart)})`
+                    dateTitle: `${dayName}, ${hebDate} (${gregDate}) - ${z.cityName}`,
+                    shacharit: `זמן שחרית: מ- ${z.shacharitStartFormatted} (הנץ החמה) עד ${z.shacharitEndFormatted} (סוף 4 שעות זמניות)`,
+                    chatzot: `זמן חצות היום: ${z.chatzotFormatted} (6 שעות זמניות מהנץ החמה)`,
+                    minchaGedola: `זמן מנחה גדולה: ${z.minchaGedolaFormatted}`,
+                    minchaKetana: `זמן מנחה קטנה: מ- ${z.minchaKetanaStartFormatted} עד ${z.minchaKetanaEndFormatted} (זמן שקיעה)`,
+                    arvit: `זמן ערבית: משקיעת החמה (${z.arvitStartFormatted})`
                 });
             }
         } catch (e) {
             console.error('Error calculating Zmanim:', e);
         }
-    }, []);
+    }, [cityName]);
 
     if (!zmanimData) return null;
 
@@ -85,6 +68,7 @@ export const ZmanimComponent = () => {
                 padding: '0 8px'
             }}>
                 <div>{zmanimData.shacharit}</div>
+                <div>{zmanimData.chatzot}</div>
                 <div>{zmanimData.minchaGedola}</div>
                 <div>{zmanimData.minchaKetana}</div>
                 <div>{zmanimData.arvit}</div>

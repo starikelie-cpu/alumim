@@ -2,49 +2,27 @@ import React, { useState, useMemo } from 'react';
 import { Modal, Table, Button, Popconfirm, Input, Tooltip, Select, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, SearchOutlined, HistoryOutlined, PrinterOutlined, DownloadOutlined, UploadOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { getDaysSinceAliyah, getYahrzeitIfInCurrentWeek, getYahrzeitIfWithin30Days, getUpcomingShabbatInfo, parseHebrewDate, getHebrewMonthNumber, getShmitaYearStatus, getAbsDate, isNewlyRegistered } from '../utils/hebrewDateUtils';
-import { HDate, Zmanim, GeoLocation } from '@hebcal/core';
+import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 import { API_BASE, isMobile } from '../config';
+import { getZmanimPrintHtml } from '../utils/zmanimUtils';
 
-const getZmanimPrintHtml = () => {
-    try {
-        const location = new GeoLocation('Israel', 31.778, 35.235, 800, 'Asia/Jerusalem');
-        const now = new Date();
-        const zman = new Zmanim(location, now, false);
-        const sunrise = zman.sunrise();
-        const sunset = zman.sunset();
+const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId, synagogues = [], currentUser = null, localSynagogueName = '' }) => {
+    const activeSynagogue = useMemo(() => {
+        if (!synagogues || synagogues.length === 0) return null;
+        if (guestSynagogueId) {
+            return synagogues.find(s => String(s.id) === String(guestSynagogueId)) || null;
+        }
+        if (currentUser?.synagogueId) {
+            return synagogues.find(s => String(s.id) === String(currentUser.synagogueId)) || null;
+        }
+        if (localSynagogueName) {
+            return synagogues.find(s => s.name === localSynagogueName) || null;
+        }
+        return synagogues[0] || null;
+    }, [synagogues, guestSynagogueId, currentUser, localSynagogueName]);
 
-        if (!sunrise || !sunset) return '';
-
-        const dayMs = sunset.getTime() - sunrise.getTime();
-        const shaahZmanitMs = dayMs / 12;
-        const shaahZmanitMinutes = Math.round(shaahZmanitMs / 60000);
-
-        const shacharitStart = sunrise;
-        const shacharitEnd = new Date(sunrise.getTime() + 4 * shaahZmanitMs);
-        const minchaGedola = new Date(sunrise.getTime() + 6.5 * shaahZmanitMs);
-        const minchaKetanaStart = new Date(sunrise.getTime() + 9.5 * shaahZmanitMs);
-        const minchaKetanaEnd = sunset;
-        const arvitStart = sunset;
-
-        const formatTime = (d) => d.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
-
-        return `
-            <div style="font-size: 9.5px; line-height: 1.25; text-align: right; direction: rtl; color: #222; font-weight: 500;">
-                <div><strong>שעה זמנית:</strong> ${shaahZmanitMinutes} דקות</div>
-                <div><strong>זמן שחרית:</strong> ${formatTime(shacharitStart)} - ${formatTime(shacharitEnd)}</div>
-                <div><strong>מנחה גדולה:</strong> ${formatTime(minchaGedola)}</div>
-                <div><strong>מנחה קטנה:</strong> ${formatTime(minchaKetanaStart)} - ${formatTime(minchaKetanaEnd)}</div>
-                <div><strong>זמן ערבית:</strong> משקיעת החמה (${formatTime(arvitStart)})</div>
-            </div>
-        `;
-    } catch (e) {
-        console.error('Error calculating zmanim for print:', e);
-        return '';
-    }
-};
-
-const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId }) => {
+    const synagogueCity = activeSynagogue?.city || activeSynagogue?.address || '';
     const [searchText, setSearchText] = useState('');
     const [searchFirstName, setSearchFirstName] = useState('');
     const [daysLimit, setDaysLimit] = useState(localStorage.getItem('printDaysLimit') || '');
@@ -137,7 +115,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         .title { font-size: 20px; font-weight: bold; margin: 0; }
                         .page-number { font-size: 13px; margin-top: 5px; font-weight: bold; }
                         .header-left-spacer { width: 220px; text-align: right; }
-                        table { width: 100%; border-collapse: collapse; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 3mm; }
                         th { border-bottom: 2px solid #333; font-weight: bold; color: #0066cc; text-align: right; padding: 5px 4px; box-sizing: border-box; font-size: 13px; }
                         td { border-bottom: 1px solid #eee; padding: 5px 4px; box-sizing: border-box; vertical-align: middle; text-align: right; font-size: 13px; }
                         .number { width: 5%; text-align: center; }
@@ -162,7 +140,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                     <div class="title">רשימת מתפללים מלאה</div>
                                     <div class="page-number">דף ${pageIndex + 1} מתוך ${totalPages}</div>
                                 </div>
-                                <div class="header-left-spacer">${getZmanimPrintHtml()}</div>
+                                <div class="header-left-spacer">${getZmanimPrintHtml(new Date(), synagogueCity)}</div>
                             </div>
                             <table>
                                 <thead>
@@ -317,7 +295,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         .header { text-align: center; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 32px; padding-top: 5px; position: relative; }
                         .date-left { position: absolute; top: 10px; left: 10px; font-size: 13px; font-weight: bold; text-align: right; }
                         .shmita-right { position: absolute; top: 10px; right: 10px; font-size: 14px; font-weight: bold; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: calc(5px + 3mm); }
                         th, td { border: none; padding: 2px 4px; text-align: right; line-height: 13pt; }
                         th { border-bottom: 1px solid #333; font-weight: bold; font-size: 12pt; color: #0066cc; }
                         td { font-size: 11pt; }
@@ -332,7 +310,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         <div class="header">
                             <div class="date-left">
                                 <div>${dayInfo.shabbatDateFormatted || dayInfo.shabbatDate}</div>
-                                ${getZmanimPrintHtml()}
+                                ${getZmanimPrintHtml(dayInfo.date || new Date(), synagogueCity)}
                             </div>
                             <div class="shmita-right">
                                 ${info.shmitaStatus || ''}<br/>
