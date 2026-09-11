@@ -292,7 +292,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         body { font-family: 'Assistant', sans-serif; padding: 20px; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         .day-container { page-break-after: always; }
                         .day-container:last-child { page-break-after: auto; }
-                        .header { text-align: center; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 32px; padding-top: 5px; position: relative; }
+                        .header { text-align: center; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 10px; padding-top: 5px; position: relative; min-height: 125px; box-sizing: border-box; }
                         .date-left { position: absolute; top: 10px; left: 10px; font-size: 13px; font-weight: bold; text-align: right; }
                         .shmita-right { position: absolute; top: 10px; right: 10px; font-size: 14px; font-weight: bold; }
                         table { width: 100%; border-collapse: collapse; margin-top: calc(5px + 3mm); }
