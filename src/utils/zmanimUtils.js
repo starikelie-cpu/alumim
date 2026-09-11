@@ -85,7 +85,21 @@ export const getGeoLocationForCity = (cityName) => {
 export const calculateZmanim = (targetDate = new Date(), cityName = '') => {
     try {
         const location = getGeoLocationForCity(cityName);
-        const dateObj = targetDate instanceof Date ? targetDate : new Date(targetDate);
+        let dateObj;
+        if (targetDate instanceof Date) {
+            dateObj = targetDate;
+        } else if (targetDate && typeof targetDate.greg === 'function') {
+            dateObj = targetDate.greg();
+        } else if (targetDate) {
+            dateObj = new Date(targetDate);
+        } else {
+            dateObj = new Date();
+        }
+
+        if (!dateObj || isNaN(dateObj.getTime())) {
+            dateObj = new Date();
+        }
+
         const zman = new Zmanim(location, dateObj, false);
 
         const sunrise = zman.sunrise();
