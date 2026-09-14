@@ -215,8 +215,8 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                     title: 'שם משפחה',
                     dataIndex: 'lastName',
                     key: 'lastName',
-                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold' } }),
-                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px' } })
+                    onHeaderCell: () => ({ style: { fontSize: '17px', fontWeight: 'bold' } }),
+                    onCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', lineHeight: '1.3', padding: '4px 6px' } })
                 },
                 {
                     title: 'שם פרטי',

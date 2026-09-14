@@ -5,7 +5,7 @@ import { getDaysSinceAliyah, getYahrzeitIfInCurrentWeek, getYahrzeitIfWithin30Da
 import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 import { API_BASE, isMobile } from '../config';
-import { getZmanimPrintHtml, getWeeklyFastInfo } from '../utils/zmanimUtils';
+import { getZmanimPrintHtml, getSpecialDaysAndFastsInfo } from '../utils/zmanimUtils';
 
 const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId, synagogues = [], currentUser = null, localSynagogueName = '' }) => {
     const activeSynagogue = useMemo(() => {
@@ -283,9 +283,6 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 return;
             }
 
-            const weeklyFasts = getWeeklyFastInfo(info.date || new Date(), synagogueCity);
-            const fastInfoHtml = weeklyFasts.map(f => `<div style="color: #cf1322; font-size: 15px; font-weight: bold; margin-top: 3px;">${f.displayText}</div>`).join('');
-
             const html = `
                 <html dir="rtl" lang="he">
                 <head>
@@ -298,6 +295,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         .header { text-align: center; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 10px; padding-top: 5px; position: relative; min-height: 125px; box-sizing: border-box; }
                         .date-left { position: absolute; top: 10px; left: 10px; font-size: 13px; font-weight: bold; text-align: right; }
                         .shmita-right { position: absolute; top: 10px; right: 10px; font-size: 14px; font-weight: bold; }
+                        .center-header { margin-left: 200px; margin-right: 190px; text-align: center; }
                         table { width: 100%; border-collapse: collapse; margin-top: calc(5px + 3mm); }
                         th, td { border: none; padding: 2px 4px; text-align: right; line-height: 13pt; }
                         th { border-bottom: 1px solid #333; font-weight: bold; font-size: 12pt; color: #0066cc; }
@@ -308,7 +306,13 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                     </style>
                 </head>
                 <body>
-                    ${info.daysToPrint.map((dayInfo, index) => `
+                    ${info.daysToPrint.map((dayInfo, index) => {
+                const specialEvents = getSpecialDaysAndFastsInfo(dayInfo.date || info.date || new Date(), synagogueCity);
+                const specialEventsHtml = specialEvents.map(ev => 
+                    `<div style="color: #cf1322; font-size: 13.5px; font-weight: bold; margin-top: 2px; line-height: 1.25; word-break: break-word;">${ev.displayText}</div>`
+                ).join('');
+
+                return `
                     <div class="day-container">
                         <div class="header">
                             <div class="date-left">
@@ -320,13 +324,15 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 ${info.nextBirkatHaChama ? `ברכת החמה הבאה: ${info.nextBirkatHaChama}` : ''}<br/>
                                 שנים לבריאת העולם: ${dayInfo.date.getFullYear()}
                             </div>
-                            <div class="title">רשימת מתפללים - ${dayInfo.parasha}</div>
-                            ${dayInfo.pirkeiAvot ? `<div style="color: #0066cc; font-size: 18px; font-weight: bold; margin-bottom: 5px;">${dayInfo.pirkeiAvot.display}</div>` : ''}
-                            ${dayInfo.isBiurMaaserot ? `<div style="color: #0000ff; font-size: 18px; font-weight: bold; margin-bottom: 5px;">ביעור מעשרות</div>` : ''}
-                            ${dayInfo.haftarah ? `<div style="color: #000; font-size: 11pt; margin-bottom: 5px;">הפטרת השבוע: ${dayInfo.haftarah}</div>` : ''}
-                            ${dayInfo.specialShabbatType ? `<div style="color: #0066cc; font-size: 20px; font-weight: bold; margin-bottom: 5px;">${dayInfo.specialShabbatType}</div>` : ''}
-                            ${info.isMevarchim ? `<div style="color: #ff0000; font-size: 18px; font-weight: bold; margin-top: 2px;">שבת מברכים ${info.month}</div>` : ''}
-                            ${fastInfoHtml}
+                            <div class="center-header">
+                                <div class="title">רשימת מתפללים - ${dayInfo.parasha}</div>
+                                ${dayInfo.pirkeiAvot ? `<div style="color: #0066cc; font-size: 17px; font-weight: bold; margin-bottom: 3px;">${dayInfo.pirkeiAvot.display}</div>` : ''}
+                                ${dayInfo.isBiurMaaserot ? `<div style="color: #0000ff; font-size: 17px; font-weight: bold; margin-bottom: 3px;">ביעור מעשרות</div>` : ''}
+                                ${dayInfo.haftarah ? `<div style="color: #000; font-size: 11pt; margin-bottom: 3px;">הפטרת השבוע: ${dayInfo.haftarah}</div>` : ''}
+                                ${dayInfo.specialShabbatType ? `<div style="color: #0066cc; font-size: 18px; font-weight: bold; margin-bottom: 3px;">${dayInfo.specialShabbatType}</div>` : ''}
+                                ${info.isMevarchim ? `<div style="color: #ff0000; font-size: 17px; font-weight: bold; margin-top: 2px;">שבת מברכים ${info.month}</div>` : ''}
+                                ${specialEventsHtml}
+                            </div>
                         </div>
                     <table>
                         <thead>
@@ -512,7 +518,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         `;
                         })()}
                     </div>
-                    `).join('')}
+                    `;
+            }).join('')}
                 </body>
                 </html>
             `;

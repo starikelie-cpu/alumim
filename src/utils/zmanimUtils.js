@@ -166,7 +166,7 @@ export const getZmanimPrintHtml = (targetDate = new Date(), cityName = '') => {
     }
 };
 
-export const getWeeklyFastInfo = (shabbatDateInput = new Date(), cityName = '') => {
+export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityName = '') => {
     try {
         const location = getGeoLocationForCity(cityName);
         let shabbatHDate;
@@ -180,53 +180,77 @@ export const getWeeklyFastInfo = (shabbatDateInput = new Date(), cityName = '') 
             shabbatHDate = new HDate().onOrAfter(6);
         }
 
-        const sunday = shabbatHDate.add(-6, 'd');
-        const events = HebrewCalendar.calendar({ start: sunday, end: shabbatHDate, il: true });
-        const fasts = [];
+        // Scan from upcoming Shabbat to the following Shabbat (inclusive range)
+        const nextShabbat = shabbatHDate.add(7, 'd');
+        const events = HebrewCalendar.calendar({ start: shabbatHDate, end: nextShabbat, il: true });
+        const results = [];
+        const seenNames = new Set();
 
         events.forEach(e => {
             const f = e.getFlags();
             const rawTitle = e.render('he');
             const title = rawTitle.replace(/[\u0591-\u05C7]/g, '').trim();
 
+            if (f & (flags.DAF_YOMI | flags.OMER_COUNT | flags.HEBREW_DATE | flags.MOLAD | flags.PARSHA_HASHAVUA)) return;
+            if (rawTitle.includes('Candle lighting') || rawTitle.includes('Havdalah')) return;
+            if (title.includes('ערב ראש חודש') || title.includes('ערב שבת')) return;
+
             const isFast = ((f & flags.MINOR_FAST) || (f & flags.MAJOR_FAST) || title.includes('כפור') || title.includes('כיפור')) && !title.includes('ערב');
-            if (isFast) {
-                const fastDate = e.getDate();
-                const dayOfWeek = fastDate.getDay();
+            const isSpecial = isFast || (f & (flags.CHAG | flags.ROSH_CHODESH | flags.MINOR_HOLIDAY | flags.MODERN_HOLIDAY | flags.SPECIAL_SHABBAT)) ||
+                title.includes('ראש חודש') || title.includes('חנוכה') || title.includes('פורים') || title.includes('שבועות') ||
+                title.includes('פסח') || title.includes('סוכות') || title.includes('שמחת תורה') || title.includes('שמיני עצרת');
+
+            if (isSpecial && !seenNames.has(title)) {
+                seenNames.add(title);
+                const evDate = e.getDate();
+                const dayOfWeek = evDate.getDay();
                 const daysArr = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'שבת'];
                 const dayName = daysArr[dayOfWeek];
 
-                const zmanFast = new Zmanim(location, fastDate.greg(), false);
-                let startTime = '', endTime = '';
-                const formatT = (d) => d ? d.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' }) : '';
+                const rend = evDate.renderGematriya(true).split(' ');
+                const formattedEvDate = `${rend[0]} ${rend.slice(1, -1).join(' ').replace(/^ב/, '')}`;
 
-                if (title.includes('כפור') || title.includes('כיפור') || title.includes('תשעה באב')) {
-                    const eveDate = fastDate.add(-1, 'd');
-                    const zmanEve = new Zmanim(location, eveDate.greg(), false);
-                    startTime = formatT(zmanEve.sunset());
-                    endTime = formatT(zmanFast.tzeit());
+                if (isFast) {
+                    const zmanFast = new Zmanim(location, evDate.greg(), false);
+                    let startTime = '', endTime = '';
+                    const formatT = (d) => d ? d.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' }) : '';
+
+                    if (title.includes('כפור') || title.includes('כיפור') || title.includes('תשעה באב')) {
+                        const eveDate = evDate.add(-1, 'd');
+                        const zmanEve = new Zmanim(location, eveDate.greg(), false);
+                        startTime = formatT(zmanEve.sunset());
+                        endTime = formatT(zmanFast.tzeit());
+                    } else {
+                        startTime = formatT(zmanFast.alotHaShachar());
+                        endTime = formatT(zmanFast.tzeit());
+                    }
+
+                    results.push({
+                        type: 'fast',
+                        name: title,
+                        dayName: dayName,
+                        dateStr: formattedEvDate,
+                        startTime: startTime,
+                        endTime: endTime,
+                        displayText: `חל השבוע: ${title} ב${dayName} (${formattedEvDate}) | תחילת הצום: ${startTime} | סיום הצום: ${endTime}`
+                    });
                 } else {
-                    startTime = formatT(zmanFast.alotHaShachar());
-                    endTime = formatT(zmanFast.tzeit());
+                    results.push({
+                        type: 'holiday',
+                        name: title,
+                        dayName: dayName,
+                        dateStr: formattedEvDate,
+                        displayText: `אירוע מיוחד: ${title} ב${dayName} (${formattedEvDate})`
+                    });
                 }
-
-                const rend = fastDate.renderGematriya(true).split(' ');
-                const formattedFastDate = `${rend[0]} ${rend.slice(1, -1).join(' ').replace(/^ב/, '')}`;
-
-                fasts.push({
-                    name: title,
-                    dayName: dayName,
-                    dateStr: formattedFastDate,
-                    startTime: startTime,
-                    endTime: endTime,
-                    displayText: `חל השבוע: ${title} ב${dayName} (${formattedFastDate}) | תחילת הצום: ${startTime} | סיום הצום: ${endTime}`
-                });
             }
         });
 
-        return fasts;
+        return results;
     } catch (e) {
-        console.error('Error in getWeeklyFastInfo:', e);
+        console.error('Error in getSpecialDaysAndFastsInfo:', e);
         return [];
     }
 };
+
+export const getWeeklyFastInfo = getSpecialDaysAndFastsInfo;
