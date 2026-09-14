@@ -219,12 +219,10 @@ export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityNa
                     let startTime = '', endTime = '';
                     const formatT = (d) => d ? d.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' }) : '';
 
-                    if (title.includes('כפור') || title.includes('כיפור')) {
+                    if (title.includes('כפור') || title.includes('כיפור') || title.includes('תשעה באב')) {
                         const eveDate = evDate.add(-1, 'd');
                         const zmanEve = new Zmanim(location, eveDate.greg(), false);
-                        const sunsetTime = zmanEve.sunset();
-                        const startYomKippur = sunsetTime ? new Date(sunsetTime.getTime() - 22 * 60 * 1000) : null;
-                        startTime = formatT(startYomKippur);
+                        startTime = formatT(zmanEve.sunset());
                         endTime = formatT(zmanFast.tzeit());
                     } else {
                         startTime = formatT(zmanFast.alotHaShachar());

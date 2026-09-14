@@ -491,20 +491,41 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             )
         },
         {
-            title: isMobile() ? (
-                <span style={{ fontSize: '12px', whiteSpace: 'nowrap', display: 'inline-block' }}>מתפללים</span>
-            ) : 'מתפללים',
+            title: 'כתובת',
+            dataIndex: 'address',
+            key: 'address',
+            render: (addr, record) =>
+                editingSynId === record.id ? (
+                    <div>
+                        <Form form={editingSynForm} layout="vertical" style={{ margin: 0 }}>
+                            <Space size={4}>
+                                <Form.Item name="city" style={{ marginBottom: 4 }}>
+                                    <Input size="small" style={{ width: 100 }} placeholder="עיר" />
+                                </Form.Item>
+                                <Form.Item name="street" style={{ marginBottom: 4 }}>
+                                    <Input size="small" style={{ width: 100 }} placeholder="רחוב" />
+                                </Form.Item>
+                                <Form.Item name="houseNumber" style={{ marginBottom: 4 }}>
+                                    <Input size="small" style={{ width: 70 }} placeholder="מס'" />
+                                </Form.Item>
+                            </Space>
+                        </Form>
+                    </div>
+                ) : (
+                    <Space direction="vertical" size={0}>
+                        {record.city && <Text type="secondary">{record.city}</Text>}
+                        {record.street && <Text>{record.street} {record.houseNumber}</Text>}
+                        {!record.city && !record.street && <Text type="secondary">—</Text>}
+                    </Space>
+                )
+        },
+        {
+            title: 'מתפללים',
             key: 'memberCount',
             align: 'center',
-            onHeaderCell: () => ({ style: { textAlign: 'center', whiteSpace: 'nowrap' } }),
-            onCell: () => ({ style: { textAlign: 'center' } }),
             render: (_, record) => {
                 const s = synStats.find(x => x.id === record.id);
-                return (
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <Badge count={s?.memberCount || 0} overflowCount={99999} showZero color="#1890ff" />
-                    </div>
-                );
+                return <Badge count={s?.memberCount || 0} overflowCount={99999} showZero color="#1890ff" />;
             }
         },
         {
@@ -534,35 +555,6 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                     </Tooltip>
                 );
             }
-        },
-        {
-            title: 'כתובת',
-            dataIndex: 'address',
-            key: 'address',
-            render: (addr, record) =>
-                editingSynId === record.id ? (
-                    <div>
-                        <Form form={editingSynForm} layout="vertical" style={{ margin: 0 }}>
-                            <Space size={4}>
-                                <Form.Item name="city" style={{ marginBottom: 4 }}>
-                                    <Input size="small" style={{ width: 100 }} placeholder="עיר" />
-                                </Form.Item>
-                                <Form.Item name="street" style={{ marginBottom: 4 }}>
-                                    <Input size="small" style={{ width: 100 }} placeholder="רחוב" />
-                                </Form.Item>
-                                <Form.Item name="houseNumber" style={{ marginBottom: 4 }}>
-                                    <Input size="small" style={{ width: 70 }} placeholder="מס'" />
-                                </Form.Item>
-                            </Space>
-                        </Form>
-                    </div>
-                ) : (
-                    <Space direction="vertical" size={0}>
-                        {record.city && <Text type="secondary">{record.city}</Text>}
-                        {record.street && <Text>{record.street} {record.houseNumber}</Text>}
-                        {!record.city && !record.street && <Text type="secondary">—</Text>}
-                    </Space>
-                )
         },
         {
             title: 'פעולות',
@@ -1072,7 +1064,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                         scroll={{ y: 300 }}
                         columns={[
                             { title: 'בית כנסת', dataIndex: 'name', key: 'name', render: n => <strong>{n}</strong> },
-                            { title: isMobile() ? <span style={{ fontSize: '12px', whiteSpace: 'nowrap', display: 'inline-block' }}>מתפללים</span> : 'מתפללים', dataIndex: 'memberCount', key: 'memberCount', align: 'center', onHeaderCell: () => ({ style: { textAlign: 'center', whiteSpace: 'nowrap' } }), onCell: () => ({ style: { textAlign: 'center' } }), render: v => <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}><Badge count={v} showZero color="#1890ff" /></div> },
+                            { title: 'מתפללים', dataIndex: 'memberCount', key: 'memberCount', align: 'center', render: v => <Badge count={v} showZero color="#1890ff" /> },
                             { title: 'נפטרים', dataIndex: 'niftarCount', key: 'niftarCount', align: 'center', render: v => <Badge count={v} showZero color="#ff4d4f" /> },
                             { title: 'משתמשים', dataIndex: 'userCount', key: 'userCount', align: 'center', render: v => <Badge count={v} showZero color="#722ed1" /> },
                         ]}
