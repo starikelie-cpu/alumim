@@ -193,7 +193,11 @@ export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityNa
 
             if (f & (flags.DAF_YOMI | flags.OMER_COUNT | flags.HEBREW_DATE | flags.MOLAD | flags.PARSHA_HASHAVUA)) return;
             if (rawTitle.includes('Candle lighting') || rawTitle.includes('Havdalah')) return;
-            if (title.includes('ערב ראש חודש') || title.includes('ערב שבת')) return;
+            if (title.includes('ערב')) return; // Filter out holiday eves (ערבי חג)
+
+            const evDate = e.getDate();
+            const dayOfWeek = evDate.getDay();
+            if (dayOfWeek === 6) return; // Filter out events falling on Shabbat (אירועים שחלים בשבת)
 
             const isFast = ((f & flags.MINOR_FAST) || (f & flags.MAJOR_FAST) || title.includes('כפור') || title.includes('כיפור')) && !title.includes('ערב');
             const isSpecial = isFast || (f & (flags.CHAG | flags.ROSH_CHODESH | flags.MINOR_HOLIDAY | flags.MODERN_HOLIDAY | flags.SPECIAL_SHABBAT)) ||
