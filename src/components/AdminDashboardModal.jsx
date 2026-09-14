@@ -491,12 +491,20 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             )
         },
         {
-            title: 'מתפללים',
+            title: isMobile() ? (
+                <span style={{ fontSize: '12px', whiteSpace: 'nowrap', display: 'inline-block' }}>מתפללים</span>
+            ) : 'מתפללים',
             key: 'memberCount',
             align: 'center',
+            onHeaderCell: () => ({ style: { textAlign: 'center', whiteSpace: 'nowrap' } }),
+            onCell: () => ({ style: { textAlign: 'center' } }),
             render: (_, record) => {
                 const s = synStats.find(x => x.id === record.id);
-                return <Badge count={s?.memberCount || 0} overflowCount={99999} showZero color="#1890ff" />;
+                return (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <Badge count={s?.memberCount || 0} overflowCount={99999} showZero color="#1890ff" />
+                    </div>
+                );
             }
         },
         {
@@ -1064,7 +1072,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                         scroll={{ y: 300 }}
                         columns={[
                             { title: 'בית כנסת', dataIndex: 'name', key: 'name', render: n => <strong>{n}</strong> },
-                            { title: 'מתפללים', dataIndex: 'memberCount', key: 'memberCount', align: 'center', render: v => <Badge count={v} showZero color="#1890ff" /> },
+                            { title: isMobile() ? <span style={{ fontSize: '12px', whiteSpace: 'nowrap', display: 'inline-block' }}>מתפללים</span> : 'מתפללים', dataIndex: 'memberCount', key: 'memberCount', align: 'center', onHeaderCell: () => ({ style: { textAlign: 'center', whiteSpace: 'nowrap' } }), onCell: () => ({ style: { textAlign: 'center' } }), render: v => <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}><Badge count={v} showZero color="#1890ff" /></div> },
                             { title: 'נפטרים', dataIndex: 'niftarCount', key: 'niftarCount', align: 'center', render: v => <Badge count={v} showZero color="#ff4d4f" /> },
                             { title: 'משתמשים', dataIndex: 'userCount', key: 'userCount', align: 'center', render: v => <Badge count={v} showZero color="#722ed1" /> },
                         ]}
