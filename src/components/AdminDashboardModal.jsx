@@ -491,35 +491,6 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             )
         },
         {
-            title: 'כתובת',
-            dataIndex: 'address',
-            key: 'address',
-            render: (addr, record) =>
-                editingSynId === record.id ? (
-                    <div>
-                        <Form form={editingSynForm} layout="vertical" style={{ margin: 0 }}>
-                            <Space size={4}>
-                                <Form.Item name="city" style={{ marginBottom: 4 }}>
-                                    <Input size="small" style={{ width: 100 }} placeholder="עיר" />
-                                </Form.Item>
-                                <Form.Item name="street" style={{ marginBottom: 4 }}>
-                                    <Input size="small" style={{ width: 100 }} placeholder="רחוב" />
-                                </Form.Item>
-                                <Form.Item name="houseNumber" style={{ marginBottom: 4 }}>
-                                    <Input size="small" style={{ width: 70 }} placeholder="מס'" />
-                                </Form.Item>
-                            </Space>
-                        </Form>
-                    </div>
-                ) : (
-                    <Space direction="vertical" size={0}>
-                        {record.city && <Text type="secondary">{record.city}</Text>}
-                        {record.street && <Text>{record.street} {record.houseNumber}</Text>}
-                        {!record.city && !record.street && <Text type="secondary">—</Text>}
-                    </Space>
-                )
-        },
-        {
             title: 'מתפללים',
             key: 'memberCount',
             align: 'center',
@@ -555,6 +526,35 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                     </Tooltip>
                 );
             }
+        },
+        {
+            title: 'כתובת',
+            dataIndex: 'address',
+            key: 'address',
+            render: (addr, record) =>
+                editingSynId === record.id ? (
+                    <div>
+                        <Form form={editingSynForm} layout="vertical" style={{ margin: 0 }}>
+                            <Space size={4}>
+                                <Form.Item name="city" style={{ marginBottom: 4 }}>
+                                    <Input size="small" style={{ width: 100 }} placeholder="עיר" />
+                                </Form.Item>
+                                <Form.Item name="street" style={{ marginBottom: 4 }}>
+                                    <Input size="small" style={{ width: 100 }} placeholder="רחוב" />
+                                </Form.Item>
+                                <Form.Item name="houseNumber" style={{ marginBottom: 4 }}>
+                                    <Input size="small" style={{ width: 70 }} placeholder="מס'" />
+                                </Form.Item>
+                            </Space>
+                        </Form>
+                    </div>
+                ) : (
+                    <Space direction="vertical" size={0}>
+                        {record.city && <Text type="secondary">{record.city}</Text>}
+                        {record.street && <Text>{record.street} {record.houseNumber}</Text>}
+                        {!record.city && !record.street && <Text type="secondary">—</Text>}
+                    </Space>
+                )
         },
         {
             title: 'פעולות',
