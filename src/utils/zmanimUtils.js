@@ -1,4 +1,4 @@
-import { GeoLocation, Zmanim } from '@hebcal/core';
+import { GeoLocation, Zmanim, HebrewCalendar, HDate, flags } from '@hebcal/core';
 
 // Coordinates dictionary for major cities and towns in Israel
 export const ISRAEL_CITY_COORDINATES = {
@@ -163,5 +163,70 @@ export const getZmanimPrintHtml = (targetDate = new Date(), cityName = '') => {
     } catch (e) {
         console.error('Error generating zmanim print HTML:', e);
         return '';
+    }
+};
+
+export const getWeeklyFastInfo = (shabbatDateInput = new Date(), cityName = '') => {
+    try {
+        const location = getGeoLocationForCity(cityName);
+        let shabbatHDate;
+        if (shabbatDateInput instanceof HDate) {
+            shabbatHDate = shabbatDateInput;
+        } else if (shabbatDateInput instanceof Date) {
+            shabbatHDate = new HDate(shabbatDateInput).onOrAfter(6);
+        } else if (shabbatDateInput) {
+            shabbatHDate = new HDate(new Date(shabbatDateInput)).onOrAfter(6);
+        } else {
+            shabbatHDate = new HDate().onOrAfter(6);
+        }
+
+        const sunday = shabbatHDate.add(-6, 'd');
+        const events = HebrewCalendar.calendar({ start: sunday, end: shabbatHDate, il: true });
+        const fasts = [];
+
+        events.forEach(e => {
+            const f = e.getFlags();
+            const rawTitle = e.render('he');
+            const title = rawTitle.replace(/[\u0591-\u05C7]/g, '').trim();
+
+            const isFast = ((f & flags.MINOR_FAST) || (f & flags.MAJOR_FAST) || title.includes('כפור') || title.includes('כיפור')) && !title.includes('ערב');
+            if (isFast) {
+                const fastDate = e.getDate();
+                const dayOfWeek = fastDate.getDay();
+                const daysArr = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'שבת'];
+                const dayName = daysArr[dayOfWeek];
+
+                const zmanFast = new Zmanim(location, fastDate.greg(), false);
+                let startTime = '', endTime = '';
+                const formatT = (d) => d ? d.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' }) : '';
+
+                if (title.includes('כפור') || title.includes('כיפור') || title.includes('תשעה באב')) {
+                    const eveDate = fastDate.add(-1, 'd');
+                    const zmanEve = new Zmanim(location, eveDate.greg(), false);
+                    startTime = formatT(zmanEve.sunset());
+                    endTime = formatT(zmanFast.tzeit());
+                } else {
+                    startTime = formatT(zmanFast.alotHaShachar());
+                    endTime = formatT(zmanFast.tzeit());
+                }
+
+                const rend = fastDate.renderGematriya(true).split(' ');
+                const formattedFastDate = `${rend[0]} ${rend.slice(1, -1).join(' ').replace(/^ב/, '')}`;
+
+                fasts.push({
+                    name: title,
+                    dayName: dayName,
+                    dateStr: formattedFastDate,
+                    startTime: startTime,
+                    endTime: endTime,
+                    displayText: `חל השבוע: ${title} ב${dayName} (${formattedFastDate}) | תחילת הצום: ${startTime} | סיום הצום: ${endTime}`
+                });
+            }
+        });
+
+        return fasts;
+    } catch (e) {
+        console.error('Error in getWeeklyFastInfo:', e);
+        return [];
     }
 };

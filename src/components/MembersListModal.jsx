@@ -5,7 +5,7 @@ import { getDaysSinceAliyah, getYahrzeitIfInCurrentWeek, getYahrzeitIfWithin30Da
 import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 import { API_BASE, isMobile } from '../config';
-import { getZmanimPrintHtml } from '../utils/zmanimUtils';
+import { getZmanimPrintHtml, getWeeklyFastInfo } from '../utils/zmanimUtils';
 
 const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId, synagogues = [], currentUser = null, localSynagogueName = '' }) => {
     const activeSynagogue = useMemo(() => {
@@ -283,6 +283,9 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 return;
             }
 
+            const weeklyFasts = getWeeklyFastInfo(info.date || new Date(), synagogueCity);
+            const fastInfoHtml = weeklyFasts.map(f => `<div style="color: #cf1322; font-size: 15px; font-weight: bold; margin-top: 3px;">${f.displayText}</div>`).join('');
+
             const html = `
                 <html dir="rtl" lang="he">
                 <head>
@@ -323,6 +326,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                             ${dayInfo.haftarah ? `<div style="color: #000; font-size: 11pt; margin-bottom: 5px;">הפטרת השבוע: ${dayInfo.haftarah}</div>` : ''}
                             ${dayInfo.specialShabbatType ? `<div style="color: #0066cc; font-size: 20px; font-weight: bold; margin-bottom: 5px;">${dayInfo.specialShabbatType}</div>` : ''}
                             ${info.isMevarchim ? `<div style="color: #ff0000; font-size: 18px; font-weight: bold; margin-top: 2px;">שבת מברכים ${info.month}</div>` : ''}
+                            ${fastInfoHtml}
                         </div>
                     <table>
                         <thead>

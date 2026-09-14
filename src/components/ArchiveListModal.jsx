@@ -210,37 +210,73 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
     const columns = useMemo(() => {
         // עמודות פשוטות למובייל
         if (mobile) {
-            return [
+            const mobileCols = [
                 {
                     title: 'שם משפחה',
                     dataIndex: 'lastName',
                     key: 'lastName',
-                    onHeaderCell: () => ({ style: { fontSize: '17px', fontWeight: 'bold' } }),
-                    onCell: () => ({ style: { fontSize: '16px', lineHeight: '1.4', padding: '6px 8px' } })
+                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px' } })
                 },
                 {
                     title: 'שם פרטי',
                     dataIndex: 'firstName',
                     key: 'firstName',
-                    onHeaderCell: () => ({ style: { fontSize: '17px', fontWeight: 'bold' } }),
-                    onCell: () => ({ style: { fontSize: '16px', lineHeight: '1.4', padding: '6px 8px' } })
+                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px' } })
                 },
                 {
                     title: 'שם אב',
                     dataIndex: 'fatherName',
                     key: 'fatherName',
-                    onHeaderCell: () => ({ style: { fontSize: '17px', fontWeight: 'bold' } }),
-                    onCell: () => ({ style: { fontSize: '16px', lineHeight: '1.4', padding: '6px 8px' } })
+                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px' } })
                 },
                 {
                     title: 'תאריך עליה',
                     dataIndex: 'aliyah_date',
                     key: 'aliyah_date',
-                    onHeaderCell: () => ({ style: { fontSize: '17px', fontWeight: 'bold' } }),
-                    onCell: () => ({ style: { fontSize: '16px', lineHeight: '1.4', padding: '6px 8px' } }),
+                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px' } }),
                     render: (text) => formatHebrewDateToTextual(text, true)
                 },
             ];
+
+            if (isAdmin) {
+                mobileCols.push({
+                    title: 'פעולות',
+                    key: 'actions',
+                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 4px' } }),
+                    render: (_, record) => (
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            <Button
+                                type="link"
+                                icon={<EditOutlined />}
+                                onClick={() => onEdit(record)}
+                                title="עריכה"
+                                style={{ padding: '0 4px' }}
+                            />
+                            <Popconfirm
+                                title="האם למחוק רשומה זו מהארכיון?"
+                                onConfirm={() => onDelete(record.archiveId)}
+                                okText="כן"
+                                cancelText="לא"
+                            >
+                                <Button
+                                    type="link"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    title="מחיקה"
+                                    style={{ padding: '0 4px' }}
+                                />
+                            </Popconfirm>
+                        </div>
+                    )
+                });
+            }
+
+            return mobileCols;
         }
 
         // עמודות מלאות לדסקטופ
