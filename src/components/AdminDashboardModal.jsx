@@ -476,9 +476,6 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             title: 'שם בית כנסת',
             dataIndex: 'name',
             key: 'name',
-            width: isMobile() ? '45%' : undefined,
-            onHeaderCell: () => ({ style: { padding: isMobile() ? '4px 6px' : undefined } }),
-            onCell: () => ({ style: { padding: isMobile() ? '4px 6px' : undefined } }),
             render: (name, record) => (
                 editingSynId === record.id ? (
                     <div>
@@ -494,21 +491,12 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             )
         },
         {
-            title: isMobile() ? (
-                <span style={{ fontSize: '11px', whiteSpace: 'nowrap', display: 'inline-block' }}>מתפללים</span>
-            ) : 'מתפללים',
+            title: 'מתפללים',
             key: 'memberCount',
             align: 'center',
-            width: isMobile() ? '65px' : undefined,
-            onHeaderCell: () => ({ style: { textAlign: 'center', whiteSpace: 'nowrap', padding: isMobile() ? '4px 2px' : undefined } }),
-            onCell: () => ({ style: { textAlign: 'center', padding: isMobile() ? '4px 2px' : undefined } }),
             render: (_, record) => {
                 const s = synStats.find(x => x.id === record.id);
-                return (
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-                        <Badge count={s?.memberCount || 0} overflowCount={99999} showZero color="#1890ff" />
-                    </div>
-                );
+                return <Badge count={s?.memberCount || 0} overflowCount={99999} showZero color="#1890ff" />;
             }
         },
         {
@@ -1076,7 +1064,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                         scroll={{ y: 300 }}
                         columns={[
                             { title: 'בית כנסת', dataIndex: 'name', key: 'name', render: n => <strong>{n}</strong> },
-                            { title: isMobile() ? <span style={{ fontSize: '11px', whiteSpace: 'nowrap', display: 'inline-block' }}>מתפללים</span> : 'מתפללים', dataIndex: 'memberCount', key: 'memberCount', align: 'center', onHeaderCell: () => ({ style: { textAlign: 'center', whiteSpace: 'nowrap' } }), onCell: () => ({ style: { textAlign: 'center' } }), render: v => <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}><Badge count={v} showZero color="#1890ff" /></div> },
+                            { title: 'מתפללים', dataIndex: 'memberCount', key: 'memberCount', align: 'center', render: v => <Badge count={v} showZero color="#1890ff" /> },
                             { title: 'נפטרים', dataIndex: 'niftarCount', key: 'niftarCount', align: 'center', render: v => <Badge count={v} showZero color="#ff4d4f" /> },
                             { title: 'משתמשים', dataIndex: 'userCount', key: 'userCount', align: 'center', render: v => <Badge count={v} showZero color="#722ed1" /> },
                         ]}
