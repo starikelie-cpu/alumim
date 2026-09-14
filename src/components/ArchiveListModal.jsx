@@ -216,29 +216,29 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                     dataIndex: 'lastName',
                     key: 'lastName',
                     align: 'right',
-                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', textAlign: 'right' } }),
-                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 24px', minWidth: '150px', textAlign: 'right' } })
+                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', textAlign: 'right', whiteSpace: 'nowrap' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 8px', whiteSpace: 'nowrap', textAlign: 'right' } })
                 },
                 {
                     title: 'שם פרטי',
                     dataIndex: 'firstName',
                     key: 'firstName',
-                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold' } }),
-                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px' } })
+                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', whiteSpace: 'nowrap' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px', whiteSpace: 'nowrap' } })
                 },
                 {
                     title: 'שם אב',
                     dataIndex: 'fatherName',
                     key: 'fatherName',
-                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold' } }),
-                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px' } })
+                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', whiteSpace: 'nowrap' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px', whiteSpace: 'nowrap' } })
                 },
                 {
                     title: 'תאריך עליה',
                     dataIndex: 'aliyah_date',
                     key: 'aliyah_date',
-                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold' } }),
-                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px' } }),
+                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', whiteSpace: 'nowrap' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 6px', whiteSpace: 'nowrap' } }),
                     render: (text) => formatHebrewDateToTextual(text, true)
                 },
             ];
@@ -247,8 +247,8 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                 mobileCols.push({
                     title: 'פעולות',
                     key: 'actions',
-                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold' } }),
-                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 4px' } }),
+                    onHeaderCell: () => ({ style: { fontSize: '16px', fontWeight: 'bold', whiteSpace: 'nowrap' } }),
+                    onCell: () => ({ style: { fontSize: '15px', lineHeight: '1.3', padding: '4px 4px', whiteSpace: 'nowrap' } }),
                     render: (_, record) => (
                         <div style={{ display: 'flex', gap: '4px' }}>
                             <Button
@@ -643,8 +643,8 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
             width="100%"
             style={{ top: 0, margin: 0, maxWidth: '100vw', padding: 0, height: '100vh' }}
             styles={{
-                body: { padding: '4px 16px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
-                content: { height: '100vh', display: 'flex', flexDirection: 'column' }
+                body: { padding: mobile ? '4px 4px' : '4px 16px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+                content: { height: '100vh', display: 'flex', flexDirection: 'column', padding: mobile ? '8px 4px' : '16px' }
             }}
         >
             <div style={{
@@ -791,7 +791,7 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                 loading={loading}
                 pagination={false}
                 size="small"
-                scroll={{ y: 'calc(100vh - 155px)' }}
+                scroll={{ x: mobile ? 'max-content' : undefined, y: 'calc(100vh - 155px)' }}
             />
         </Modal>
     );
