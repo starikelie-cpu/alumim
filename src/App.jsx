@@ -14,6 +14,7 @@ import NiftarimListModal from './components/NiftarimListModal';
 import LoginModal from './components/LoginModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
 import { API_BASE, isMobile, isElectron, getPlatform } from './config';
+import alteSynagogueIcon from './assets/alte_synagogue_icon.png';
 
 function App() {
     const [members, setMembers] = useState([]);
@@ -94,6 +95,21 @@ function App() {
 
     // App loading state for splash screen
     const [isAppLoading, setIsAppLoading] = useState(true);
+
+    const handleOpenBrowser = useCallback((e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        const currentSyn = user?.synagogueId 
+            ? synagogues.find(s => s.id === user.synagogueId)
+            : (guestSynagogueId ? synagogues.find(s => s.id === guestSynagogueId) : null);
+        
+        const targetUrl = currentSyn?.website || (
+            window.location.protocol === 'file:' 
+                ? 'http://localhost:3000' 
+                : window.location.origin
+        );
+        
+        window.open(targetUrl, '_blank');
+    }, [user, guestSynagogueId, synagogues]);
 
     const loadPreferences = useCallback(async () => {
         try {
@@ -1117,7 +1133,22 @@ function App() {
                             50% { opacity: 1 }
                         }
                     `}</style>
-                    <div style={{ fontSize: '56px', marginBottom: '16px' }}>🕍</div>
+                    <img 
+                        src={alteSynagogueIcon} 
+                        alt="סמל בית כנסת" 
+                        onClick={handleOpenBrowser}
+                        title="לחץ לפתיחה בדפדפן"
+                        style={{ 
+                            height: '56px', 
+                            width: '56px', 
+                            objectFit: 'contain', 
+                            marginBottom: '16px', 
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s ease'
+                        }} 
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    />
                     <div style={{ fontSize: '24px', fontWeight: 700, marginBottom: '6px', letterSpacing: '0.5px', color: '#fff' }}>
                         ניהול בית כנסת
                     </div>
@@ -1261,9 +1292,16 @@ function App() {
                                     fontWeight: 'bold',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '5px'
+                                    gap: '6px'
                                 }}>
-                                    🕍 {synagogues.find(s => s.id === user.synagogueId)?.name}
+                                    <img 
+                                        src={alteSynagogueIcon} 
+                                        alt="סמל בית כנסת" 
+                                        onClick={handleOpenBrowser}
+                                        title="לחץ לפתיחה בדפדפן"
+                                        style={{ height: '18px', width: '18px', objectFit: 'contain', cursor: 'pointer' }} 
+                                    />
+                                    {synagogues.find(s => s.id === user.synagogueId)?.name}
                                 </span>
                             )}
                             {isAdmin && (
@@ -1287,8 +1325,15 @@ function App() {
                             </span>
                             {localSynagogueName && (
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
-                                        🕍 {localSynagogueName}
+                                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <img 
+                                            src={alteSynagogueIcon} 
+                                            alt="סמל בית כנסת" 
+                                            onClick={handleOpenBrowser}
+                                            title="לחץ לפתיחה בדפדפן"
+                                            style={{ height: '20px', width: '20px', objectFit: 'contain', cursor: 'pointer' }} 
+                                        />
+                                        {localSynagogueName}
                                     </span>
                                 </div>
                             )}
@@ -1324,8 +1369,26 @@ function App() {
                         <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.85, marginBottom: '4px' }}>
                             בית הכנסת
                         </div>
-                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
-                            🕍 {synagogues.find(s => s.id === user.synagogueId)?.name}
+                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <img 
+                                src={alteSynagogueIcon} 
+                                alt="סמל בית כנסת" 
+                                onClick={handleOpenBrowser}
+                                title="לחץ לפתיחה בדפדפן"
+                                style={{
+                                    height: isMobile() ? '28px' : '36px',
+                                    width: isMobile() ? '28px' : '36px',
+                                    maxHeight: '100%',
+                                    objectFit: 'contain',
+                                    cursor: 'pointer',
+                                    borderRadius: '4px',
+                                    verticalAlign: 'middle',
+                                    transition: 'transform 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            />
+                            <span>{synagogues.find(s => s.id === user.synagogueId)?.name}</span>
                         </div>
                         {synagogues.find(s => s.id === user.synagogueId)?.address && (
                             <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.8, marginTop: '6px' }}>
@@ -1351,8 +1414,26 @@ function App() {
                         <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.85, marginBottom: '4px' }}>
                             בית הכנסת
                         </div>
-                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
-                            🕍 {synagogues.find(s => s.id === guestSynagogueId)?.name}
+                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <img 
+                                src={alteSynagogueIcon} 
+                                alt="סמל בית כנסת" 
+                                onClick={handleOpenBrowser}
+                                title="לחץ לפתיחה בדפדפן"
+                                style={{
+                                    height: isMobile() ? '28px' : '36px',
+                                    width: isMobile() ? '28px' : '36px',
+                                    maxHeight: '100%',
+                                    objectFit: 'contain',
+                                    cursor: 'pointer',
+                                    borderRadius: '4px',
+                                    verticalAlign: 'middle',
+                                    transition: 'transform 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            />
+                            <span>{synagogues.find(s => s.id === guestSynagogueId)?.name}</span>
                         </div>
                     </div>
                 )}
@@ -1373,8 +1454,26 @@ function App() {
                         <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.85, marginBottom: '4px' }}>
                             בית הכנסת
                         </div>
-                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px' }}>
-                            🕍 {localSynagogueName}
+                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <img 
+                                src={alteSynagogueIcon} 
+                                alt="סמל בית כנסת" 
+                                onClick={handleOpenBrowser}
+                                title="לחץ לפתיחה בדפדפן"
+                                style={{
+                                    height: isMobile() ? '28px' : '36px',
+                                    width: isMobile() ? '28px' : '36px',
+                                    maxHeight: '100%',
+                                    objectFit: 'contain',
+                                    cursor: 'pointer',
+                                    borderRadius: '4px',
+                                    verticalAlign: 'middle',
+                                    transition: 'transform 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            />
+                            <span>{localSynagogueName}</span>
                         </div>
                     </div>
                 )}

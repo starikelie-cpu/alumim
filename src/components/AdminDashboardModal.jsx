@@ -368,7 +368,7 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             const synId = currentUser?.synagogueId;
             if (!synId) { message.error('לא שויכת לבית כנסת'); return; }
             const res = await fetch(`${API_BASE}/api/synagogues/${synId}`, {
-                method: 'PUT', headers, body: JSON.stringify({ name: values.name })
+                method: 'PUT', headers, body: JSON.stringify({ name: values.name, website: values.website })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'שגיאה');
@@ -1098,6 +1098,16 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                                         prefix={<BankOutlined />}
                                         placeholder="הזן שם בית כנסת"
                                         size="large"
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    name="website"
+                                    label="קישור לציבור / אתר (נפתח בלחיצה על הסמל)"
+                                >
+                                    <Input
+                                        prefix={<GlobalOutlined />}
+                                        placeholder="https://example.com"
+                                        size="middle"
                                     />
                                 </Form.Item>
                                 <Form.Item style={{ marginBottom: 0 }}>

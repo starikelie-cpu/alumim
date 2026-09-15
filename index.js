@@ -468,12 +468,14 @@ app.put('/api/synagogues/:id', requireAdmin, async (req, res) => {
             if (!user.synagogueId || String(user.synagogueId) !== String(rawId)) {
                 return res.status(403).json({ error: 'אין הרשאה לעדכן בית כנסת זה' });
             }
-            // Allow only the name field to be changed by synagogue_admin
-            const { name } = req.body;
+            // Allow name and website fields to be changed by synagogue_admin
+            const { name, website } = req.body;
             if (!name || String(name).trim() === '') {
                 return res.status(400).json({ error: 'שם בית כנסת לא יכול להיות ריק' });
             }
-            const updated = await updateSynagogue(rawId, { name: String(name).trim() });
+            const updatePayload = { name: String(name).trim() };
+            if (website !== undefined) updatePayload.website = String(website).trim();
+            const updated = await updateSynagogue(rawId, updatePayload);
             if (!updated) return res.status(404).json({ error: 'Synagogue not found' });
             return res.json(updated);
         }
