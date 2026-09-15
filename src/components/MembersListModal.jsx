@@ -6,6 +6,7 @@ import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
 import { API_BASE, isMobile } from '../config';
 import { getZmanimPrintHtml, getSpecialDaysAndFastsInfo } from '../utils/zmanimUtils';
+import alteSynagogueIcon from '../assets/alte_synagogue_icon.png';
 
 const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId, synagogues = [], currentUser = null, localSynagogueName = '' }) => {
     const activeSynagogue = useMemo(() => {
@@ -23,6 +24,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
     }, [synagogues, guestSynagogueId, currentUser, localSynagogueName]);
 
     const synagogueCity = activeSynagogue?.city || activeSynagogue?.address || '';
+    const synagogueImg = activeSynagogue?.logo || alteSynagogueIcon;
     const [searchText, setSearchText] = useState('');
     const [searchFirstName, setSearchFirstName] = useState('');
     const [daysLimit, setDaysLimit] = useState(localStorage.getItem('printDaysLimit') || '');
@@ -140,7 +142,10 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                     <div class="title">רשימת מתפללים מלאה</div>
                                     <div class="page-number">דף ${pageIndex + 1} מתוך ${totalPages}</div>
                                 </div>
-                                <div class="header-left-spacer">${getZmanimPrintHtml(new Date(), synagogueCity)}</div>
+                                <div class="header-left-spacer">
+                                    ${synagogueImg ? `<div style="margin-bottom: 4px; text-align: center;"><img src="${synagogueImg}" alt="תמונת בית הכנסת" style="max-height: 45px; max-width: 120px; object-fit: contain; display: inline-block;" /></div>` : ''}
+                                    ${getZmanimPrintHtml(new Date(), synagogueCity)}
+                                </div>
                             </div>
                             <table>
                                 <thead>
@@ -292,7 +297,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         body { font-family: 'Assistant', sans-serif; padding: 20px; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         .day-container { page-break-after: always; }
                         .day-container:last-child { page-break-after: auto; }
-                        .header { text-align: center; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 10px; padding-top: 5px; position: relative; min-height: 125px; box-sizing: border-box; }
+                        .header { text-align: center; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 10px; padding-top: 5px; position: relative; min-height: 140px; box-sizing: border-box; }
                         .date-left { position: absolute; top: 10px; left: 10px; font-size: 13px; font-weight: bold; text-align: right; }
                         .shmita-right { position: absolute; top: 10px; right: 10px; font-size: 14px; font-weight: bold; }
                         .center-header { margin-left: 200px; margin-right: 190px; text-align: center; }
@@ -317,6 +322,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         <div class="header">
                             <div class="date-left">
                                 <div>${dayInfo.shabbatDateFormatted || dayInfo.shabbatDate}</div>
+                                ${synagogueImg ? `<div style="margin: 4px 0; text-align: center;"><img src="${synagogueImg}" alt="תמונת בית הכנסת" style="max-height: 45px; max-width: 120px; object-fit: contain; display: inline-block;" /></div>` : ''}
                                 ${getZmanimPrintHtml(dayInfo.date || new Date(), synagogueCity)}
                             </div>
                             <div class="shmita-right">
