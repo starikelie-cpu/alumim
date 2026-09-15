@@ -25,6 +25,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
 
     const synagogueCity = activeSynagogue?.city || activeSynagogue?.address || '';
     const synagogueImg = activeSynagogue?.logo || alteSynagogueIcon;
+    const synNameText = activeSynagogue?.name ? (activeSynagogue.name.includes('בית כנסת') ? activeSynagogue.name : `בית כנסת ${activeSynagogue.name}`) : 'בית כנסת עלומים';
     const [searchText, setSearchText] = useState('');
     const [searchFirstName, setSearchFirstName] = useState('');
     const [daysLimit, setDaysLimit] = useState(localStorage.getItem('printDaysLimit') || '');
@@ -134,7 +135,24 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                     ${pages.map((pageMembers, pageIndex) => `
                         <div class="page-container">
                             <div class="print-page-header">
-                                <div class="date-right">
+                                <div class="date-right" style="text-align: center;">
+                                    ${synagogueImg ? `
+                                        <div style="margin-bottom: 4px; text-align: center;">
+                                            <svg width="150" height="98" viewBox="0 0 150 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
+                                                <defs>
+                                                    <clipPath id="synLogoClipAll_${pageIndex}">
+                                                        <circle cx="75" cy="38" r="33" />
+                                                    </clipPath>
+                                                    <path id="greenTextArcAll_${pageIndex}" d="M 23,50 A 52,52 0 0,0 127,50" fill="none" />
+                                                </defs>
+                                                <circle cx="75" cy="38" r="34" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
+                                                <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="40" y="3" width="70" height="70" clip-path="url(#synLogoClipAll_${pageIndex})" preserveAspectRatio="xMidYMid slice" />
+                                                <text font-size="12" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
+                                                    <textPath href="#greenTextArcAll_${pageIndex}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
+                                                </text>
+                                            </svg>
+                                        </div>
+                                    ` : ''}
                                     <div>תאריך עברי: ${todayHebrew}</div>
                                     <div>תאריך לועזי: ${todayGregorian}</div>
                                 </div>
@@ -143,7 +161,6 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                     <div class="page-number">דף ${pageIndex + 1} מתוך ${totalPages}</div>
                                 </div>
                                 <div class="header-left-spacer">
-                                    ${synagogueImg ? `<div style="margin-bottom: 4px; text-align: center;"><img src="${synagogueImg}" alt="תמונת בית הכנסת" style="max-height: 45px; max-width: 120px; object-fit: contain; display: inline-block;" /></div>` : ''}
                                     ${getZmanimPrintHtml(new Date(), synagogueCity)}
                                 </div>
                             </div>
@@ -322,13 +339,29 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         <div class="header">
                             <div class="date-left">
                                 <div>${dayInfo.shabbatDateFormatted || dayInfo.shabbatDate}</div>
-                                ${synagogueImg ? `<div style="margin: 4px 0; text-align: center;"><img src="${synagogueImg}" alt="תמונת בית הכנסת" style="max-height: 45px; max-width: 120px; object-fit: contain; display: inline-block;" /></div>` : ''}
                                 ${getZmanimPrintHtml(dayInfo.date || new Date(), synagogueCity)}
                             </div>
-                            <div class="shmita-right">
-                                ${info.shmitaStatus || ''}<br/>
-                                ${info.nextBirkatHaChama ? `ברכת החמה הבאה: ${info.nextBirkatHaChama}` : ''}<br/>
-                                שנים לבריאת העולם: ${dayInfo.date.getFullYear()}
+                            <div class="shmita-right" style="text-align: center; width: 180px;">
+                                ${synagogueImg ? `
+                                    <div style="margin-bottom: 4px; text-align: center;">
+                                        <svg width="150" height="98" viewBox="0 0 150 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
+                                            <defs>
+                                                <clipPath id="synLogoClip_${index}">
+                                                    <circle cx="75" cy="38" r="33" />
+                                                </clipPath>
+                                                <path id="greenTextArc_${index}" d="M 23,50 A 52,52 0 0,0 127,50" fill="none" />
+                                            </defs>
+                                            <circle cx="75" cy="38" r="34" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
+                                            <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="40" y="3" width="70" height="70" clip-path="url(#synLogoClip_${index})" preserveAspectRatio="xMidYMid slice" />
+                                            <text font-size="12" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
+                                                <textPath href="#greenTextArc_${index}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
+                                            </text>
+                                        </svg>
+                                    </div>
+                                ` : ''}
+                                <div>${info.shmitaStatus || ''}</div>
+                                ${info.nextBirkatHaChama ? `<div>ברכת החמה הבאה: ${info.nextBirkatHaChama}</div>` : ''}
+                                <div>שנים לבריאת העולם: ${dayInfo.date.getFullYear()}</div>
                             </div>
                             <div class="center-header">
                                 <div class="title">רשימת מתפללים - ${dayInfo.parasha}</div>
