@@ -137,7 +137,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                             <div class="print-page-header">
                                 <div class="date-right" style="text-align: center;">
                                     ${synagogueImg ? `
-                                        <div style="margin-bottom: 4px; text-align: center;">
+                                        <div style="margin-bottom: 4px; text-align: center; position: relative; right: 3cm;">
                                             <svg width="150" height="98" viewBox="0 0 150 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                                 <defs>
                                                     <clipPath id="synLogoClipAll_${pageIndex}">
@@ -343,7 +343,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                             </div>
                             <div class="shmita-right" style="text-align: center; width: 180px;">
                                 ${synagogueImg ? `
-                                    <div style="margin-bottom: 4px; text-align: center;">
+                                    <div style="margin-bottom: 4px; text-align: center; position: relative; right: 3cm;">
                                         <svg width="150" height="98" viewBox="0 0 150 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                             <defs>
                                                 <clipPath id="synLogoClip_${index}">
