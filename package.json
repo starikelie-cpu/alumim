@@ -10,7 +10,7 @@
             "node18-win-x64"
         ]
     },
-    "version": "1.6.17",
+    "version": "1.6.18",
     "description": "Synagogue Management Application",
     "author": "Synagogue Management Team",
     "main": "electron.cjs",
@@ -50,7 +50,7 @@
         "productName": "Nihul Beit Cnecet",
         "asar": false,
         "directories": {
-            "output": "build-output-1.6.17"
+            "output": "build-output-1.6.18"
         },
         "extraResources": [
             {
