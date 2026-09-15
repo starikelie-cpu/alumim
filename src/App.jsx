@@ -96,6 +96,8 @@ function App() {
     // App loading state for splash screen
     const [isAppLoading, setIsAppLoading] = useState(true);
 
+    const logoFileInputRef = React.useRef(null);
+
     const handleOpenBrowser = useCallback((e) => {
         if (e && e.stopPropagation) e.stopPropagation();
         const currentSyn = user?.synagogueId 
@@ -110,6 +112,89 @@ function App() {
         
         window.open(targetUrl, '_blank');
     }, [user, guestSynagogueId, synagogues]);
+
+    const compressImage = (file, maxWidth = 400, maxHeight = 400) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width = Math.round((width * maxHeight) / height);
+                            height = maxHeight;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/png', 0.85));
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleLogoUpload = async (file) => {
+        if (!file) return;
+        const isAdmin = user && (user.role === 'super_admin' || user.role === 'synagogue_admin');
+        if (!isAdmin) {
+            message.error('רק מנהל בית כנסת רשאי להחליף את התמונה');
+            return;
+        }
+        const currentSynId = user?.synagogueId || guestSynagogueId || synagogues[0]?.id;
+        if (!currentSynId) {
+            message.error('לא שויכת לבית כנסת');
+            return;
+        }
+        try {
+            message.loading({ content: 'מעבד ומעלה את התמונה למערכת...', key: 'logoUpload' });
+            const base64Image = await compressImage(file, 400, 400);
+            const headers = token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+            const res = await fetch(`${API_BASE}/api/synagogues/${currentSynId}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({ logo: base64Image })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'שגיאה בהעלאת התמונה');
+            
+            message.success({ content: 'תמונת בית הכנסת עודכנה ונשמרה בהצלחה!', key: 'logoUpload' });
+            fetchAllData();
+        } catch (err) {
+            console.error('Failed to upload logo:', err);
+            message.error({ content: err.message || 'נכשלה שמירת התמונה', key: 'logoUpload' });
+        }
+    };
+
+    const getSynagogueLogo = (synId) => {
+        const syn = synagogues.find(s => s.id === synId);
+        return syn?.logo || alteSynagogueIcon;
+    };
+
+    const handleLogoClick = useCallback((e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        const isAdmin = user && (user.role === 'super_admin' || user.role === 'synagogue_admin');
+        if (isAdmin) {
+            if (logoFileInputRef.current) {
+                logoFileInputRef.current.click();
+            }
+        } else {
+            handleOpenBrowser(e);
+        }
+    }, [user, handleOpenBrowser]);
 
     const loadPreferences = useCallback(async () => {
         try {
@@ -1295,10 +1380,10 @@ function App() {
                                     gap: '6px'
                                 }}>
                                     <img 
-                                        src={alteSynagogueIcon} 
+                                        src={getSynagogueLogo(user?.synagogueId)} 
                                         alt="סמל בית כנסת" 
-                                        onClick={handleOpenBrowser}
-                                        title="לחץ לפתיחה בדפדפן"
+                                        onClick={handleLogoClick}
+                                        title={isAdmin ? "לחץ להחלפת תמונת בית הכנסת (מנהל בלבד - פותח את סייר הקבצים במחשב)" : "לחץ לפתיחה בדפדפן"}
                                         style={{ height: '18px', width: '18px', objectFit: 'contain', cursor: 'pointer' }} 
                                     />
                                     {synagogues.find(s => s.id === user.synagogueId)?.name}
@@ -1327,7 +1412,7 @@ function App() {
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                     <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <img 
-                                            src={alteSynagogueIcon} 
+                                            src={getSynagogueLogo(synagogues.find(s => s.name === localSynagogueName)?.id)} 
                                             alt="סמל בית כנסת" 
                                             onClick={handleOpenBrowser}
                                             title="לחץ לפתיחה בדפדפן"
@@ -1346,6 +1431,19 @@ function App() {
                     )}
                 </div>
             </div>
+
+            <input 
+                type="file" 
+                ref={logoFileInputRef} 
+                accept="image/*" 
+                style={{ display: 'none' }} 
+                onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                        handleLogoUpload(e.target.files[0]);
+                        e.target.value = '';
+                    }
+                }} 
+            />
 
             <div style={{ padding: isMobile() ? '18px 14px' : '40px 50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile() ? '14px' : '20px', width: '100%', boxSizing: 'border-box' }}>
                 {/* Banner - שם בית הכנסת */}
@@ -1370,24 +1468,53 @@ function App() {
                             בית הכנסת
                         </div>
                         <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <img 
-                                src={alteSynagogueIcon} 
-                                alt="סמל בית כנסת" 
-                                onClick={handleOpenBrowser}
-                                title="לחץ לפתיחה בדפדפן"
-                                style={{
-                                    height: isMobile() ? '28px' : '36px',
-                                    width: isMobile() ? '28px' : '36px',
-                                    maxHeight: '100%',
-                                    objectFit: 'contain',
-                                    cursor: 'pointer',
-                                    borderRadius: '4px',
-                                    verticalAlign: 'middle',
-                                    transition: 'transform 0.2s ease'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                            />
+                            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                <img 
+                                    src={getSynagogueLogo(user.synagogueId)} 
+                                    alt="סמל בית כנסת" 
+                                    onClick={handleLogoClick}
+                                    title={isAdmin ? "לחץ להחלפת תמונת בית הכנסת (מנהל בלבד - פותח את סייר הקבצים במחשב)" : "לחץ לפתיחה בדפדפן"}
+                                    style={{
+                                        height: isMobile() ? '28px' : '36px',
+                                        width: isMobile() ? '28px' : '36px',
+                                        maxHeight: '100%',
+                                        objectFit: 'contain',
+                                        cursor: 'pointer',
+                                        borderRadius: '4px',
+                                        verticalAlign: 'middle',
+                                        transition: 'transform 0.2s ease',
+                                        border: isAdmin ? '1px dashed rgba(255,255,255,0.7)' : 'none',
+                                        padding: isAdmin ? '2px' : '0'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                />
+                                {isAdmin && (
+                                    <span 
+                                        title="לחץ לבחירת תמונה מהמחשב (מנהל בלבד)"
+                                        onClick={handleLogoClick}
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: '-3px',
+                                            left: '-3px',
+                                            background: '#1677ff',
+                                            color: '#fff',
+                                            borderRadius: '50%',
+                                            width: '14px',
+                                            height: '14px',
+                                            fontSize: '9px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                                            border: '1px solid #fff'
+                                        }}
+                                    >
+                                        ✏️
+                                    </span>
+                                )}
+                            </div>
                             <span>{synagogues.find(s => s.id === user.synagogueId)?.name}</span>
                         </div>
                         {synagogues.find(s => s.id === user.synagogueId)?.address && (
@@ -1416,7 +1543,7 @@ function App() {
                         </div>
                         <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                             <img 
-                                src={alteSynagogueIcon} 
+                                src={getSynagogueLogo(guestSynagogueId)} 
                                 alt="סמל בית כנסת" 
                                 onClick={handleOpenBrowser}
                                 title="לחץ לפתיחה בדפדפן"
@@ -1456,7 +1583,7 @@ function App() {
                         </div>
                         <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                             <img 
-                                src={alteSynagogueIcon} 
+                                src={getSynagogueLogo(synagogues.find(s => s.name === localSynagogueName)?.id)} 
                                 alt="סמל בית כנסת" 
                                 onClick={handleOpenBrowser}
                                 title="לחץ לפתיחה בדפדפן"

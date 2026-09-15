@@ -169,6 +169,8 @@ export async function updateSynagogue(id, data) {
     if (data.street !== undefined) update.street = data.street;
     if (data.houseNumber !== undefined) update.houseNumber = data.houseNumber;
     if (data.phone !== undefined) update.phone = data.phone;
+    if (data.website !== undefined) update.website = data.website;
+    if (data.logo !== undefined) update.logo = data.logo;
 
     if (useMongoDB && db) {
         const result = await db.collection('synagogues').findOneAndUpdate(

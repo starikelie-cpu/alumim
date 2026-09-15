@@ -8,10 +8,11 @@ import {
     TeamOutlined, BarChartOutlined, CheckOutlined, CloseOutlined, CrownOutlined,
     UserOutlined, EnvironmentOutlined, EyeOutlined, ReloadOutlined,
     MobileOutlined, GlobalOutlined, WindowsOutlined, AppleOutlined, SearchOutlined,
-    LockOutlined, UnlockOutlined, UserAddOutlined
+    LockOutlined, UnlockOutlined, UserAddOutlined, UploadOutlined, PictureOutlined
 } from '@ant-design/icons';
 import { API_BASE } from '../config';
 import { normalizeRole } from '../../accessControl';
+import alteSynagogueIcon from '../assets/alte_synagogue_icon.png';
 
 const { Text, Title } = Typography;
 
@@ -56,8 +57,44 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
     const [savingSyn, setSavingSyn] = useState(false);
     const [savingUser, setSavingUser] = useState(false);
     const [savingMySyn, setSavingMySyn] = useState(false);
+    const [synLogo, setSynLogo] = useState('');
+    const mysynLogoInputRef = React.useRef(null);
     const [selfRegConfig, setSelfRegConfig] = useState({ allowGuestSelfRegistration: true, guestSelfRegistrationExpiresAt: null });
     const [savingSelfReg, setSavingSelfReg] = useState(false);
+
+    const compressImage = (file, maxWidth = 400, maxHeight = 400) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width = Math.round((width * maxHeight) / height);
+                            height = maxHeight;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/png', 0.85));
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
 
     const isSuperAdmin = currentUser?.role === 'super_admin';
 
@@ -367,12 +404,14 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             const values = await mysynForm.validateFields();
             const synId = currentUser?.synagogueId;
             if (!synId) { message.error('לא שויכת לבית כנסת'); return; }
+            const payload = { name: values.name, website: values.website };
+            if (synLogo !== undefined) payload.logo = synLogo;
             const res = await fetch(`${API_BASE}/api/synagogues/${synId}`, {
-                method: 'PUT', headers, body: JSON.stringify({ name: values.name, website: values.website })
+                method: 'PUT', headers, body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'שגיאה');
-            message.success('שם בית הכנסת עודכן בהצלחה');
+            message.success('פרטי בית הכנסת והתמונה עודכנו בהצלחה');
             fetchSynagogues();
         } catch (e) { if (e.message) message.error(e.message); }
         finally { setSavingMySyn(false); }
@@ -1109,6 +1148,47 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                                         placeholder="https://example.com"
                                         size="middle"
                                     />
+                                </Form.Item>
+                                <Form.Item label="תמונת/סמל בית הכנסת (מוצגת בבאנר לקבלת תמונה ייחודית)">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                                        <img 
+                                            src={synLogo || mySynagogue?.logo || alteSynagogueIcon} 
+                                            alt="סמל בית כנסת" 
+                                            style={{ width: '48px', height: '48px', objectFit: 'contain', border: '1px solid #d9d9d9', borderRadius: '6px', padding: '2px', background: '#fafafa' }} 
+                                        />
+                                        <Button 
+                                            icon={<UploadOutlined />} 
+                                            onClick={() => mysynLogoInputRef.current?.click()}
+                                        >
+                                            בחירת תמונה מהמחשב
+                                        </Button>
+                                        {(synLogo || mySynagogue?.logo) && (
+                                            <Button 
+                                                danger 
+                                                type="text" 
+                                                onClick={() => setSynLogo('')}
+                                            >
+                                                הסר תמונה (חזור לסמל ברירת המחדל)
+                                            </Button>
+                                        )}
+                                        <input 
+                                            type="file" 
+                                            ref={mysynLogoInputRef} 
+                                            accept="image/*" 
+                                            style={{ display: 'none' }} 
+                                            onChange={async (e) => {
+                                                if (e.target.files?.[0]) {
+                                                    try {
+                                                        const compressed = await compressImage(e.target.files[0], 400, 400);
+                                                        setSynLogo(compressed);
+                                                    } catch (err) {
+                                                        message.error('שגיאה בטעינת הקובץ');
+                                                    }
+                                                    e.target.value = '';
+                                                }
+                                            }} 
+                                        />
+                                    </div>
                                 </Form.Item>
                                 <Form.Item style={{ marginBottom: 0 }}>
                                     <Button
