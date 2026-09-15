@@ -135,26 +135,26 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                     ${pages.map((pageMembers, pageIndex) => `
                         <div class="page-container">
                             <div class="print-page-header">
-                                <div class="date-right" style="text-align: center;">
+                                <div class="date-right" style="position: relative; width: 200px; text-align: right;">
+                                    <div>תאריך עברי: ${todayHebrew}</div>
+                                    <div>תאריך לועזי: ${todayGregorian}</div>
                                     ${synagogueImg ? `
-                                        <div style="margin-bottom: 4px; text-align: center; position: relative; right: 3cm;">
-                                            <svg width="150" height="98" viewBox="0 0 150 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
+                                        <div style="position: absolute; top: 0; right: 5cm; width: 160px; text-align: center;">
+                                            <svg width="160" height="105" viewBox="0 0 160 105" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                                 <defs>
                                                     <clipPath id="synLogoClipAll_${pageIndex}">
-                                                        <circle cx="75" cy="38" r="33" />
+                                                        <circle cx="80" cy="40" r="34" />
                                                     </clipPath>
-                                                    <path id="greenTextArcAll_${pageIndex}" d="M 23,50 A 52,52 0 0,0 127,50" fill="none" />
+                                                    <path id="greenTextArcAll_${pageIndex}" d="M 20,52 A 55,55 0 0,0 140,52" fill="none" />
                                                 </defs>
-                                                <circle cx="75" cy="38" r="34" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
-                                                <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="40" y="3" width="70" height="70" clip-path="url(#synLogoClipAll_${pageIndex})" preserveAspectRatio="xMidYMid slice" />
-                                                <text font-size="12" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
+                                                <circle cx="80" cy="40" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
+                                                <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="44" y="4" width="72" height="72" clip-path="url(#synLogoClipAll_${pageIndex})" preserveAspectRatio="xMidYMid slice" />
+                                                <text font-size="13" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
                                                     <textPath href="#greenTextArcAll_${pageIndex}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
                                                 </text>
                                             </svg>
                                         </div>
                                     ` : ''}
-                                    <div>תאריך עברי: ${todayHebrew}</div>
-                                    <div>תאריך לועזי: ${todayGregorian}</div>
                                 </div>
                                 <div class="title-center">
                                     <div class="title">רשימת מתפללים מלאה</div>
@@ -341,27 +341,27 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 <div>${dayInfo.shabbatDateFormatted || dayInfo.shabbatDate}</div>
                                 ${getZmanimPrintHtml(dayInfo.date || new Date(), synagogueCity)}
                             </div>
-                            <div class="shmita-right" style="text-align: center; width: 180px;">
+                            <div class="shmita-right" style="position: absolute; top: 10px; right: 10px; font-size: 14px; font-weight: bold; text-align: right; width: 180px;">
+                                <div>${info.shmitaStatus || ''}</div>
+                                ${info.nextBirkatHaChama ? `<div>ברכת החמה הבאה: ${info.nextBirkatHaChama}</div>` : ''}
+                                <div>שנים לבריאת העולם: ${dayInfo.date.getFullYear()}</div>
                                 ${synagogueImg ? `
-                                    <div style="margin-bottom: 4px; text-align: center; position: relative; right: 3cm;">
-                                        <svg width="150" height="98" viewBox="0 0 150 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
+                                    <div style="position: absolute; top: 0; right: 5cm; width: 160px; text-align: center;">
+                                        <svg width="160" height="105" viewBox="0 0 160 105" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                             <defs>
                                                 <clipPath id="synLogoClip_${index}">
-                                                    <circle cx="75" cy="38" r="33" />
+                                                    <circle cx="80" cy="40" r="34" />
                                                 </clipPath>
-                                                <path id="greenTextArc_${index}" d="M 23,50 A 52,52 0 0,0 127,50" fill="none" />
+                                                <path id="greenTextArc_${index}" d="M 20,52 A 55,55 0 0,0 140,52" fill="none" />
                                             </defs>
-                                            <circle cx="75" cy="38" r="34" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
-                                            <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="40" y="3" width="70" height="70" clip-path="url(#synLogoClip_${index})" preserveAspectRatio="xMidYMid slice" />
-                                            <text font-size="12" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
+                                            <circle cx="80" cy="40" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
+                                            <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="44" y="4" width="72" height="72" clip-path="url(#synLogoClip_${index})" preserveAspectRatio="xMidYMid slice" />
+                                            <text font-size="13" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
                                                 <textPath href="#greenTextArc_${index}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
                                             </text>
                                         </svg>
                                     </div>
                                 ` : ''}
-                                <div>${info.shmitaStatus || ''}</div>
-                                ${info.nextBirkatHaChama ? `<div>ברכת החמה הבאה: ${info.nextBirkatHaChama}</div>` : ''}
-                                <div>שנים לבריאת העולם: ${dayInfo.date.getFullYear()}</div>
                             </div>
                             <div class="center-header">
                                 <div class="title">רשימת מתפללים - ${dayInfo.parasha}</div>
