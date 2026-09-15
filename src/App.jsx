@@ -192,10 +192,8 @@ function App() {
             if (logoFileInputRef.current) {
                 logoFileInputRef.current.click();
             }
-        } else {
-            handleOpenBrowser(e);
         }
-    }, [user, handleOpenBrowser]);
+    }, [user]);
 
     const loadPreferences = useCallback(async () => {
         try {
@@ -1383,9 +1381,9 @@ function App() {
                                     <img 
                                         src={getSynagogueLogo(user?.synagogueId)} 
                                         alt="סמל בית כנסת" 
-                                        onClick={handleLogoClick}
-                                        title={isAdmin ? "לחץ להחלפת תמונת בית הכנסת (מנהל בלבד - פותח את סייר הקבצים במחשב)" : "לחץ לפתיחה בדפדפן"}
-                                        style={{ height: '18px', width: '18px', objectFit: 'contain', cursor: 'pointer' }} 
+                                        onClick={isAdmin && !isMobile() ? handleLogoClick : undefined}
+                                        title={isAdmin && !isMobile() ? "לחץ להחלפת תמונת בית הכנסת (מנהל בלבד - פותח את סייר הקבצים במחשב)" : undefined}
+                                        style={{ height: '18px', width: '18px', objectFit: 'contain', cursor: isAdmin && !isMobile() ? 'pointer' : 'default' }} 
                                     />
                                     {synagogues.find(s => s.id === user.synagogueId)?.name}
                                 </span>
@@ -1415,9 +1413,7 @@ function App() {
                                         <img 
                                             src={getSynagogueLogo(synagogues.find(s => s.name === localSynagogueName)?.id)} 
                                             alt="סמל בית כנסת" 
-                                            onClick={handleOpenBrowser}
-                                            title="לחץ לפתיחה בדפדפן"
-                                            style={{ height: '20px', width: '20px', objectFit: 'contain', cursor: 'pointer' }} 
+                                            style={{ height: '20px', width: '20px', objectFit: 'contain', cursor: 'default' }} 
                                         />
                                         {localSynagogueName}
                                     </span>
@@ -1495,8 +1491,11 @@ function App() {
                             gap: isMobile() ? '10px' : '16px',
                             minHeight: isMobile() ? '75px' : '95px'
                         }}>
-                            {/* ימין: שם בית הכנסת וכתובת */}
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'right', flex: 1, minWidth: 0 }}>
+                            {/* רווח מאזן בימין לריכוז מדויק של הטקסט במרכז הבאנר */}
+                            <div style={{ width: imgSize, flexShrink: 0 }} />
+
+                            {/* מרכז הבאנר: שם בית הכנסת וכתובת ממורכזים */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: isMobile() ? '11px' : '12px', opacity: 0.85, marginBottom: '2px' }}>
                                     בית הכנסת
                                 </div>
@@ -1519,27 +1518,27 @@ function App() {
                                 )}
                             </div>
 
-                            {/* מרכז / סוף הבאנר: תמונת בית הכנסת מוגדלת בגובה הבאנר ובאותו רוחב (מרובעת) */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0 }}>
+                            {/* שמאל / סוף הבאנר: תמונת בית הכנסת ללא רקע */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0, width: imgSize }}>
                                 <img 
                                     src={getSynagogueLogo(activeSyn?.id)} 
                                     alt="סמל בית כנסת" 
-                                    onClick={handleLogoClick}
-                                    title={canChangeOnDevice ? "לחץ להחלפת תמונת בית הכנסת (פותח סייר קבצים במחשב)" : "לחץ לפתיחה בדפדפן"}
+                                    onClick={canChangeOnDevice ? handleLogoClick : undefined}
+                                    title={canChangeOnDevice ? "לחץ לבחירת תמונה מהמחשב (מנהל בלבד במחשב)" : undefined}
                                     style={{
                                         height: imgSize,
                                         width: imgSize,
                                         objectFit: 'contain',
-                                        cursor: 'pointer',
-                                        borderRadius: '8px',
-                                        background: 'rgba(255, 255, 255, 0.18)',
-                                        padding: '4px',
+                                        cursor: canChangeOnDevice ? 'pointer' : 'default',
+                                        borderRadius: '4px',
+                                        background: 'transparent',
+                                        padding: 0,
                                         boxSizing: 'border-box',
-                                        border: canChangeOnDevice ? '1.5px dashed rgba(255,255,255,0.85)' : '1px solid rgba(255,255,255,0.25)',
-                                        transition: 'transform 0.2s ease, background 0.2s ease'
+                                        border: 'none',
+                                        transition: 'transform 0.2s ease'
                                     }}
-                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    onMouseEnter={(e) => { if (canChangeOnDevice) e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                    onMouseLeave={(e) => { if (canChangeOnDevice) e.currentTarget.style.transform = 'scale(1)'; }}
                                 />
                                 {canChangeOnDevice && (
                                     <span 
