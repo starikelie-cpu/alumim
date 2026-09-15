@@ -25,7 +25,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
 
     const synagogueCity = activeSynagogue?.city || activeSynagogue?.address || '';
     const synagogueImg = activeSynagogue?.logo || alteSynagogueIcon;
-    const synNameText = activeSynagogue?.name ? (activeSynagogue.name.includes('בית כנסת') ? activeSynagogue.name : `בית כנסת ${activeSynagogue.name}`) : 'בית כנסת עלומים';
+    const rawSynName = (activeSynagogue?.name || localSynagogueName || 'עלומים').trim();
+    const synNameText = rawSynName.startsWith('בית כנסת') ? rawSynName : `בית כנסת ${rawSynName}`;
     const [searchText, setSearchText] = useState('');
     const [searchFirstName, setSearchFirstName] = useState('');
     const [daysLimit, setDaysLimit] = useState(localStorage.getItem('printDaysLimit') || '');
@@ -139,16 +140,16 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                     <div>תאריך עברי: ${todayHebrew}</div>
                                     <div>תאריך לועזי: ${todayGregorian}</div>
                                     ${synagogueImg ? `
-                                        <div style="position: absolute; top: 0; right: 5cm; width: 160px; text-align: center;">
-                                            <svg width="160" height="105" viewBox="0 0 160 105" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
+                                        <div style="position: absolute; top: 0; right: 5cm; width: 170px; text-align: center;">
+                                            <svg width="170" height="98" viewBox="0 0 170 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                                 <defs>
                                                     <clipPath id="synLogoClipAll_${pageIndex}">
-                                                        <circle cx="80" cy="40" r="34" />
+                                                        <circle cx="85" cy="38" r="34" />
                                                     </clipPath>
-                                                    <path id="greenTextArcAll_${pageIndex}" d="M 20,52 A 55,55 0 0,0 140,52" fill="none" />
+                                                    <path id="greenTextArcAll_${pageIndex}" d="M 25,48 A 48,48 0 0,0 145,48" fill="none" />
                                                 </defs>
-                                                <circle cx="80" cy="40" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
-                                                <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="44" y="4" width="72" height="72" clip-path="url(#synLogoClipAll_${pageIndex})" preserveAspectRatio="xMidYMid slice" />
+                                                <circle cx="85" cy="38" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
+                                                <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="49" y="3" width="72" height="72" clip-path="url(#synLogoClipAll_${pageIndex})" preserveAspectRatio="xMidYMid slice" />
                                                 <text font-size="13" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
                                                     <textPath href="#greenTextArcAll_${pageIndex}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
                                                 </text>
@@ -346,16 +347,16 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 ${info.nextBirkatHaChama ? `<div>ברכת החמה הבאה: ${info.nextBirkatHaChama}</div>` : ''}
                                 <div>שנים לבריאת העולם: ${dayInfo.date.getFullYear()}</div>
                                 ${synagogueImg ? `
-                                    <div style="position: absolute; top: 0; right: 5cm; width: 160px; text-align: center;">
-                                        <svg width="160" height="105" viewBox="0 0 160 105" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
+                                    <div style="position: absolute; top: 0; right: 5cm; width: 170px; text-align: center;">
+                                        <svg width="170" height="98" viewBox="0 0 170 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                             <defs>
                                                 <clipPath id="synLogoClip_${index}">
-                                                    <circle cx="80" cy="40" r="34" />
+                                                    <circle cx="85" cy="38" r="34" />
                                                 </clipPath>
-                                                <path id="greenTextArc_${index}" d="M 20,52 A 55,55 0 0,0 140,52" fill="none" />
+                                                <path id="greenTextArc_${index}" d="M 25,48 A 48,48 0 0,0 145,48" fill="none" />
                                             </defs>
-                                            <circle cx="80" cy="40" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
-                                            <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="44" y="4" width="72" height="72" clip-path="url(#synLogoClip_${index})" preserveAspectRatio="xMidYMid slice" />
+                                            <circle cx="85" cy="38" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
+                                            <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="49" y="3" width="72" height="72" clip-path="url(#synLogoClip_${index})" preserveAspectRatio="xMidYMid slice" />
                                             <text font-size="13" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
                                                 <textPath href="#greenTextArc_${index}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
                                             </text>
