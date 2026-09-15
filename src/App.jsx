@@ -1446,164 +1446,108 @@ function App() {
             />
 
             <div style={{ padding: isMobile() ? '18px 14px' : '40px 50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile() ? '14px' : '20px', width: '100%', boxSizing: 'border-box' }}>
-                {/* Banner - שם בית הכנסת */}
-                {(user?.synagogueId && synagogues.find(s => s.id === user.synagogueId)) && (
-                    <div style={{
-                        background: user?.role === 'viewer'
+                {/* Banner - שם בית הכנסת (מוצג תמיד: למנהל מחובר, למשתמש ולאורח) */}
+                {(() => {
+                    const activeSyn = user?.synagogueId 
+                        ? synagogues.find(s => s.id === user.synagogueId)
+                        : (adminViewSynagogueId 
+                            ? synagogues.find(s => s.id === adminViewSynagogueId)
+                            : (guestSynagogueId 
+                                ? synagogues.find(s => s.id === guestSynagogueId)
+                                : (synagogues.find(s => s.name === localSynagogueName) || synagogues[0])
+                              )
+                          );
+                    
+                    const displaySynName = activeSyn?.name || localSynagogueName;
+                    if (!displaySynName && !activeSyn) return null;
+
+                    const bannerBg = !user
+                        ? 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)'
+                        : (user?.role === 'viewer'
                             ? 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)'
-                            : 'linear-gradient(135deg, #1677ff 0%, #0958d9 100%)',
-                        borderRadius: '12px',
-                        padding: isMobile() ? '14px 20px' : '20px 40px',
-                        color: '#fff',
-                        textAlign: 'center',
-                        boxShadow: user?.role === 'viewer'
-                            ? '0 4px 12px rgba(82, 196, 26, 0.3)'
-                            : '0 4px 12px rgba(22, 119, 255, 0.3)',
-                        marginBottom: '4px',
-                        width: '100%',
-                        maxWidth: isMobile() ? '100%' : '600px',
-                        boxSizing: 'border-box'
-                    }}>
-                        <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.85, marginBottom: '4px' }}>
-                            בית הכנסת
-                        </div>
-                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                                <img 
-                                    src={getSynagogueLogo(user.synagogueId)} 
-                                    alt="סמל בית כנסת" 
-                                    onClick={handleLogoClick}
-                                    title={isAdmin ? "לחץ להחלפת תמונת בית הכנסת (מנהל בלבד - פותח את סייר הקבצים במחשב)" : "לחץ לפתיחה בדפדפן"}
-                                    style={{
-                                        height: isMobile() ? '28px' : '36px',
-                                        width: isMobile() ? '28px' : '36px',
-                                        maxHeight: '100%',
-                                        objectFit: 'contain',
-                                        cursor: 'pointer',
-                                        borderRadius: '4px',
-                                        verticalAlign: 'middle',
-                                        transition: 'transform 0.2s ease',
-                                        border: isAdmin ? '1px dashed rgba(255,255,255,0.7)' : 'none',
-                                        padding: isAdmin ? '2px' : '0'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                />
-                                {isAdmin && (
-                                    <span 
-                                        title="לחץ לבחירת תמונה מהמחשב (מנהל בלבד)"
+                            : 'linear-gradient(135deg, #1677ff 0%, #0958d9 100%)');
+
+                    const shadowColor = !user
+                        ? 'rgba(19, 194, 194, 0.3)'
+                        : (user?.role === 'viewer'
+                            ? 'rgba(82, 196, 26, 0.3)'
+                            : 'rgba(22, 119, 255, 0.3)');
+
+                    return (
+                        <div style={{
+                            background: bannerBg,
+                            borderRadius: '12px',
+                            padding: isMobile() ? '14px 20px' : '20px 40px',
+                            color: '#fff',
+                            textAlign: 'center',
+                            boxShadow: `0 4px 12px ${shadowColor}`,
+                            marginBottom: '4px',
+                            width: '100%',
+                            maxWidth: isMobile() ? '100%' : '600px',
+                            boxSizing: 'border-box'
+                        }}>
+                            <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.85, marginBottom: '4px' }}>
+                                בית הכנסת
+                            </div>
+                            <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                    <img 
+                                        src={getSynagogueLogo(activeSyn?.id)} 
+                                        alt="סמל בית כנסת" 
                                         onClick={handleLogoClick}
+                                        title={isAdmin ? "לחץ להחלפת תמונת בית הכנסת (מנהל בלבד - פותח את סייר הקבצים במחשב)" : "לחץ לפתיחה בדפדפן"}
                                         style={{
-                                            position: 'absolute',
-                                            bottom: '-3px',
-                                            left: '-3px',
-                                            background: '#1677ff',
-                                            color: '#fff',
-                                            borderRadius: '50%',
-                                            width: '14px',
-                                            height: '14px',
-                                            fontSize: '9px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
+                                            height: isMobile() ? '28px' : '36px',
+                                            width: isMobile() ? '28px' : '36px',
+                                            maxHeight: '100%',
+                                            objectFit: 'contain',
                                             cursor: 'pointer',
-                                            boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-                                            border: '1px solid #fff'
+                                            borderRadius: '4px',
+                                            verticalAlign: 'middle',
+                                            transition: 'transform 0.2s ease',
+                                            border: isAdmin ? '1px dashed rgba(255,255,255,0.7)' : 'none',
+                                            padding: isAdmin ? '2px' : '0'
                                         }}
-                                    >
-                                        ✏️
-                                    </span>
-                                )}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    />
+                                    {isAdmin && (
+                                        <span 
+                                            title="לחץ לבחירת תמונה מהמחשב (מנהל בלבד)"
+                                            onClick={handleLogoClick}
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: '-3px',
+                                                left: '-3px',
+                                                background: '#1677ff',
+                                                color: '#fff',
+                                                borderRadius: '50%',
+                                                width: '14px',
+                                                height: '14px',
+                                                fontSize: '9px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                                                border: '1px solid #fff'
+                                            }}
+                                        >
+                                            ✏️
+                                        </span>
+                                    )}
+                                </div>
+                                <span>{displaySynName}</span>
                             </div>
-                            <span>{synagogues.find(s => s.id === user.synagogueId)?.name}</span>
+                            {activeSyn?.address && (
+                                <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.8, marginTop: '6px' }}>
+                                    📍 {activeSyn.address}
+                                </div>
+                            )}
                         </div>
-                        {synagogues.find(s => s.id === user.synagogueId)?.address && (
-                            <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.8, marginTop: '6px' }}>
-                                📍 {synagogues.find(s => s.id === user.synagogueId)?.address}
-                            </div>
-                        )}
-                    </div>
-                )}
-                {/* Banner לאורח שבחר בית כנסת */}
-                {(!user && guestSynagogueId && synagogues.find(s => s.id === guestSynagogueId)) && (
-                    <div style={{
-                        background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
-                        borderRadius: '12px',
-                        padding: isMobile() ? '14px 20px' : '20px 40px',
-                        color: '#fff',
-                        textAlign: 'center',
-                        boxShadow: '0 4px 12px rgba(19, 194, 194, 0.3)',
-                        marginBottom: '4px',
-                        width: '100%',
-                        maxWidth: isMobile() ? '100%' : '600px',
-                        boxSizing: 'border-box'
-                    }}>
-                        <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.85, marginBottom: '4px' }}>
-                            בית הכנסת
-                        </div>
-                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <img 
-                                src={getSynagogueLogo(guestSynagogueId)} 
-                                alt="סמל בית כנסת" 
-                                onClick={handleOpenBrowser}
-                                title="לחץ לפתיחה בדפדפן"
-                                style={{
-                                    height: isMobile() ? '28px' : '36px',
-                                    width: isMobile() ? '28px' : '36px',
-                                    maxHeight: '100%',
-                                    objectFit: 'contain',
-                                    cursor: 'pointer',
-                                    borderRadius: '4px',
-                                    verticalAlign: 'middle',
-                                    transition: 'transform 0.2s ease'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                            />
-                            <span>{synagogues.find(s => s.id === guestSynagogueId)?.name}</span>
-                        </div>
-                    </div>
-                )}
-                {/* Banner לאורח עם שם בית כנסת מקומי */}
-                {(!user && !guestSynagogueId && localSynagogueName) && (
-                    <div style={{
-                        background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
-                        borderRadius: '12px',
-                        padding: isMobile() ? '14px 20px' : '20px 40px',
-                        color: '#fff',
-                        textAlign: 'center',
-                        boxShadow: '0 4px 12px rgba(19, 194, 194, 0.3)',
-                        marginBottom: '4px',
-                        width: '100%',
-                        maxWidth: isMobile() ? '100%' : '600px',
-                        boxSizing: 'border-box'
-                    }}>
-                        <div style={{ fontSize: isMobile() ? '12px' : '13px', opacity: 0.85, marginBottom: '4px' }}>
-                            בית הכנסת
-                        </div>
-                        <div style={{ fontSize: isMobile() ? '22px' : '28px', fontWeight: 'bold', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <img 
-                                src={getSynagogueLogo(synagogues.find(s => s.name === localSynagogueName)?.id)} 
-                                alt="סמל בית כנסת" 
-                                onClick={handleOpenBrowser}
-                                title="לחץ לפתיחה בדפדפן"
-                                style={{
-                                    height: isMobile() ? '28px' : '36px',
-                                    width: isMobile() ? '28px' : '36px',
-                                    maxHeight: '100%',
-                                    objectFit: 'contain',
-                                    cursor: 'pointer',
-                                    borderRadius: '4px',
-                                    verticalAlign: 'middle',
-                                    transition: 'transform 0.2s ease'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                            />
-                            <span>{localSynagogueName}</span>
-                        </div>
-                    </div>
-                )}
+                    );
+                })()}
+
                 {/* First-time synagogue selection prompt for guests */}
                 {!user && showFirstTimePrompt && !guestSynagogueId && (
                     <div style={{
