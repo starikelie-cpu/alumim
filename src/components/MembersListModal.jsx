@@ -8,20 +8,23 @@ import { API_BASE, isMobile } from '../config';
 import { getZmanimPrintHtml, getSpecialDaysAndFastsInfo } from '../utils/zmanimUtils';
 import alteSynagogueIcon from '../assets/alte_synagogue_icon.png';
 
-const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId, synagogues = [], currentUser = null, localSynagogueName = '' }) => {
+const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId, adminViewSynagogueId = null, synagogues = [], currentUser = null, localSynagogueName = '' }) => {
     const activeSynagogue = useMemo(() => {
         if (!synagogues || synagogues.length === 0) return null;
         if (currentUser?.synagogueId) {
             return synagogues.find(s => String(s.id) === String(currentUser.synagogueId)) || null;
         }
+        if (adminViewSynagogueId) {
+            return synagogues.find(s => String(s.id) === String(adminViewSynagogueId)) || null;
+        }
         if (guestSynagogueId) {
             return synagogues.find(s => String(s.id) === String(guestSynagogueId)) || null;
         }
         if (localSynagogueName) {
-            return synagogues.find(s => s.name === localSynagogueName) || null;
+            return synagogues.find(s => s.name === localSynagogueName || String(s.id) === String(localSynagogueName)) || null;
         }
         return synagogues[0] || null;
-    }, [synagogues, currentUser, guestSynagogueId, localSynagogueName]);
+    }, [synagogues, currentUser, adminViewSynagogueId, guestSynagogueId, localSynagogueName]);
 
     const synagogueCity = activeSynagogue?.city || activeSynagogue?.address || '';
     const hasCustomLogo = Boolean(activeSynagogue?.logo && activeSynagogue.logo !== alteSynagogueIcon);
@@ -832,20 +835,9 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
     return (
         <Modal
             title={
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', minHeight: '36px' }}>
-                    {/* Centered title */}
-                    <span style={{
-                        position: 'absolute',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        fontSize: '24px',
-                        fontWeight: 'bold',
-                        color: '#00008B',
-                        whiteSpace: 'nowrap',
-                        pointerEvents: 'none'
-                    }}>רשימת מתפללים</span>
-                    {/* Buttons on the left (opposite side in RTL) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', minHeight: '38px', width: '100%', boxSizing: 'border-box' }}>
+                    {/* Right-aligned buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', zIndex: 2 }}>
                         {isAdmin && (
                             <Button
                                 onClick={onAddNew}
@@ -854,7 +846,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                     color: '#003a8c',
                                     borderColor: '#91d5ff',
                                     fontWeight: 'bold',
-                                    fontSize: '16px'
+                                    fontSize: '15px'
                                 }}
                             >
                                 הוספת מתפלל
@@ -864,17 +856,17 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '12px',
+                            gap: '8px',
                             background: '#f5f5f5',
-                            padding: '6px 16px',
+                            padding: '4px 10px',
                             borderRadius: '8px',
                             border: '1px solid #d9d9d9'
                         }}>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                                <span style={{ fontSize: '14px', fontWeight: '600', color: '#444' }}>ימים:</span>
+                                <span style={{ fontSize: '12px', fontWeight: '600', color: '#444' }}>ימים:</span>
                                 <Select
                                     variant="borderless"
-                                    style={{ width: '60px', fontWeight: 'bold', fontSize: '15px' }}
+                                    style={{ width: '55px', fontWeight: 'bold', fontSize: '14px' }}
                                     value={daysLimit || 7}
                                     onChange={(val) => {
                                         setDaysLimit(val);
@@ -897,13 +889,13 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 </Tooltip>
                             </div>
 
-                            <div style={{ width: '1px', height: '30px', background: '#d9d9d9' }}></div>
+                            <div style={{ width: '1px', height: '26px', background: '#d9d9d9' }}></div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                                <span style={{ fontSize: '14px', fontWeight: '600', color: '#444' }}>זמן א':</span>
+                                <span style={{ fontSize: '12px', fontWeight: '600', color: '#444' }}>זמן א':</span>
                                 <Select
                                     variant="borderless"
-                                    style={{ width: '60px', fontWeight: 'bold', fontSize: '15px' }}
+                                    style={{ width: '55px', fontWeight: 'bold', fontSize: '14px' }}
                                     value={timeAlefLimit || 7}
                                     onChange={(val) => {
                                         setTimeAlefLimit(val);
@@ -929,9 +921,9 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         )}
                         {!mobile && (
                         <Button
-                            icon={<PrinterOutlined style={{ fontSize: '16px' }} />}
+                            icon={<PrinterOutlined style={{ fontSize: '15px' }} />}
                             onClick={handlePrint}
-                            style={{ background: '#52c41a', borderColor: '#52c41a', color: 'black', fontWeight: 'bold', fontSize: '16px' }}
+                            style={{ background: '#52c41a', borderColor: '#52c41a', color: 'black', fontWeight: 'bold', fontSize: '15px' }}
                         >
                             הדפס
                         </Button>
@@ -939,18 +931,38 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
 
                         {!mobile && (
                         <Button
-                            icon={<PrinterOutlined style={{ fontSize: '16px' }} />}
+                            icon={<PrinterOutlined style={{ fontSize: '15px' }} />}
                             onClick={handlePrintAllMembers}
-                            style={{ background: '#1890ff', borderColor: '#1890ff', color: 'white', fontWeight: 'bold', fontSize: '16px' }}
+                            style={{ background: '#1890ff', borderColor: '#1890ff', color: 'white', fontWeight: 'bold', fontSize: '15px' }}
                         >
                             הדפס מתפללים
                         </Button>
                         )}
+                    </div>
 
+                    {/* Centered title */}
+                    <div style={{
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        textAlign: 'center',
+                        zIndex: 1,
+                        pointerEvents: 'none'
+                    }}>
+                        <span style={{
+                            fontSize: '22px',
+                            fontWeight: 'bold',
+                            color: '#00008B',
+                            whiteSpace: 'nowrap'
+                        }}>רשימת מתפללים</span>
+                    </div>
+
+                    {/* Left-aligned buttons (Export & Import) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', zIndex: 2, marginRight: '40px' }}>
                         {!mobile && (
                         <>
                         <Button
-                            icon={<DownloadOutlined style={{ fontSize: '16px' }} />}
+                            icon={<DownloadOutlined style={{ fontSize: '15px' }} />}
                             onClick={() => saveJsonFile(members, 'members.json')}
                             title="ייצוא לקובץ"
                             style={{
@@ -958,7 +970,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 borderColor: '#ffbb96',
                                 color: 'black',
                                 fontWeight: 'bold',
-                                fontSize: '16px'
+                                fontSize: '15px'
                             }}
                         >
                             ייצוא
@@ -975,11 +987,11 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 padding: '8px'
                             }}
                         >
-                            <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '16px' }} />
+                            <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '15px' }} />
                         </Tooltip>
 
                         <Button
-                            icon={<UploadOutlined style={{ fontSize: '16px' }} />}
+                            icon={<UploadOutlined style={{ fontSize: '15px' }} />}
                             onClick={async () => {
                                 if (!isAdmin) {
                                     alert('נדרשת התחברות כמנהל (admin) כדי לייבא גיבוי נתונים. אנא התחבר כמנהל בראש המסך ונסה שוב.');
@@ -1014,7 +1026,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 borderColor: '#b37feb',
                                 color: '#391085',
                                 fontWeight: 'bold',
-                                fontSize: '16px'
+                                fontSize: '15px'
                             }}
                         >
                             ייבוא

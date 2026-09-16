@@ -1799,6 +1799,7 @@ function App() {
                     isAdmin={isAdmin}
                     token={token}
                     guestSynagogueId={guestSynagogueId}
+                    adminViewSynagogueId={adminViewSynagogueId}
                     synagogues={synagogues}
                     currentUser={user}
                     localSynagogueName={localSynagogueName}
