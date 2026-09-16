@@ -11,17 +11,17 @@ import alteSynagogueIcon from '../assets/alte_synagogue_icon.png';
 const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onViewHistory, onAddNew, isAdmin, token, guestSynagogueId, synagogues = [], currentUser = null, localSynagogueName = '' }) => {
     const activeSynagogue = useMemo(() => {
         if (!synagogues || synagogues.length === 0) return null;
-        if (guestSynagogueId) {
-            return synagogues.find(s => String(s.id) === String(guestSynagogueId)) || null;
-        }
         if (currentUser?.synagogueId) {
             return synagogues.find(s => String(s.id) === String(currentUser.synagogueId)) || null;
+        }
+        if (guestSynagogueId) {
+            return synagogues.find(s => String(s.id) === String(guestSynagogueId)) || null;
         }
         if (localSynagogueName) {
             return synagogues.find(s => s.name === localSynagogueName) || null;
         }
         return synagogues[0] || null;
-    }, [synagogues, guestSynagogueId, currentUser, localSynagogueName]);
+    }, [synagogues, currentUser, guestSynagogueId, localSynagogueName]);
 
     const synagogueCity = activeSynagogue?.city || activeSynagogue?.address || '';
     const hasCustomLogo = Boolean(activeSynagogue?.logo && activeSynagogue.logo !== alteSynagogueIcon);
@@ -141,8 +141,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 <div class="date-right" style="position: relative; width: 200px; text-align: right;">
                                     <div>תאריך עברי: ${todayHebrew}</div>
                                     <div>תאריך לועזי: ${todayGregorian}</div>
-                                    <div style="position: absolute; top: 0; right: 5cm; width: 170px; text-align: center;">
-                                        ${hasCustomLogo ? `
+                                    ${synagogueImg ? `
+                                        <div style="position: absolute; top: 0; right: 5cm; width: 170px; text-align: center;">
                                             <svg width="170" height="98" viewBox="0 0 170 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                                 <defs>
                                                     <clipPath id="synLogoClipAll_${pageIndex}">
@@ -156,14 +156,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                                     <textPath href="#greenTextArcAll_${pageIndex}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
                                                 </text>
                                             </svg>
-                                        ` : `
-                                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 170px;">
-                                                <img src="${alteSynagogueIcon}" alt="סמל בית כנסת" style="width: 50px; height: 50px; object-fit: contain; display: block; margin: 0 auto 2px auto;" />
-                                                <div style="font-size: 11px; font-weight: bold; color: #444; line-height: 1.2;">בית הכנסת</div>
-                                                <div style="font-size: 15px; font-weight: bold; color: #2e7d32; line-height: 1.2;">${displaySynName}</div>
-                                            </div>
-                                        `}
-                                    </div>
+                                        </div>
+                                    ` : ''}
                                 </div>
                                 <div class="title-center">
                                     <div class="title">רשימת מתפללים מלאה</div>
@@ -354,8 +348,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 <div>${info.shmitaStatus || ''}</div>
                                 ${info.nextBirkatHaChama ? `<div>ברכת החמה הבאה: ${info.nextBirkatHaChama}</div>` : ''}
                                 <div>שנים לבריאת העולם: ${dayInfo.date.getFullYear()}</div>
-                                <div style="position: absolute; top: 0; right: 5cm; width: 170px; text-align: center;">
-                                    ${hasCustomLogo ? `
+                                ${synagogueImg ? `
+                                    <div style="position: absolute; top: 0; right: 5cm; width: 170px; text-align: center;">
                                         <svg width="170" height="98" viewBox="0 0 170 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                             <defs>
                                                 <clipPath id="synLogoClip_${index}">
@@ -369,14 +363,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                                 <textPath href="#greenTextArc_${index}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
                                             </text>
                                         </svg>
-                                    ` : `
-                                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 170px;">
-                                            <img src="${alteSynagogueIcon}" alt="סמל בית כנסת" style="width: 50px; height: 50px; object-fit: contain; display: block; margin: 0 auto 2px auto;" />
-                                            <div style="font-size: 11px; font-weight: bold; color: #444; line-height: 1.2;">בית הכנסת</div>
-                                            <div style="font-size: 15px; font-weight: bold; color: #2e7d32; line-height: 1.2;">${displaySynName}</div>
-                                        </div>
-                                    `}
-                                </div>
+                                    </div>
+                                ` : ''}
                             </div>
                             <div class="center-header">
                                 <div class="title">רשימת מתפללים - ${dayInfo.parasha}</div>
