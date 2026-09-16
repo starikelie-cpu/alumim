@@ -239,6 +239,12 @@ export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityNa
                         const startYomKippur = sunsetTime ? new Date(sunsetTime.getTime() - 22 * 60 * 1000) : null;
                         startTime = formatT(startYomKippur);
                         endTime = formatT(zmanFast.tzeit());
+                    } else if (title.includes('באב') || title.includes('תשעה')) {
+                        const eveDate = evDate.add(-1, 'd');
+                        const zmanEve = new Zmanim(location, eveDate.greg(), false);
+                        const sunsetTime = zmanEve.sunset();
+                        startTime = formatT(sunsetTime);
+                        endTime = formatT(zmanFast.tzeit());
                     } else {
                         startTime = formatT(zmanFast.alotHaShachar());
                         endTime = formatT(zmanFast.tzeit());
@@ -251,7 +257,7 @@ export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityNa
                         dateStr: formattedEvDate,
                         startTime: startTime,
                         endTime: endTime,
-                        displayText: `${title} ב${dayName} (${formattedEvDate}) תחילת הצום: ${startTime} סיום הצום: ${endTime}`
+                        displayText: `${title} ב${dayName} תחילת הצום: ${startTime} סיום הצום: ${endTime}`
                     });
                 } else {
                     results.push({
@@ -259,7 +265,7 @@ export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityNa
                         name: title,
                         dayName: dayName,
                         dateStr: formattedEvDate,
-                        displayText: `${title} ב${dayName} (${formattedEvDate})`
+                        displayText: `${title} ב${dayName}`
                     });
                 }
             }

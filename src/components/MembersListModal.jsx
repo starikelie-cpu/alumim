@@ -337,7 +337,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 const otherSpecialEvents = specialEvents.filter(ev => ev !== levanaEvent);
 
                 const specialEventsHtml = otherSpecialEvents.map(ev => 
-                    `<div style="color: #ff0000; font-size: 14px; font-weight: bold; margin-top: 2px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.displayText}</div>`
+                    `<div style="color: #ff0000; font-size: 14px; font-weight: bold; margin-top: 2px; line-height: 1.25; white-space: nowrap;">${ev.displayText}</div>`
                 ).join('');
 
                 return `
@@ -364,7 +364,6 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                     </svg>
                                 ` : ''}
                                 ${info.shmitaStatus ? `<div style="margin-top: 1px;">${info.shmitaStatus}</div>` : ''}
-                                ${levanaEvent ? `<div style="margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${levanaEvent.displayText}</div>` : ''}
                                 ${info.nextBirkatHaChama ? `<div style="margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ברכת החמה הבאה: ${info.nextBirkatHaChama}</div>` : ''}
                                 <div style="margin-top: 1px;">שנים לבריאת העולם: ${dayInfo.date.getFullYear()}</div>
                             </div>
