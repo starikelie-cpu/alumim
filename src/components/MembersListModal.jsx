@@ -318,9 +318,9 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         body { font-family: 'Assistant', sans-serif; padding: 0; margin: 0; font-size: 13px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         .day-container { page-break-after: always; box-sizing: border-box; }
                         .day-container:last-child { page-break-after: auto; }
-                        .header { text-align: center; margin-bottom: 12px; border-bottom: 2px solid #333; padding-bottom: 10px; padding-top: 0px; position: relative; min-height: 145px; box-sizing: border-box; }
+                        .header { text-align: center; margin-bottom: 12px; border-bottom: 2px solid #333; padding-bottom: 10px; padding-top: 0px; position: relative; min-height: 155px; box-sizing: border-box; }
                         .date-left { position: absolute; top: 5px; left: 0; font-size: 13px; font-weight: bold; text-align: right; }
-                        .shmita-right { position: absolute; top: 0; right: 0; width: 175px; text-align: center; font-size: 11.5px; font-weight: bold; line-height: 1.2; }
+                        .shmita-right { position: absolute; top: -5px; right: 0; width: 175px; text-align: center; font-size: 11px; font-weight: bold; line-height: 1.2; }
                         .center-header { margin-left: 200px; margin-right: 185px; text-align: center; }
                         table { width: 100%; border-collapse: collapse; margin-top: 3mm; }
                         th { border-bottom: 2px solid #333; font-weight: bold; color: #0066cc; text-align: right; padding: 5px 4px; box-sizing: border-box; font-size: 13px; }
@@ -337,7 +337,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                 const otherSpecialEvents = specialEvents.filter(ev => ev !== levanaEvent);
 
                 const specialEventsHtml = otherSpecialEvents.map(ev => 
-                    `<div style="color: #2e7d32; font-size: 13.5px; font-weight: bold; margin-top: 2px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.displayText}</div>`
+                    `<div style="color: #ff0000; font-size: 14px; font-weight: bold; margin-top: 2px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.displayText}</div>`
                 ).join('');
 
                 return `
@@ -347,7 +347,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 <div>${dayInfo.shabbatDateFormatted || dayInfo.shabbatDate}</div>
                                 ${getZmanimPrintHtml(dayInfo.date || new Date(), synagogueCity)}
                             </div>
-                            <div class="shmita-right" style="position: absolute; top: 0; right: 0; width: 175px; text-align: center; font-size: 11.5px; font-weight: bold; line-height: 1.2;">
+                            <div class="shmita-right" style="position: absolute; top: -5px; right: 0; width: 175px; text-align: center; font-size: 11px; font-weight: bold; line-height: 1.2;">
                                 ${synagogueImg ? `
                                     <svg width="170" height="92" viewBox="0 0 170 92" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                         <defs>
@@ -365,6 +365,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 ` : ''}
                                 ${info.shmitaStatus ? `<div style="margin-top: 1px;">${info.shmitaStatus}</div>` : ''}
                                 ${levanaEvent ? `<div style="margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${levanaEvent.displayText}</div>` : ''}
+                                ${info.nextBirkatHaChama ? `<div style="margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ברכת החמה הבאה: ${info.nextBirkatHaChama}</div>` : ''}
                                 <div style="margin-top: 1px;">שנים לבריאת העולם: ${dayInfo.date.getFullYear()}</div>
                             </div>
                             <div class="center-header">

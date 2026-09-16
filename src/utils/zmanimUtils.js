@@ -251,7 +251,7 @@ export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityNa
                         dateStr: formattedEvDate,
                         startTime: startTime,
                         endTime: endTime,
-                        displayText: `חל השבוע: ${title} ב${dayName} (${formattedEvDate}) | תחילת הצום: ${startTime} | סיום הצום: ${endTime}`
+                        displayText: `${title} ב${dayName} (${formattedEvDate}) תחילת הצום: ${startTime} סיום הצום: ${endTime}`
                     });
                 } else {
                     results.push({
@@ -259,7 +259,7 @@ export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityNa
                         name: title,
                         dayName: dayName,
                         dateStr: formattedEvDate,
-                        displayText: `אירוע מיוחד: ${title} ב${dayName} (${formattedEvDate})`
+                        displayText: `${title} ב${dayName} (${formattedEvDate})`
                     });
                 }
             }

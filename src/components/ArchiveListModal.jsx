@@ -140,7 +140,7 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                 <head>
                     <title>&nbsp;</title>
                     <style>
-                        @page { size: auto; margin: 0mm; }
+                        @page { size: A4 portrait; margin: 10mm; }
                         body { font-family: 'Assistant', sans-serif; padding: 15px; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         .header { text-align: center; margin-bottom: 10px; border-bottom: 2px solid #333; padding-bottom: 10px; position: relative; padding-top: 5px; }
                         .today-date { position: absolute; top: 0; left: 0; font-size: 14pt; color: #00008B; font-weight: bold; }
