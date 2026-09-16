@@ -312,29 +312,31 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
             const html = `
                 <html dir="rtl" lang="he">
                 <head>
-                    <title>&nbsp;</title>
+                    <title>רשימת עליות</title>
                     <style>
-                        @page { size: auto; margin: 0mm; }
-                        body { font-family: 'Assistant', sans-serif; padding: 20px; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                        .day-container { page-break-after: always; }
+                        @page { size: A4 portrait; margin: 10mm; }
+                        body { font-family: 'Assistant', sans-serif; padding: 0; margin: 0; font-size: 13px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        .day-container { page-break-after: always; box-sizing: border-box; }
                         .day-container:last-child { page-break-after: auto; }
-                        .header { text-align: center; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 10px; padding-top: 5px; position: relative; min-height: 140px; box-sizing: border-box; }
-                        .date-left { position: absolute; top: 10px; left: 10px; font-size: 13px; font-weight: bold; text-align: right; }
-                        .shmita-right { position: absolute; top: 10px; right: 10px; font-size: 14px; font-weight: bold; }
-                        .center-header { margin-left: 200px; margin-right: 190px; text-align: center; }
-                        table { width: 100%; border-collapse: collapse; margin-top: calc(5px + 3mm); }
-                        th, td { border: none; padding: 2px 4px; text-align: right; line-height: 13pt; }
-                        th { border-bottom: 1px solid #333; font-weight: bold; font-size: 12pt; color: #0066cc; }
-                        td { font-size: 11pt; }
+                        .header { text-align: center; margin-bottom: 12px; border-bottom: 2px solid #333; padding-bottom: 10px; padding-top: 0px; position: relative; min-height: 145px; box-sizing: border-box; }
+                        .date-left { position: absolute; top: 5px; left: 0; font-size: 13px; font-weight: bold; text-align: right; }
+                        .shmita-right { position: absolute; top: 0; right: 0; width: 175px; text-align: center; font-size: 11.5px; font-weight: bold; line-height: 1.2; }
+                        .center-header { margin-left: 200px; margin-right: 185px; text-align: center; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 3mm; }
+                        th { border-bottom: 2px solid #333; font-weight: bold; color: #0066cc; text-align: right; padding: 5px 4px; box-sizing: border-box; font-size: 13px; }
+                        td { border-bottom: 1px solid #eee; padding: 4px 4px; box-sizing: border-box; vertical-align: middle; text-align: right; font-size: 13px; }
                         .highlight-row { color: #ff0000 !important; font-weight: bold !important; }
-                        .title { font-size: 20px; font-weight: bold; margin: 0; color: #ff0000; }
+                        .title { font-size: 20px; font-weight: bold; margin: 0; color: #000; }
                         .info { font-size: 16px; color: #555; }
                     </style>
                 </head>
                 <body>
                     ${info.daysToPrint.map((dayInfo, index) => {
                 const specialEvents = getSpecialDaysAndFastsInfo(dayInfo.date || info.date || new Date(), synagogueCity);
-                const specialEventsHtml = specialEvents.map(ev => 
+                const levanaEvent = specialEvents.find(ev => ev.type === 'levana' || ev.name.includes('לבנה'));
+                const otherSpecialEvents = specialEvents.filter(ev => ev !== levanaEvent);
+
+                const specialEventsHtml = otherSpecialEvents.map(ev => 
                     `<div style="color: #2e7d32; font-size: 13.5px; font-weight: bold; margin-top: 2px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.displayText}</div>`
                 ).join('');
 
@@ -345,25 +347,25 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 <div>${dayInfo.shabbatDateFormatted || dayInfo.shabbatDate}</div>
                                 ${getZmanimPrintHtml(dayInfo.date || new Date(), synagogueCity)}
                             </div>
-                            <div class="shmita-right" style="position: absolute; top: 0; right: 0; width: 170px; text-align: center; font-size: 12px; font-weight: bold; line-height: 1.3;">
+                            <div class="shmita-right" style="position: absolute; top: 0; right: 0; width: 175px; text-align: center; font-size: 11.5px; font-weight: bold; line-height: 1.2;">
                                 ${synagogueImg ? `
-                                    <svg width="170" height="98" viewBox="0 0 170 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
+                                    <svg width="170" height="92" viewBox="0 0 170 92" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                         <defs>
                                             <clipPath id="synLogoClip_${index}">
-                                                <circle cx="85" cy="34" r="34" />
+                                                <circle cx="85" cy="32" r="32" />
                                             </clipPath>
-                                            <path id="greenTextArc_${index}" d="M 37,50 A 50,50 0 0,0 133,50" fill="none" />
+                                            <path id="greenTextArc_${index}" d="M 37,46 A 48,48 0 0,0 133,46" fill="none" />
                                         </defs>
-                                        <circle cx="85" cy="34" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
-                                        <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="49" y="-2" width="72" height="72" clip-path="url(#synLogoClip_${index})" preserveAspectRatio="xMidYMid slice" />
-                                        <text font-size="13" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
+                                        <circle cx="85" cy="32" r="33" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
+                                        <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="51" y="-1" width="68" height="68" clip-path="url(#synLogoClip_${index})" preserveAspectRatio="xMidYMid slice" />
+                                        <text font-size="12.5" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
                                             <textPath href="#greenTextArc_${index}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
                                         </text>
                                     </svg>
                                 ` : ''}
-                                <div style="margin-top: 2px;">שנים לבריאת העולם: ${dayInfo.date.getFullYear()}</div>
-                                ${info.shmitaStatus ? `<div>${info.shmitaStatus}</div>` : ''}
-                                ${info.nextBirkatHaChama ? `<div>ברכת החמה הבאה: ${info.nextBirkatHaChama}</div>` : ''}
+                                ${info.shmitaStatus ? `<div style="margin-top: 1px;">${info.shmitaStatus}</div>` : ''}
+                                ${levanaEvent ? `<div style="margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${levanaEvent.displayText}</div>` : ''}
+                                <div style="margin-top: 1px;">שנים לבריאת העולם: ${dayInfo.date.getFullYear()}</div>
                             </div>
                             <div class="center-header">
                                 <div class="title">רשימת עליות - ${dayInfo.parasha}</div>
