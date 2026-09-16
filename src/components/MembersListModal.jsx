@@ -148,7 +148,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                                 <clipPath id="synLogoClipAll_${pageIndex}">
                                                     <circle cx="85" cy="34" r="34" />
                                                 </clipPath>
-                                                <path id="greenTextArcAll_${pageIndex}" d="M 37,50 A 50,50 0 0,0 133,50" fill="none" />
+                                                <path id="greenTextArcAll_${pageIndex}" d="M 37,52 A 50,50 0 0,0 133,52" fill="none" />
                                             </defs>
                                             <circle cx="85" cy="34" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
                                             <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="49" y="-2" width="72" height="72" clip-path="url(#synLogoClipAll_${pageIndex})" preserveAspectRatio="xMidYMid slice" />
@@ -354,7 +354,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                             <clipPath id="synLogoClip_${index}">
                                                 <circle cx="85" cy="32" r="32" />
                                             </clipPath>
-                                            <path id="greenTextArc_${index}" d="M 37,46 A 48,48 0 0,0 133,46" fill="none" />
+                                            <path id="greenTextArc_${index}" d="M 37,48 A 48,48 0 0,0 133,48" fill="none" />
                                         </defs>
                                         <circle cx="85" cy="32" r="33" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
                                         <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="51" y="-1" width="68" height="68" clip-path="url(#synLogoClip_${index})" preserveAspectRatio="xMidYMid slice" />
