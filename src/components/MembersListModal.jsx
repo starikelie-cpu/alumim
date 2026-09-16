@@ -144,12 +144,12 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                             <svg width="170" height="98" viewBox="0 0 170 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                                 <defs>
                                                     <clipPath id="synLogoClipAll_${pageIndex}">
-                                                        <circle cx="85" cy="38" r="34" />
+                                                        <circle cx="85" cy="34" r="34" />
                                                     </clipPath>
-                                                    <path id="greenTextArcAll_${pageIndex}" d="M 25,48 A 48,48 0 0,0 145,48" fill="none" />
+                                                    <path id="greenTextArcAll_${pageIndex}" d="M 37,50 A 50,50 0 0,0 133,50" fill="none" />
                                                 </defs>
-                                                <circle cx="85" cy="38" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
-                                                <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="49" y="3" width="72" height="72" clip-path="url(#synLogoClipAll_${pageIndex})" preserveAspectRatio="xMidYMid slice" />
+                                                <circle cx="85" cy="34" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
+                                                <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="49" y="-2" width="72" height="72" clip-path="url(#synLogoClipAll_${pageIndex})" preserveAspectRatio="xMidYMid slice" />
                                                 <text font-size="13" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
                                                     <textPath href="#greenTextArcAll_${pageIndex}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
                                                 </text>
@@ -351,12 +351,12 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                         <svg width="170" height="98" viewBox="0 0 170 98" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block; margin: 0 auto;">
                                             <defs>
                                                 <clipPath id="synLogoClip_${index}">
-                                                    <circle cx="85" cy="38" r="34" />
+                                                    <circle cx="85" cy="34" r="34" />
                                                 </clipPath>
-                                                <path id="greenTextArc_${index}" d="M 25,48 A 48,48 0 0,0 145,48" fill="none" />
+                                                <path id="greenTextArc_${index}" d="M 37,50 A 50,50 0 0,0 133,50" fill="none" />
                                             </defs>
-                                            <circle cx="85" cy="38" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
-                                            <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="49" y="3" width="72" height="72" clip-path="url(#synLogoClip_${index})" preserveAspectRatio="xMidYMid slice" />
+                                            <circle cx="85" cy="34" r="35" fill="#ffffff" stroke="#2e7d32" stroke-width="2.5" />
+                                            <image href="${synagogueImg}" xlink:href="${synagogueImg}" x="49" y="-2" width="72" height="72" clip-path="url(#synLogoClip_${index})" preserveAspectRatio="xMidYMid slice" />
                                             <text font-size="13" font-weight="bold" fill="#2e7d32" font-family="'Assistant', sans-serif">
                                                 <textPath href="#greenTextArc_${index}" startOffset="50%" text-anchor="middle">${synNameText}</textPath>
                                             </text>
