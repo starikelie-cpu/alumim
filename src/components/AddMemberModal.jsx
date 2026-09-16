@@ -294,7 +294,6 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                                 title={
                                                     <div style={{ color: '#006400', direction: 'rtl' }}>
                                                         <div>אם הנך נרשם כחבר השאר ריק אחרת בחר א (אורח)</div>
-                                                        <div>נפ=נפטר (הרשומה תעבור לארכיון נפטרים ותימחק מרשימת המתפללים)</div>
                                                     </div>
                                                 }
                                                 placement="bottomLeft"
