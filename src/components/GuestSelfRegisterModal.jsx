@@ -189,7 +189,32 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                     <div className="premium-card">
                         <Row gutter={[16, 12]}>
                             <Col xs={24} sm={12}>
-                                <Form.Item name="status" label="מעמד">
+                                <Form.Item
+                                    name="status"
+                                    label={
+                                        <span>
+                                            מעמד{' '}
+                                            <Tooltip
+                                                title={
+                                                    <div style={{ color: '#006400', direction: 'rtl' }}>
+                                                        בחר כהן, לוי, או השאר ריק
+                                                    </div>
+                                                }
+                                                placement="bottomLeft"
+                                                zIndex={1100}
+                                                overlayInnerStyle={{
+                                                    backgroundColor: '#ffffcc',
+                                                    border: '1px solid #d9d9d9',
+                                                    borderRadius: '8px',
+                                                    padding: '8px',
+                                                    maxWidth: '350px'
+                                                }}
+                                            >
+                                                <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '14px' }} />
+                                            </Tooltip>
+                                        </span>
+                                    }
+                                >
                                     <Select placeholder="בחר מעמד" allowClear>
                                         <Option value="">ריק</Option>
                                         <Option value="כהן">כהן</Option>
@@ -199,7 +224,32 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                                 </Form.Item>
                             </Col>
                             <Col xs={24} sm={12}>
-                                <Form.Item name="title" label="תואר">
+                                <Form.Item
+                                    name="title"
+                                    label={
+                                        <span>
+                                            תואר{' '}
+                                            <Tooltip
+                                                title={
+                                                    <div style={{ color: '#006400', direction: 'rtl' }}>
+                                                        בחר רב או השאר ריק
+                                                    </div>
+                                                }
+                                                placement="bottomLeft"
+                                                zIndex={1100}
+                                                overlayInnerStyle={{
+                                                    backgroundColor: '#ffffcc',
+                                                    border: '1px solid #d9d9d9',
+                                                    borderRadius: '8px',
+                                                    padding: '8px',
+                                                    maxWidth: '350px'
+                                                }}
+                                            >
+                                                <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '14px' }} />
+                                            </Tooltip>
+                                        </span>
+                                    }
+                                >
                                     <Select placeholder="בחר תואר" allowClear>
                                         <Option value="הרב">הרב</Option>
                                         <Option value="מר">מר</Option>

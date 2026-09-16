@@ -293,7 +293,7 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                             <Tooltip
                                                 title={
                                                     <div style={{ color: '#006400', direction: 'rtl' }}>
-                                                        <div>א=אורח (לא ייוחס בהדפסת עולים)</div>
+                                                        <div>אם הנך נרשם כחבר השאר ריק אחרת בחר א (אורח)</div>
                                                         <div>נפ=נפטר (הרשומה תעבור לארכיון נפטרים ותימחק מרשימת המתפללים)</div>
                                                     </div>
                                                 }
@@ -331,7 +331,32 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                 </Form.Item>
                             </Col>
                             <Col xs={24} sm={8}>
-                                <Form.Item name="status" label="מעמד">
+                                <Form.Item
+                                    name="status"
+                                    label={
+                                        <span>
+                                            מעמד{' '}
+                                            <Tooltip
+                                                title={
+                                                    <div style={{ color: '#006400', direction: 'rtl' }}>
+                                                        בחר כהן, לוי, או השאר ריק
+                                                    </div>
+                                                }
+                                                placement="bottomLeft"
+                                                zIndex={1100}
+                                                overlayInnerStyle={{
+                                                    backgroundColor: '#ffffcc',
+                                                    border: '1px solid #d9d9d9',
+                                                    borderRadius: '8px',
+                                                    padding: '8px',
+                                                    maxWidth: '350px'
+                                                }}
+                                            >
+                                                <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '14px' }} />
+                                            </Tooltip>
+                                        </span>
+                                    }
+                                >
                                     <Select placeholder="בחר מעמד" allowClear>
                                         <Option value="">ריק</Option>
                                         <Option value="כהן">כהן</Option>
@@ -341,7 +366,32 @@ const AddMemberModal = ({ visible, onCancel, onSave, editingMember, members = []
                                 </Form.Item>
                             </Col>
                             <Col xs={24} sm={8}>
-                                <Form.Item name="title" label="תואר">
+                                <Form.Item
+                                    name="title"
+                                    label={
+                                        <span>
+                                            תואר{' '}
+                                            <Tooltip
+                                                title={
+                                                    <div style={{ color: '#006400', direction: 'rtl' }}>
+                                                        בחר רב או השאר ריק
+                                                    </div>
+                                                }
+                                                placement="bottomLeft"
+                                                zIndex={1100}
+                                                overlayInnerStyle={{
+                                                    backgroundColor: '#ffffcc',
+                                                    border: '1px solid #d9d9d9',
+                                                    borderRadius: '8px',
+                                                    padding: '8px',
+                                                    maxWidth: '350px'
+                                                }}
+                                            >
+                                                <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '14px' }} />
+                                            </Tooltip>
+                                        </span>
+                                    }
+                                >
                                     <Select placeholder="בחר תואר" allowClear>
                                         <Option value="הרב">הרב</Option>
                                         <Option value="מר">מר</Option>
