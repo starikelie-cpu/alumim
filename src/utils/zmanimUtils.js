@@ -186,6 +186,19 @@ export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityNa
         const results = [];
         const seenNames = new Set();
 
+        // Check for Birkat HaLevana (between day 1 and day 15 of Hebrew month, except Tishrei)
+        const dayOfMonth = shabbatHDate.getDate();
+        const monthName = shabbatHDate.getMonthName('he');
+        if (dayOfMonth >= 1 && dayOfMonth <= 15 && !monthName.includes('תשרי')) {
+            const startDay = new HDate(7, shabbatHDate.getMonth(), shabbatHDate.getFullYear()).renderGematriya(true).split(' ')[0];
+            const endDay = new HDate(15, shabbatHDate.getMonth(), shabbatHDate.getFullYear()).renderGematriya(true).split(' ')[0];
+            results.push({
+                type: 'levana',
+                name: 'ברכת הלבנה',
+                displayText: `זמן ברכת הלבנה: מ-${startDay} ${monthName} עד ${endDay} ${monthName}`
+            });
+        }
+
         events.forEach(e => {
             const f = e.getFlags();
             const rawTitle = e.render('he');
