@@ -79,6 +79,16 @@ function App() {
         () => localStorage.getItem('adminViewSynagogueId') || null
     );
     const [showFirstTimePrompt, setShowFirstTimePrompt] = useState(false);
+    const [guestSynagogueChoiceCount, setGuestSynagogueChoiceCount] = useState(() => {
+        try {
+            const saved = localStorage.getItem('guestSynagogueChoiceCount');
+            if (saved) return parseInt(saved, 10);
+            if (localStorage.getItem('guestSynagogueId')) return 1;
+        } catch (e) {
+            console.error('Failed to load guestSynagogueChoiceCount:', e);
+        }
+        return 0;
+    });
 
     // Database connection status state
     const [dbStatus, setDbStatus] = useState({ useMongoDB: false, error: null, mongoUri: 'mongodb+srv://Alumim:alumim99@cluster1.i8jyvvd.mongodb.net/Alumim?retryWrites=true&w=majority&appName=Cluster1' });
@@ -685,6 +695,11 @@ function App() {
         // Save to localStorage IMMEDIATELY - no server wait
         localStorage.setItem('guestSynagogueId', synId);
         
+        const currentCount = parseInt(localStorage.getItem('guestSynagogueChoiceCount') || (localStorage.getItem('guestSynagogueId') ? '1' : '0'), 10);
+        const nextCount = Math.min(currentCount + 1, 3);
+        setGuestSynagogueChoiceCount(nextCount);
+        localStorage.setItem('guestSynagogueChoiceCount', String(nextCount));
+
         // Save to local file
         try {
             await fetch(`${API_BASE}/api/preferences`, {
@@ -707,6 +722,17 @@ function App() {
             setShowFirstTimePrompt(false); // Hide prompt after selection
         }
         fetchAllData(synId);
+    };
+
+    const handleGuestRequestChangeSynagogue = () => {
+        if (guestSynagogueChoiceCount >= 3) return;
+        setGuestSynagogueId(null);
+        setLocalSynagogueName('');
+        try {
+            localStorage.removeItem('guestSynagogueId');
+            localStorage.removeItem('localSynagogueName');
+        } catch (e) {}
+        setShowFirstTimePrompt(true);
     };
 
     const handleResetGuestSynagogueSelection = () => {
@@ -1407,7 +1433,7 @@ function App() {
                             <span style={{ fontSize: '14px', color: '#888' }}>
                                 🙋 אורח (צופה בלבד)
                             </span>
-                            {localSynagogueName && (
+                            {localSynagogueName && guestSynagogueId && !showFirstTimePrompt && (
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                     <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <img 
@@ -1443,8 +1469,10 @@ function App() {
             />
 
             <div style={{ padding: isMobile() ? '18px 14px' : '40px 50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile() ? '14px' : '20px', width: '100%', boxSizing: 'border-box' }}>
-                {/* Banner - שם בית הכנסת (מוצג תמיד: למנהל מחובר, למשתמש ולאורח) */}
+                {/* Banner - שם בית הכנסת (מוצג למנהל/משתמש, ולאורח רק לאחר שבחר בית כנסת) */}
                 {(() => {
+                    if (!user && (!guestSynagogueId || showFirstTimePrompt)) return null;
+
                     const activeSyn = user?.synagogueId 
                         ? synagogues.find(s => s.id === user.synagogueId)
                         : (adminViewSynagogueId 
@@ -1516,6 +1544,31 @@ function App() {
                                         📍 {activeSyn.address}
                                     </div>
                                 )}
+                                {!user && guestSynagogueChoiceCount < 3 && (
+                                    <Button
+                                        size="small"
+                                        onClick={handleGuestRequestChangeSynagogue}
+                                        style={{
+                                            marginTop: '6px',
+                                            fontSize: isMobile() ? '11px' : '12px',
+                                            fontWeight: 'bold',
+                                            background: 'rgba(255, 255, 255, 0.25)',
+                                            color: '#fff',
+                                            borderColor: 'rgba(255, 255, 255, 0.7)',
+                                            borderRadius: '16px',
+                                            padding: '2px 12px',
+                                            height: 'auto',
+                                            lineHeight: '1.4',
+                                            whiteSpace: 'normal',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                                        }}
+                                    >
+                                        ✏️ {guestSynagogueChoiceCount <= 1
+                                            ? 'במקרה של טעות ניתן לשנות את בית הכנסת עוד פעמיים'
+                                            : 'נותר עוד פעם אחת לשנות'
+                                        }
+                                    </Button>
+                                )}
                             </div>
 
                             {/* שמאל / סוף הבאנר: תמונת בית הכנסת ללא רקע */}
@@ -1571,7 +1624,7 @@ function App() {
                 })()}
 
                 {/* First-time synagogue selection prompt for guests */}
-                {!user && showFirstTimePrompt && !guestSynagogueId && (
+                {!user && (showFirstTimePrompt || !guestSynagogueId) && (
                     <div style={{
                         background: 'linear-gradient(135deg, #ff7a45 0%, #d4380d 100%)',
                         borderRadius: '12px',
@@ -1599,6 +1652,11 @@ function App() {
                             options={synagogues.map(s => ({ value: s.id, label: `🕍 ${s.name || s.id}` }))}
                             popupMatchSelectWidth={false}
                         />
+                        {guestSynagogueChoiceCount > 0 && guestSynagogueChoiceCount < 3 && (
+                            <div style={{ fontSize: '12px', marginTop: '10px', opacity: 0.95, fontWeight: 'bold', background: 'rgba(0,0,0,0.15)', padding: '4px 10px', borderRadius: '8px', display: 'inline-block' }}>
+                                ✏️ ביצעת {guestSynagogueChoiceCount} מתוך 3 שינויים מורשים (נותרו עוד {3 - guestSynagogueChoiceCount} {3 - guestSynagogueChoiceCount === 1 ? 'פעם' : 'פעמים'})
+                            </div>
+                        )}
                     </div>
                 )}
                 <div style={{
