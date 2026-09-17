@@ -1544,31 +1544,39 @@ function App() {
                                         📍 {activeSyn.address}
                                     </div>
                                 )}
-                                {!user && guestSynagogueChoiceCount < 3 && (
-                                    <Button
-                                        size="small"
-                                        onClick={handleGuestRequestChangeSynagogue}
-                                        style={{
-                                            marginTop: '6px',
-                                            fontSize: isMobile() ? '11px' : '12px',
-                                            fontWeight: 'bold',
-                                            background: 'rgba(255, 255, 255, 0.25)',
-                                            color: '#fff',
-                                            borderColor: 'rgba(255, 255, 255, 0.7)',
-                                            borderRadius: '16px',
-                                            padding: '2px 12px',
-                                            height: 'auto',
-                                            lineHeight: '1.4',
-                                            whiteSpace: 'normal',
-                                            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
-                                        }}
-                                    >
-                                        ✏️ {guestSynagogueChoiceCount <= 1
-                                            ? 'במקרה של טעות ניתן לשנות את בית הכנסת עוד פעמיים'
-                                            : 'נותר עוד פעם אחת לשנות'
-                                        }
-                                    </Button>
-                                )}
+                                {(() => {
+                                    const targetSynId = activeSyn?.id || guestSynagogueId;
+                                    const isRegisteredLocally = targetSynId ? localStorage.getItem(`guest_self_registered_${targetSynId}`) : null;
+
+                                    if (!user && guestSynagogueChoiceCount < 3 && !isRegisteredLocally) {
+                                        return (
+                                            <Button
+                                                size="small"
+                                                onClick={handleGuestRequestChangeSynagogue}
+                                                style={{
+                                                    marginTop: '6px',
+                                                    fontSize: isMobile() ? '11px' : '12px',
+                                                    fontWeight: 'bold',
+                                                    background: 'rgba(255, 255, 255, 0.25)',
+                                                    color: '#fff',
+                                                    borderColor: 'rgba(255, 255, 255, 0.7)',
+                                                    borderRadius: '16px',
+                                                    padding: '2px 12px',
+                                                    height: 'auto',
+                                                    lineHeight: '1.4',
+                                                    whiteSpace: 'normal',
+                                                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                                                }}
+                                            >
+                                                ✏️ {guestSynagogueChoiceCount <= 1
+                                                    ? 'במקרה של טעות ניתן לשנות את בית הכנסת עוד פעמיים'
+                                                    : 'נותר עוד פעם אחת לשנות'
+                                                }
+                                            </Button>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
 
                             {/* שמאל / סוף הבאנר: תמונת בית הכנסת ללא רקע */}
