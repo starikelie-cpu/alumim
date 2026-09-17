@@ -111,9 +111,8 @@ const AddNiftarModal = ({ visible, onCancel, onSave, editingNiftar }) => {
                         <Col xs={24} sm={14}>
                             <Form.Item name="title" label="תואר">
                                 <Select placeholder="בחר תואר" allowClear>
+                                    <Option value="">ריק</Option>
                                     <Option value="הרב">הרב</Option>
-                                    <Option value="מר">מר</Option>
-                                    <Option value="ה'">ה'</Option>
                                 </Select>
                             </Form.Item>
                         </Col>

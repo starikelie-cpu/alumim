@@ -251,9 +251,8 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                                     }
                                 >
                                     <Select placeholder="בחר תואר" allowClear>
+                                        <Option value="">ריק</Option>
                                         <Option value="הרב">הרב</Option>
-                                        <Option value="מר">מר</Option>
-                                        <Option value="ה'">ה'</Option>
                                     </Select>
                                 </Form.Item>
                             </Col>
