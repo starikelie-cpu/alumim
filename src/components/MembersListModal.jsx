@@ -81,6 +81,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
     }, [filteredMembers]);
 
     const handlePrintAllMembers = () => {
+        if (!isAdmin) return;
         try {
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
@@ -218,6 +219,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
     };
 
     const handlePrint = async () => {
+        if (!isAdmin) return;
         try {
             const info = getUpcomingShabbatInfo();
             const limit = parseInt(daysLimit) || 0;
@@ -850,7 +852,8 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 הוספת מתפלל
                             </Button>
                         )}
-                        {!mobile && (
+                        {isAdmin && !mobile && (
+                        <>
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -916,8 +919,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 </Tooltip>
                             </div>
                         </div>
-                        )}
-                        {!mobile && (
+
                         <Button
                             icon={<PrinterOutlined style={{ fontSize: '15px' }} />}
                             onClick={handlePrint}
@@ -925,9 +927,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         >
                             הדפס
                         </Button>
-                        )}
 
-                        {!mobile && (
                         <Button
                             icon={<PrinterOutlined style={{ fontSize: '15px' }} />}
                             onClick={handlePrintAllMembers}
@@ -935,6 +935,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         >
                             הדפס מתפללים
                         </Button>
+                        </>
                         )}
                     </div>
 
@@ -957,7 +958,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
 
                     {/* Left-aligned buttons (Export & Import) */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', zIndex: 2, marginRight: '40px' }}>
-                        {!mobile && (
+                        {isAdmin && !mobile && (
                         <>
                         <Button
                             icon={<DownloadOutlined style={{ fontSize: '15px' }} />}

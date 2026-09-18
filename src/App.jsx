@@ -1162,6 +1162,9 @@ function App() {
     };
 
     const handleExport = async () => {
+        if (!isAdmin) {
+            return message.error('נדרשת התחברות כמנהל (admin) כדי לייצא גיבוי נתונים');
+        }
         try {
             const archiveRes = await fetch(`${API_BASE}/api/archive`).then(r => r.json()).catch(() => []);
             const data = { 

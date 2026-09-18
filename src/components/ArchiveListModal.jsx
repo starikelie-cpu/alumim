@@ -98,6 +98,7 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
     };
 
     const handlePrint = () => {
+        if (!isAdmin) return;
         try {
             let printData = [...filteredData];
 
@@ -686,64 +687,68 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                 </div>
                 {!mobile && (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <Button
-                        className="export-btn-3d"
-                        icon={<DownloadOutlined />}
-                        onClick={() => saveJsonFile(archiveData, 'archive.json')}
-                        title="ייצוא ארכיון"
-                    >
-                        ייצוא
-                    </Button>
+                    {isAdmin && (
+                        <>
+                        <Button
+                            className="export-btn-3d"
+                            icon={<DownloadOutlined />}
+                            onClick={() => saveJsonFile(archiveData, 'archive.json')}
+                            title="ייצוא ארכיון"
+                        >
+                            ייצוא
+                        </Button>
 
-                    <Tooltip
-                        title={<div style={{ color: '#006400' }}>בחר פעם ראשונה נתיב בו יש לשמור גיבויים. בכל פעם שנרצה ליצא או ליבא ברירת המחדל תעדיף קודם נתיב זה</div>}
-                        placement="bottomLeft"
-                        zIndex={1200}
-                        overlayInnerStyle={{
-                            backgroundColor: '#ffffcc',
-                            border: '1px solid #d9d9d9',
-                            borderRadius: '8px',
-                            padding: '8px'
-                        }}
-                    >
-                        <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '16px' }} />
-                    </Tooltip>
+                        <Tooltip
+                            title={<div style={{ color: '#006400' }}>בחר פעם ראשונה נתיב בו יש לשמור גיבויים. בכל פעם שנרצה ליצא או ליבא ברירת המחדל תעדיף קודם נתיב זה</div>}
+                            placement="bottomLeft"
+                            zIndex={1200}
+                            overlayInnerStyle={{
+                                backgroundColor: '#ffffcc',
+                                border: '1px solid #d9d9d9',
+                                borderRadius: '8px',
+                                padding: '8px'
+                            }}
+                        >
+                            <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '16px' }} />
+                        </Tooltip>
 
-                    <Button
-                        className="import-btn-3d"
-                        icon={<UploadOutlined />}
-                        onClick={async () => {
-                            if (!isAdmin) {
-                                alert('נדרשת התחברות כמנהל (admin) כדי לייבא גיבוי נתונים. אנא התחבר כמנהל בראש המסך ונסה שוב.');
-                                return;
-                            }
-                            const result = await loadJsonFile('archive-import-handle');
-                            if (!result) return;
-                            const { json } = result;
-                            if (confirm(`האם אתה בטוח שברצונך לייבא ${json.length} רשומות ארכיון? פעולה זו תחליף את הארכיון הקיים!`)) {
-                                try {
-                                    const headers = { 'Content-Type': 'application/json' };
-                                    if (token) headers['Authorization'] = `Bearer ${token}`;
-                                    const response = await fetch(`${API_BASE}/api/archive/import`, {
-                                        method: 'POST',
-                                        headers: headers,
-                                        body: JSON.stringify(json)
-                                    });
-                                    if (!response.ok) {
-                                        const errorData = await response.json().catch(() => ({}));
-                                        throw new Error(errorData.error || `Server returned ${response.status}`);
-                                    }
-                                    alert('הייבוא הושלם בהצלחה! אנא רענן את הדף.');
-                                    window.location.reload();
-                                } catch (err) {
-                                    alert('שגיאה בייבוא הקובץ: ' + err.message);
+                        <Button
+                            className="import-btn-3d"
+                            icon={<UploadOutlined />}
+                            onClick={async () => {
+                                if (!isAdmin) {
+                                    alert('נדרשת התחברות כמנהל (admin) כדי לייבא גיבוי נתונים. אנא התחבר כמנהל בראש המסך ונסה שוב.');
+                                    return;
                                 }
-                            }
-                        }}
-                        title="ייבוא ארכיון"
-                    >
-                        ייבוא
-                    </Button>
+                                const result = await loadJsonFile('archive-import-handle');
+                                if (!result) return;
+                                const { json } = result;
+                                if (confirm(`האם אתה בטוח שברצונך לייבא ${json.length} רשומות ארכיון? פעולה זו תחליף את הארכיון הקיים!`)) {
+                                    try {
+                                        const headers = { 'Content-Type': 'application/json' };
+                                        if (token) headers['Authorization'] = `Bearer ${token}`;
+                                        const response = await fetch(`${API_BASE}/api/archive/import`, {
+                                            method: 'POST',
+                                            headers: headers,
+                                            body: JSON.stringify(json)
+                                        });
+                                        if (!response.ok) {
+                                            const errorData = await response.json().catch(() => ({}));
+                                            throw new Error(errorData.error || `Server returned ${response.status}`);
+                                        }
+                                        alert('הייבוא הושלם בהצלחה! אנא רענן את הדף.');
+                                        window.location.reload();
+                                    } catch (err) {
+                                        alert('שגיאה בייבוא הקובץ: ' + err.message);
+                                    }
+                                }
+                            }}
+                            title="ייבוא ארכיון"
+                        >
+                            ייבוא
+                        </Button>
+                        </>
+                    )}
                     <span style={{ fontSize: '14px', fontWeight: 'bold' }}>סוג עליה:</span>
                     <div style={{
                         padding: '1px',
@@ -773,14 +778,16 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                             ))}
                         </Select>
                     </div>
-                    <Button
-                        className="print-btn-3d"
-                        type="primary"
-                        icon={<PrinterOutlined />}
-                        onClick={handlePrint}
-                    >
-                        הדפס
-                    </Button>
+                    {isAdmin && (
+                        <Button
+                            className="print-btn-3d"
+                            type="primary"
+                            icon={<PrinterOutlined />}
+                            onClick={handlePrint}
+                        >
+                            הדפס
+                        </Button>
+                    )}
                 </div>
                 )}
             </div>

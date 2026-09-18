@@ -23,6 +23,7 @@ const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAd
     }, [safeNiftarim, searchText]);
 
     const handlePrint = () => {
+        if (!isAdmin) return;
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
             alert("לא ניתן לפתוח חלון הדפסה. ייתכן שחוסם פופ-אפים פעיל.");
@@ -202,72 +203,76 @@ const NiftarimListModal = ({ visible, onCancel, niftarim, onEdit, onDelete, onAd
                                 הוספת נפטר
                             </Button>
                         )}
-                        <Button
-                            type="primary"
-                            icon={<PrinterOutlined />}
-                            onClick={handlePrint}
-                            style={{ background: '#52c41a', borderColor: '#52c41a', color: 'black', fontWeight: 'bold' }}
-                        >
-                            הדפס
-                        </Button>
-                        <Button
-                            icon={<DownloadOutlined />}
-                            onClick={() => saveJsonFile(safeNiftarim, 'niftarim.json')}
-                            title="ייצוא לקובץ"
-                            style={{ background: '#ffe7ba', borderColor: '#ffbb96', color: 'black', fontWeight: 'bold' }}
-                        >
-                            ייצוא
-                        </Button>
+                        {isAdmin && (
+                            <>
+                            <Button
+                                type="primary"
+                                icon={<PrinterOutlined />}
+                                onClick={handlePrint}
+                                style={{ background: '#52c41a', borderColor: '#52c41a', color: 'black', fontWeight: 'bold' }}
+                            >
+                                הדפס
+                            </Button>
+                            <Button
+                                icon={<DownloadOutlined />}
+                                onClick={() => saveJsonFile(safeNiftarim, 'niftarim.json')}
+                                title="ייצוא לקובץ"
+                                style={{ background: '#ffe7ba', borderColor: '#ffbb96', color: 'black', fontWeight: 'bold' }}
+                            >
+                                ייצוא
+                            </Button>
 
-                        <Tooltip
-                            title={<div style={{ color: '#006400' }}>בחר פעם ראשונה נתיב בו יש לשמור גיבויים. בכל פעם שנרצה ליצא או ליבא ברירת המחדל תעדיף קודם נתיב זה</div>}
-                            placement="bottomLeft"
-                            zIndex={1200}
-                            overlayInnerStyle={{
-                                backgroundColor: '#ffffcc',
-                                border: '1px solid #d9d9d9',
-                                borderRadius: '8px',
-                                padding: '8px'
-                            }}
-                        >
-                            <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '16px' }} />
-                        </Tooltip>
+                            <Tooltip
+                                title={<div style={{ color: '#006400' }}>בחר פעם ראשונה נתיב בו יש לשמור גיבויים. בכל פעם שנרצה ליצא או ליבא ברירת המחדל תעדיף קודם נתיב זה</div>}
+                                placement="bottomLeft"
+                                zIndex={1200}
+                                overlayInnerStyle={{
+                                    backgroundColor: '#ffffcc',
+                                    border: '1px solid #d9d9d9',
+                                    borderRadius: '8px',
+                                    padding: '8px'
+                                }}
+                            >
+                                <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '16px' }} />
+                            </Tooltip>
 
-                        <Button
-                            icon={<UploadOutlined />}
-                            onClick={async () => {
-                                if (!isAdmin) {
-                                    alert('נדרשת התחברות כמנהל (admin) כדי לייבא גיבוי נתונים. אנא התחבר כמנהל בראש המסך ונסה שוב.');
-                                    return;
-                                }
-                                const result = await loadJsonFile('niftarim-import-handle');
-                                if (!result) return;
-                                const { json } = result;
-                                if (confirm(`האם אתה בטוח שברצונך לייבא ${json.length} נפטרים? פעולה זו תחליף את הרשימה הקיימת!`)) {
-                                    try {
-                                        const headers = { 'Content-Type': 'application/json' };
-                                        if (token) headers['Authorization'] = `Bearer ${token}`;
-                                        const response = await fetch(`${API_BASE}/api/niftarim/import`, {
-                                            method: 'POST',
-                                            headers: headers,
-                                            body: JSON.stringify(json)
-                                        });
-                                        if (!response.ok) {
-                                            const errorData = await response.json().catch(() => ({}));
-                                            throw new Error(errorData.error || `Server returned ${response.status}`);
-                                        }
-                                        alert('הייבוא הושלם בהצלחה! אנא רענן את הדף.');
-                                        window.location.reload();
-                                    } catch (err) {
-                                        alert('שגיאה בייבוא הקובץ: ' + err.message);
+                            <Button
+                                icon={<UploadOutlined />}
+                                onClick={async () => {
+                                    if (!isAdmin) {
+                                        alert('נדרשת התחברות כמנהל (admin) כדי לייבא גיבוי נתונים. אנא התחבר כמנהל בראש המסך ונסה שוב.');
+                                        return;
                                     }
-                                }
-                            }}
-                            title="ייבוא מקובץ"
-                            style={{ background: '#efdbff', borderColor: '#b37feb', color: '#391085', fontWeight: 'bold' }}
-                        >
-                            ייבוא
-                        </Button>
+                                    const result = await loadJsonFile('niftarim-import-handle');
+                                    if (!result) return;
+                                    const { json } = result;
+                                    if (confirm(`האם אתה בטוח שברצונך לייבא ${json.length} נפטרים? פעולה זו תחליף את הרשימה הקיימת!`)) {
+                                        try {
+                                            const headers = { 'Content-Type': 'application/json' };
+                                            if (token) headers['Authorization'] = `Bearer ${token}`;
+                                            const response = await fetch(`${API_BASE}/api/niftarim/import`, {
+                                                method: 'POST',
+                                                headers: headers,
+                                                body: JSON.stringify(json)
+                                            });
+                                            if (!response.ok) {
+                                                const errorData = await response.json().catch(() => ({}));
+                                                throw new Error(errorData.error || `Server returned ${response.status}`);
+                                            }
+                                            alert('הייבוא הושלם בהצלחה! אנא רענן את הדף.');
+                                            window.location.reload();
+                                        } catch (err) {
+                                            alert('שגיאה בייבוא הקובץ: ' + err.message);
+                                        }
+                                    }
+                                }}
+                                title="ייבוא מקובץ"
+                                style={{ background: '#efdbff', borderColor: '#b37feb', color: '#391085', fontWeight: 'bold' }}
+                            >
+                                ייבוא
+                            </Button>
+                            </>
+                        )}
                     </div>
                 </div>
             }
