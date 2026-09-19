@@ -126,7 +126,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         .page-number { font-size: 13px; margin-top: 5px; font-weight: bold; }
                         .header-left-spacer { width: 220px; text-align: right; }
                         table { width: 100%; border-collapse: collapse; margin-top: 3mm; }
-                        th { border-bottom: 2px solid #333; font-weight: bold; color: #0066cc; text-align: right; padding: 5px 4px; box-sizing: border-box; font-size: 13px; }
+                        th { border-bottom: 2px solid #333; font-weight: bold; color: #ff0000; text-align: right; padding: 5px 4px; box-sizing: border-box; font-size: 13px; }
                         td { border-bottom: 1px solid #eee; padding: 5px 4px; box-sizing: border-box; vertical-align: middle; text-align: right; font-size: 13px; }
                         .number { width: 5%; text-align: center; }
                         .letter { width: 6%; }
@@ -325,7 +325,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         .shmita-right { position: absolute; top: -5px; right: 0; width: 175px; text-align: center; font-size: 11px; font-weight: bold; line-height: 1.2; }
                         .center-header { margin-left: 200px; margin-right: 185px; text-align: center; }
                         table { width: 100%; border-collapse: collapse; margin-top: 3mm; }
-                        th { border-bottom: 2px solid #333; font-weight: bold; color: #0066cc; text-align: right; padding: 5px 4px; box-sizing: border-box; font-size: 13px; }
+                        th { border-bottom: 2px solid #333; font-weight: bold; color: #ff0000; text-align: right; padding: 5px 4px; box-sizing: border-box; font-size: 13px; }
                         td { border-bottom: 1px solid #eee; padding: 4px 4px; box-sizing: border-box; vertical-align: middle; text-align: right; font-size: 13px; }
                         .highlight-row { color: #ff0000 !important; font-weight: bold !important; }
                         .title { font-size: 20px; font-weight: bold; margin: 0; color: #000; }

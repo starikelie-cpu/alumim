@@ -149,7 +149,7 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                         .filter-info { font-size: 14pt; color: #00008B; font-weight: bold; margin-top: 5px; }
                         table { width: 100%; border-collapse: collapse; margin-top: 5px; border: none; }
                         th, td { border: none; padding: 4px 8px; text-align: right; }
-                        th { background-color: #f5f5f5; font-weight: bold; font-size: 16px; border-bottom: 2px solid #333; text-align: right; }
+                        th { background-color: #f5f5f5; font-weight: bold; font-size: 16px; border-bottom: 2px solid #333; text-align: right; color: #ff0000; }
                         td { font-size: 15pt; line-height: 17pt; border-bottom: 1px solid #f9f9f9; }
                     </style>
                 </head>
