@@ -145,11 +145,11 @@ const ArchiveListModal = ({ visible, onCancel, onEdit, onDelete, refreshKey, mem
                         body { font-family: 'Assistant', sans-serif; padding: 15px; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         .header { text-align: center; margin-bottom: 10px; border-bottom: 2px solid #333; padding-bottom: 10px; position: relative; padding-top: 5px; }
                         .today-date { position: absolute; top: 0; left: 0; font-size: 14pt; color: #00008B; font-weight: bold; }
-                        .title { font-size: 28px; font-weight: bold; margin: 0; color: #00008B; }
+                        .title { font-size: 28px; font-weight: bold; margin: 0; color: #ff0000; }
                         .filter-info { font-size: 14pt; color: #00008B; font-weight: bold; margin-top: 5px; }
                         table { width: 100%; border-collapse: collapse; margin-top: 5px; border: none; }
                         th, td { border: none; padding: 4px 8px; text-align: right; }
-                        th { background-color: #f5f5f5; font-weight: bold; font-size: 16px; border-bottom: 2px solid #333; text-align: right; color: #ff0000; }
+                        th { background-color: #f5f5f5; font-weight: bold; font-size: 16px; border-bottom: 2px solid #333; text-align: right; }
                         td { font-size: 15pt; line-height: 17pt; border-bottom: 1px solid #f9f9f9; }
                     </style>
                 </head>
