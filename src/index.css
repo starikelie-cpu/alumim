@@ -81,4 +81,25 @@ body {
   background-color: #d9f7be !important;
 }
 
+/* הודעה מהבהבת אדומה לאורח */
+@keyframes blinkRed {
+  0%, 100% {
+    opacity: 1;
+    border-color: #ff4d4f;
+    box-shadow: 0 4px 14px rgba(255, 77, 79, 0.45);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    border-color: #ff7875;
+    box-shadow: 0 2px 6px rgba(255, 77, 79, 0.15);
+    transform: scale(0.99);
+  }
+}
+
+.flashing-red-notice {
+  animation: blinkRed 1.2s infinite ease-in-out;
+}
+
+
 

@@ -1670,6 +1670,38 @@ function App() {
                         )}
                     </div>
                 )}
+
+                {/* Flashing red notice for guests after selecting synagogue in red banner and before registration */}
+                {!user && (guestSynagogueId || localSynagogueName) && !showFirstTimePrompt && (() => {
+                    const targetSynId = guestSynagogueId || synagogues.find(s => s.name === localSynagogueName)?.id;
+                    const isRegisteredLocally = targetSynId ? localStorage.getItem(`guest_self_registered_${targetSynId}`) : null;
+
+                    if (!isRegisteredLocally) {
+                        return (
+                            <div 
+                                className="flashing-red-notice"
+                                style={{
+                                    background: '#fff1f0',
+                                    border: '2px solid #ff4d4f',
+                                    borderRadius: '10px',
+                                    padding: isMobile() ? '10px 14px' : '12px 24px',
+                                    color: '#cf1322',
+                                    fontWeight: 'bold',
+                                    fontSize: isMobile() ? '15px' : '17px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 4px 12px rgba(255, 77, 79, 0.25)',
+                                    width: '100%',
+                                    maxWidth: '650px',
+                                    boxSizing: 'border-box'
+                                }}
+                            >
+                                ⚠️ לפני ההרשמה בדוק ברשימת המתפללים אם הינך רשום אם כן יש ללחוץ על אני כבר רשום
+                            </div>
+                        );
+                    }
+                    return null;
+                })()}
+
                 <div style={{
                     display: 'flex',
                     flexDirection: isMobile() ? 'column' : 'row',
