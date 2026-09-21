@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
-import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip, Tag, Popconfirm } from 'antd';
-import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined, ReloadOutlined, CheckCircleOutlined, EditOutlined, CheckOutlined } from '@ant-design/icons';
+import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip, Tag, Popconfirm, Tabs, List, Card, Space, Divider } from 'antd';
+import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined, ReloadOutlined, CheckCircleOutlined, EditOutlined, CheckOutlined, UserOutlined, KeyOutlined, DeleteOutlined, TeamOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
 import GuestSelfRegisterModal from './components/GuestSelfRegisterModal';
@@ -144,6 +144,9 @@ function App() {
     const [isAdminCredentialsVisible, setIsAdminCredentialsVisible] = useState(false);
     const [isSavingAdminCredentials, setIsSavingAdminCredentials] = useState(false);
     const [adminCredentialsForm] = Form.useForm();
+    const [synagogueUsers, setSynagogueUsers] = useState([]);
+    const [loadingSynagogueUsers, setLoadingSynagogueUsers] = useState(false);
+    const [newAdminForm] = Form.useForm();
 
     // Guest self-registration modal state
     const [isGuestSelfRegModalVisible, setIsGuestSelfRegModalVisible] = useState(false);
@@ -574,6 +577,97 @@ function App() {
             message.error(error.message || 'שגיאה בעדכון פרטי מנהל');
         } finally {
             setIsSavingAdminCredentials(false);
+        }
+    };
+
+    const fetchSynagogueUsers = async () => {
+        if (!token) return;
+        setLoadingSynagogueUsers(true);
+        try {
+            const res = await fetch(`${API_BASE}/api/users`, {
+                headers: getHeaders()
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSynagogueUsers(Array.isArray(data) ? data : []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch synagogue users:', err);
+        } finally {
+            setLoadingSynagogueUsers(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isAdminCredentialsVisible) {
+            fetchSynagogueUsers();
+        }
+    }, [isAdminCredentialsVisible]);
+
+    const handleAddNewAdmin = async (values) => {
+        try {
+            const currentSynId = user?.synagogueId || guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id);
+            const payload = {
+                username: values.username?.trim(),
+                password: values.password?.trim(),
+                role: 'synagogue_admin',
+                synagogueId: currentSynId || null
+            };
+            const res = await fetch(`${API_BASE}/api/users`, {
+                method: 'POST',
+                headers: getHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'יצירת מנהל חדש נכשלה');
+            }
+            message.success(`מנהל חדש (${data.username}) נוצר בהצלחה!`);
+            newAdminForm.resetFields();
+            fetchSynagogueUsers();
+        } catch (err) {
+            message.error(err.message || 'שגיאה ביצירת מנהל');
+        }
+    };
+
+    const handleChangeUserPassword = async (targetUsername) => {
+        const newPassword = window.prompt(`הזן סיסמה חדשה עבור המנהל ${targetUsername}:`);
+        if (newPassword === null) return;
+        if (!newPassword.trim() || newPassword.trim().length < 4) {
+            message.error('הסיסמה חייבת להכיל לפחות 4 תווים');
+            return;
+        }
+        try {
+            const res = await fetch(`${API_BASE}/api/users/${targetUsername}`, {
+                method: 'PUT',
+                headers: getHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ password: newPassword.trim() })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'עדכון סיסמה נכשל');
+            }
+            message.success(`הסיסמה של ${targetUsername} עודכנה בהצלחה!`);
+            fetchSynagogueUsers();
+        } catch (err) {
+            message.error(err.message || 'שגיאה בעדכון הסיסמה');
+        }
+    };
+
+    const handleDeleteUserAccount = async (targetUsername) => {
+        try {
+            const res = await fetch(`${API_BASE}/api/users/${targetUsername}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'מחיקת מנהל נכשלה');
+            }
+            message.success(`המנהל ${targetUsername} הוסר בהצלחה!`);
+            fetchSynagogueUsers();
+        } catch (err) {
+            message.error(err.message || 'שגיאה במחיקת מנהל');
         }
     };
 
@@ -2185,46 +2279,171 @@ function App() {
                 </Modal>
 
                 <Modal
-                    title="עדכון והוספה של מנהל"
+                    title={<Space><TeamOutlined style={{ color: '#1890ff' }} /><span>עדכון והוספה של מנהל</span></Space>}
                     open={isAdminCredentialsVisible}
                     onCancel={() => {
                         setIsAdminCredentialsVisible(false);
                         adminCredentialsForm.resetFields();
+                        newAdminForm.resetFields();
                     }}
-                    onOk={() => adminCredentialsForm.submit()}
-                    okText="שמור"
-                    cancelText="ביטול"
-                    confirmLoading={isSavingAdminCredentials}
-                    width={420}
+                    footer={null}
+                    width={580}
                     destroyOnClose
                 >
-                    <Form
-                        form={adminCredentialsForm}
-                        layout="vertical"
-                        onFinish={handleAdminCredentialsSave}
-                        initialValues={{ username: user?.username || '' }}
-                    >
-                        <Form.Item
-                            name="username"
-                            label="שם משתמש חדש"
-                            rules={[
-                                { required: true, message: 'נא להזין שם משתמש' },
-                                { min: 3, message: 'שם משתמש חייב להכיל לפחות 3 תווים' }
-                            ]}
-                        >
-                            <Input placeholder="לדוגמה: admin" />
-                        </Form.Item>
-                        <Form.Item
-                            name="password"
-                            label="סיסמה חדשה"
-                            rules={[
-                                { required: true, message: 'נא להזין סיסמה חדשה' },
-                                { min: 4, message: 'סיסמה חייבת להכיל לפחות 4 תווים' }
-                            ]}
-                        >
-                            <Input.Password placeholder="סיסמה חדשה" />
-                        </Form.Item>
-                    </Form>
+                    {(() => {
+                        const currentSynId = user?.synagogueId || guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id);
+                        const currentSynName = localSynagogueName || synagogues.find(s => s.id === currentSynId)?.name || 'בית הכנסת';
+                        const registeredAdmins = synagogueUsers.filter(u => !currentSynId || !u.synagogueId || String(u.synagogueId) === String(currentSynId));
+
+                        return (
+                            <Tabs
+                                defaultActiveKey="1"
+                                items={[
+                                    {
+                                        key: '1',
+                                        label: <span><TeamOutlined /> מנהלים רשומים ({registeredAdmins.length})</span>,
+                                        children: (
+                                            <div>
+                                                <div style={{ marginBottom: 12, fontSize: '13px', color: '#555' }}>
+                                                    רשימת המנהלים והמשתמשים הרשומים ל<strong>{currentSynName}</strong>:
+                                                </div>
+                                                <List
+                                                    loading={loadingSynagogueUsers}
+                                                    dataSource={registeredAdmins}
+                                                    locale={{ emptyText: 'אין מנהלים רשומים נוספים לבית כנסת זה' }}
+                                                    style={{ maxHeight: 280, overflowY: 'auto', background: '#fafafa', borderRadius: 8, padding: '4px 12px', border: '1px solid #f0f0f0' }}
+                                                    renderItem={(item) => (
+                                                        <List.Item
+                                                            actions={[
+                                                                <Tooltip title="איפוס/שינוי סיסמה למנהל זה">
+                                                                    <Button
+                                                                        size="small"
+                                                                        icon={<KeyOutlined />}
+                                                                        onClick={() => handleChangeUserPassword(item.username)}
+                                                                    >
+                                                                        סיסמה
+                                                                    </Button>
+                                                                </Tooltip>,
+                                                                item.username !== user?.username && item.username !== 'admin' && (
+                                                                    <Popconfirm
+                                                                        title={`להסיר את המנהל ${item.username}?`}
+                                                                        onConfirm={() => handleDeleteUserAccount(item.username)}
+                                                                        okText="כן, הסר"
+                                                                        cancelText="ביטול"
+                                                                    >
+                                                                        <Button size="small" danger icon={<DeleteOutlined />} />
+                                                                    </Popconfirm>
+                                                                )
+                                                            ].filter(Boolean)}
+                                                        >
+                                                            <List.Item.Meta
+                                                                avatar={<UserOutlined style={{ fontSize: '18px', color: item.role === 'super_admin' ? '#faad14' : '#1890ff', padding: '6px', background: '#e6f7ff', borderRadius: '50%' }} />}
+                                                                title={
+                                                                    <Space>
+                                                                        <strong>{item.username}</strong>
+                                                                        {item.username === user?.username && <Tag color="green">החשבון שלך</Tag>}
+                                                                    </Space>
+                                                                }
+                                                                description={
+                                                                    item.role === 'super_admin' ? (
+                                                                        <Tag color="gold">מנהל על</Tag>
+                                                                    ) : item.role === 'synagogue_admin' ? (
+                                                                        <Tag color="blue">מנהל בית כנסת</Tag>
+                                                                    ) : (
+                                                                        <Tag color="default">צופה</Tag>
+                                                                    )
+                                                                }
+                                                            />
+                                                        </List.Item>
+                                                    )}
+                                                />
+                                            </div>
+                                        )
+                                    },
+                                    {
+                                        key: '2',
+                                        label: <span><UserAddOutlined /> הוספת מנהל חדש</span>,
+                                        children: (
+                                            <Card size="small" style={{ background: '#f6ffed', borderColor: '#b7eb8f', borderRadius: 8 }}>
+                                                <div style={{ marginBottom: 12, fontWeight: '600', color: '#274e13' }}>
+                                                    הוספת מנהל חדש ל{currentSynName}:
+                                                </div>
+                                                <Form
+                                                    form={newAdminForm}
+                                                    layout="vertical"
+                                                    onFinish={handleAddNewAdmin}
+                                                >
+                                                    <Form.Item
+                                                        name="username"
+                                                        label="שם משתמש למנהל החדש"
+                                                        rules={[
+                                                            { required: true, message: 'נא להזין שם משתמש' },
+                                                            { min: 3, message: 'שם משתמש חייב להכיל לפחות 3 תווים' }
+                                                        ]}
+                                                    >
+                                                        <Input placeholder="לדוגמה: gabbai1" prefix={<UserOutlined />} />
+                                                    </Form.Item>
+                                                    <Form.Item
+                                                        name="password"
+                                                        label="סיסמה למנהל החדש"
+                                                        rules={[
+                                                            { required: true, message: 'נא להזין סיסמה' },
+                                                            { min: 4, message: 'סיסמה חייבת להכיל לפחות 4 תווים' }
+                                                        ]}
+                                                    >
+                                                        <Input.Password placeholder="סיסמה" />
+                                                    </Form.Item>
+                                                    <Form.Item style={{ marginBottom: 0, textAlign: 'left' }}>
+                                                        <Button type="primary" htmlType="submit" icon={<UserAddOutlined />} style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}>
+                                                            צור מנהל חדש
+                                                        </Button>
+                                                    </Form.Item>
+                                                </Form>
+                                            </Card>
+                                        )
+                                    },
+                                    {
+                                        key: '3',
+                                        label: <span><SafetyOutlined /> עדכון החשבון שלי</span>,
+                                        children: (
+                                            <Form
+                                                form={adminCredentialsForm}
+                                                layout="vertical"
+                                                onFinish={handleAdminCredentialsSave}
+                                                initialValues={{ username: user?.username || '' }}
+                                            >
+                                                <Form.Item
+                                                    name="username"
+                                                    label="שם משתמש שלי"
+                                                    rules={[
+                                                        { required: true, message: 'נא להזין שם משתמש' },
+                                                        { min: 3, message: 'שם משתמש חייב להכיל לפחות 3 תווים' }
+                                                    ]}
+                                                >
+                                                    <Input placeholder="לדוגמה: admin" />
+                                                </Form.Item>
+                                                <Form.Item
+                                                    name="password"
+                                                    label="סיסמה חדשה שלי"
+                                                    rules={[
+                                                        { required: true, message: 'נא להזין סיסמה חדשה' },
+                                                        { min: 4, message: 'סיסמה חייבת להכיל לפחות 4 תווים' }
+                                                    ]}
+                                                >
+                                                    <Input.Password placeholder="סיסמה חדשה" />
+                                                </Form.Item>
+                                                <Form.Item style={{ marginBottom: 0, textAlign: 'left' }}>
+                                                    <Button type="primary" htmlType="submit" loading={isSavingAdminCredentials}>
+                                                        עדכן פרטים שלי
+                                                    </Button>
+                                                </Form.Item>
+                                            </Form>
+                                        )
+                                    }
+                                ]}
+                            />
+                        );
+                    })()}
                 </Modal>
 
                 {/* Guest Self-Registration Modal */}
