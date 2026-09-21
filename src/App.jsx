@@ -606,7 +606,11 @@ function App() {
 
     const handleAddNewAdmin = async (values) => {
         try {
-            const currentSynId = user?.synagogueId || guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id);
+            const isSuper = user?.role === 'super_admin';
+            const currentSynId = (isSuper && adminViewSynagogueId) 
+                ? adminViewSynagogueId 
+                : (user?.synagogueId || guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id));
+
             const payload = {
                 username: values.username?.trim(),
                 password: values.password?.trim(),
@@ -1639,13 +1643,17 @@ function App() {
                 {(() => {
                     if (!user && (!guestSynagogueId || showFirstTimePrompt)) return null;
 
-                    const activeSyn = user?.synagogueId 
-                        ? synagogues.find(s => s.id === user.synagogueId)
-                        : (adminViewSynagogueId 
-                            ? synagogues.find(s => s.id === adminViewSynagogueId)
-                            : (guestSynagogueId 
-                                ? synagogues.find(s => s.id === guestSynagogueId)
-                                : (synagogues.find(s => s.name === localSynagogueName) || synagogues[0])
+                    const isSuperAdmin = user?.role === 'super_admin';
+                    const activeSyn = (isSuperAdmin && adminViewSynagogueId)
+                        ? synagogues.find(s => String(s.id) === String(adminViewSynagogueId))
+                        : (user?.synagogueId 
+                            ? synagogues.find(s => String(s.id) === String(user.synagogueId))
+                            : (adminViewSynagogueId 
+                                ? synagogues.find(s => String(s.id) === String(adminViewSynagogueId))
+                                : (guestSynagogueId 
+                                    ? synagogues.find(s => String(s.id) === String(guestSynagogueId))
+                                    : (synagogues.find(s => s.name === localSynagogueName) || synagogues[0])
+                                  )
                               )
                           );
                     
@@ -2291,22 +2299,51 @@ function App() {
                     destroyOnClose
                 >
                     {(() => {
-                        const currentSynId = user?.synagogueId || guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id);
-                        const currentSynName = localSynagogueName || synagogues.find(s => s.id === currentSynId)?.name || 'בית הכנסת';
+                        const isSuper = user?.role === 'super_admin';
+                        const currentSynId = (isSuper && adminViewSynagogueId) 
+                            ? adminViewSynagogueId 
+                            : (user?.synagogueId || adminViewSynagogueId || guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id));
+
+                        const currentSyn = synagogues.find(s => String(s.id) === String(currentSynId));
+                        const currentSynName = currentSyn?.name || localSynagogueName || 'בית הכנסת';
                         const registeredAdmins = synagogueUsers.filter(u => !currentSynId || !u.synagogueId || String(u.synagogueId) === String(currentSynId));
 
                         return (
-                            <Tabs
-                                defaultActiveKey="1"
-                                items={[
-                                    {
-                                        key: '1',
-                                        label: <span><TeamOutlined /> מנהלים רשומים ({registeredAdmins.length})</span>,
-                                        children: (
-                                            <div>
-                                                <div style={{ marginBottom: 12, fontSize: '13px', color: '#555' }}>
-                                                    רשימת המנהלים והמשתמשים הרשומים ל<strong>{currentSynName}</strong>:
-                                                </div>
+                            <div>
+                                {isSuper && synagogues.length > 0 && (
+                                    <div style={{ marginBottom: 14, background: '#e6f7ff', border: '1px solid #91caff', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                        <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#002766' }}>
+                                            בחירת בית כנסת להצגה/ניהול:
+                                        </span>
+                                        <Select
+                                            value={currentSynId ? String(currentSynId) : undefined}
+                                            style={{ width: 220 }}
+                                            placeholder="בחר בית כנסת"
+                                            onChange={(selectedId) => {
+                                                setAdminViewSynagogueId(selectedId);
+                                                localStorage.setItem('adminViewSynagogueId', selectedId);
+                                                fetchAllData(undefined, selectedId);
+                                            }}
+                                        >
+                                            {synagogues.map(s => (
+                                                <Select.Option key={s.id} value={String(s.id)}>
+                                                    {s.name}
+                                                </Select.Option>
+                                            ))}
+                                        </Select>
+                                    </div>
+                                )}
+                                <Tabs
+                                    defaultActiveKey="1"
+                                    items={[
+                                        {
+                                            key: '1',
+                                            label: <span><TeamOutlined /> מנהלים רשומים ({registeredAdmins.length})</span>,
+                                            children: (
+                                                <div>
+                                                    <div style={{ marginBottom: 12, fontSize: '13px', color: '#555' }}>
+                                                        רשימת המנהלים והמשתמשים הרשומים ל<strong>{currentSynName}</strong>:
+                                                    </div>
                                                 <List
                                                     loading={loadingSynagogueUsers}
                                                     dataSource={registeredAdmins}
@@ -2442,6 +2479,7 @@ function App() {
                                     }
                                 ]}
                             />
+                        </div>
                         );
                     })()}
                 </Modal>
