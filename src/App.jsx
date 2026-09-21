@@ -61,6 +61,18 @@ function App() {
         }
     };
 
+    useEffect(() => {
+        if (inputFirstName) {
+            localStorage.setItem('last_self_registered_first_name', inputFirstName);
+        }
+    }, [inputFirstName]);
+
+    useEffect(() => {
+        if (inputLastName) {
+            localStorage.setItem('last_self_registered_last_name', inputLastName);
+        }
+    }, [inputLastName]);
+
     // Niftarim state
     const [niftarim, setNiftarim] = useState([]);
     const [isNiftarimListVisible, setIsNiftarimListVisible] = useState(false);
@@ -2205,6 +2217,8 @@ function App() {
                 {/* Guest Self-Registration Modal */}
                 <GuestSelfRegisterModal
                     visible={isGuestSelfRegModalVisible}
+                    initialFirstName={inputFirstName || savedFirstName || localStorage.getItem('last_self_registered_first_name') || ''}
+                    initialLastName={inputLastName || savedLastName || localStorage.getItem('last_self_registered_last_name') || ''}
                     onCancel={() => setIsGuestSelfRegModalVisible(false)}
                     onSuccess={(registeredMember) => {
                         setIsGuestSelfRegModalVisible(false);

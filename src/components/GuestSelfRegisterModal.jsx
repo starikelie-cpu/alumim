@@ -7,7 +7,7 @@ import { API_BASE, isMobile } from '../config';
 
 const { Option } = Select;
 
-const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, synagogueName }) => {
+const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, synagogueName, initialFirstName = '', initialLastName = '' }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [calendar, setCalendar] = useState({ isOpen: false, field: null });
@@ -20,8 +20,20 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                 .then(res => res.json())
                 .then(data => setParashot(data))
                 .catch(err => console.error("Failed to fetch parashot:", err));
+
+            const savedF = initialFirstName || localStorage.getItem('last_self_registered_first_name') || '';
+            const savedL = initialLastName || localStorage.getItem('last_self_registered_last_name') || '';
+
+            const current = form.getFieldsValue();
+            const updates = {};
+            if (!current.firstName && savedF) updates.firstName = savedF;
+            if (!current.lastName && savedL) updates.lastName = savedL;
+
+            if (Object.keys(updates).length > 0) {
+                form.setFieldsValue(updates);
+            }
         }
-    }, [visible]);
+    }, [visible, initialFirstName, initialLastName, form]);
 
     const formatHebrewDate = (dateObj) => {
         if (!dateObj || typeof dateObj !== 'object') return dateObj;
