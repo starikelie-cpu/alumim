@@ -14,6 +14,7 @@ import NiftarimListModal from './components/NiftarimListModal';
 import LoginModal from './components/LoginModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
 import { API_BASE, isMobile, isElectron, getPlatform } from './config';
+import { getGreetingPrefix } from './utils/zmanimUtils';
 import alteSynagogueIcon from './assets/alte_synagogue_icon.png';
 
 function App() {
@@ -669,6 +670,8 @@ function App() {
                             if (synIdToMark) {
                                 localStorage.setItem(`guest_self_registered_${synIdToMark}`, String(existing.id || 'registered'));
                             }
+                            if (existing.firstName) localStorage.setItem('last_self_registered_first_name', existing.firstName);
+                            if (existing.lastName) localStorage.setItem('last_self_registered_last_name', existing.lastName);
                         }
                     }
                 }
@@ -1527,6 +1530,34 @@ function App() {
 
                             {/* מרכז הבאנר: שם בית הכנסת וכתובת ממורכזים */}
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: 1, minWidth: 0 }}>
+                                {(() => {
+                                    const prefix = getGreetingPrefix(new Date(), activeSyn?.cityName || localSynagogueName);
+                                    let fName = localStorage.getItem('last_self_registered_first_name');
+                                    let lName = localStorage.getItem('last_self_registered_last_name');
+
+                                    if (!fName && !lName && user) {
+                                        fName = user.firstName || user.username || '';
+                                        lName = user.lastName || '';
+                                    }
+
+                                    if (!fName && !lName) {
+                                        fName = '"שם פרטי"';
+                                        lName = '"שם משפחה"';
+                                    }
+
+                                    return (
+                                        <div style={{
+                                            fontSize: isMobile() ? '12px' : '13px',
+                                            fontWeight: '600',
+                                            color: '#ffffff',
+                                            marginBottom: '2px',
+                                            letterSpacing: '0.3px',
+                                            textShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                                        }}>
+                                            {prefix} {fName} {lName}
+                                        </div>
+                                    );
+                                })()}
                                 <div style={{ fontSize: isMobile() ? '11px' : '12px', opacity: 0.85, marginBottom: '2px' }}>
                                     בית הכנסת
                                 </div>

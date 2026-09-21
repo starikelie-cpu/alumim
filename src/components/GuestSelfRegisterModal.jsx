@@ -73,6 +73,8 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                 localStorage.setItem(`guest_self_registered_${synagogueId}`, data.member.id || 'registered');
                 localStorage.setItem(`guest_self_registered_date_${synagogueId}`, new Date().toISOString());
                 sessionStorage.setItem(`just_self_registered_${synagogueId}`, 'true');
+                if (values.firstName) localStorage.setItem('last_self_registered_first_name', values.firstName);
+                if (values.lastName) localStorage.setItem('last_self_registered_last_name', values.lastName);
                 if (data.member && data.member.id) {
                     localStorage.setItem('last_self_registered_member_id', String(data.member.id));
                     localStorage.setItem('last_self_registered_synagogue_id', String(synagogueId));

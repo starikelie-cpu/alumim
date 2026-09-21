@@ -279,3 +279,31 @@ export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityNa
 };
 
 export const getWeeklyFastInfo = getSpecialDaysAndFastsInfo;
+
+export const getGreetingPrefix = (now = new Date(), cityName = '') => {
+    try {
+        const dayOfWeek = now.getDay(); // 0 = Sunday, ..., 6 = Saturday
+        const hours = now.getHours();
+
+        const z = calculateZmanim(now, cityName);
+        const chatzotTime = z?.chatzot || new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 30, 0);
+        const minchaTime = z?.minchaGedola || new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13, 0, 0);
+
+        // Motzei Shabbat (Saturday after Mincha time until midnight)
+        if (dayOfWeek === 6 && now >= minchaTime && hours < 24) {
+            return "שבוע טוב";
+        }
+
+        // Before Chatzot HaYom: "בוקר טוב"
+        if (now < chatzotTime) {
+            return "בוקר טוב";
+        }
+
+        // After Mincha / Afternoon / Evening: "ערב טוב"
+        return "ערב טוב";
+    } catch (e) {
+        console.error('Error calculating greeting prefix:', e);
+        return "בוקר טוב";
+    }
+};
+
