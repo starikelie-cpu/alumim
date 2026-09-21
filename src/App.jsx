@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getParashaForDate } from './utils/hebrewDateUtils';
 import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip, Tag, Popconfirm } from 'antd';
-import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined, ReloadOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined, ReloadOutlined, CheckCircleOutlined, EditOutlined, CheckOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
 import GuestSelfRegisterModal from './components/GuestSelfRegisterModal';
@@ -27,6 +27,35 @@ function App() {
     const [editingArchiveRecord, setEditingArchiveRecord] = useState(null);
     const [archiveRefreshKey, setArchiveRefreshKey] = useState(0);
     const [selfRegRefreshKey, setSelfRegRefreshKey] = useState(0);
+
+    // Persistent Worshiper Name state for Banner Greeting
+    const [worshiperFirstName, setWorshiperFirstName] = useState(() => localStorage.getItem('last_self_registered_first_name') || '');
+    const [worshiperLastName, setWorshiperLastName] = useState(() => localStorage.getItem('last_self_registered_last_name') || '');
+    const [isEditingWorshiperName, setIsEditingWorshiperName] = useState(false);
+
+    const handleSaveWorshiperName = (fName, lName) => {
+        const cleanF = (fName !== undefined ? fName : worshiperFirstName).trim();
+        const cleanL = (lName !== undefined ? lName : worshiperLastName).trim();
+
+        if (cleanF) {
+            localStorage.setItem('last_self_registered_first_name', cleanF);
+        } else {
+            localStorage.removeItem('last_self_registered_first_name');
+        }
+
+        if (cleanL) {
+            localStorage.setItem('last_self_registered_last_name', cleanL);
+        } else {
+            localStorage.removeItem('last_self_registered_last_name');
+        }
+
+        setWorshiperFirstName(cleanF);
+        setWorshiperLastName(cleanL);
+        setIsEditingWorshiperName(false);
+        if (cleanF || cleanL) {
+            message.success('שם המתפלל עודכן ונשמר לעליות הבאות!');
+        }
+    };
 
     // Niftarim state
     const [niftarim, setNiftarim] = useState([]);
@@ -1532,29 +1561,96 @@ function App() {
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: 1, minWidth: 0 }}>
                                 {(() => {
                                     const prefix = getGreetingPrefix(new Date(), activeSyn?.cityName || localSynagogueName);
-                                    let fName = localStorage.getItem('last_self_registered_first_name');
-                                    let lName = localStorage.getItem('last_self_registered_last_name');
+                                    const savedF = worshiperFirstName || (user ? (user.firstName || user.username || '') : '');
+                                    const savedL = worshiperLastName || (user ? (user.lastName || '') : '');
 
-                                    if (!fName && !lName && user) {
-                                        fName = user.firstName || user.username || '';
-                                        lName = user.lastName || '';
-                                    }
+                                    const hasSavedName = Boolean(savedF || savedL);
 
-                                    if (!fName && !lName) {
-                                        fName = '"שם פרטי"';
-                                        lName = '"שם משפחה"';
+                                    if (hasSavedName && !isEditingWorshiperName) {
+                                        return (
+                                            <div style={{
+                                                fontSize: isMobile() ? '12px' : '13px',
+                                                fontWeight: '600',
+                                                color: '#ffffff',
+                                                marginBottom: '4px',
+                                                letterSpacing: '0.3px',
+                                                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <span>{prefix} {savedF} {savedL}</span>
+                                                <Tooltip title="לחץ לעריכת שם המתפלל">
+                                                    <EditOutlined
+                                                        onClick={() => setIsEditingWorshiperName(true)}
+                                                        style={{ fontSize: '12px', cursor: 'pointer', opacity: 0.85, color: '#e6f7ff' }}
+                                                    />
+                                                </Tooltip>
+                                            </div>
+                                        );
                                     }
 
                                     return (
                                         <div style={{
-                                            fontSize: isMobile() ? '12px' : '13px',
-                                            fontWeight: '600',
-                                            color: '#ffffff',
-                                            marginBottom: '2px',
-                                            letterSpacing: '0.3px',
-                                            textShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: isMobile() ? '4px' : '6px',
+                                            justifyContent: 'center',
+                                            marginBottom: '4px',
+                                            flexWrap: 'wrap'
                                         }}>
-                                            {prefix} {fName} {lName}
+                                            <span style={{ fontSize: isMobile() ? '12px' : '13px', fontWeight: '600', color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
+                                                {prefix}
+                                            </span>
+                                            <Input
+                                                size="small"
+                                                placeholder="שם פרטי"
+                                                value={worshiperFirstName}
+                                                onChange={(e) => setWorshiperFirstName(e.target.value)}
+                                                onPressEnter={() => handleSaveWorshiperName()}
+                                                style={{
+                                                    width: isMobile() ? '85px' : '110px',
+                                                    fontSize: '12px',
+                                                    textAlign: 'center',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid #91caff',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                }}
+                                            />
+                                            <Input
+                                                size="small"
+                                                placeholder="שם משפחה"
+                                                value={worshiperLastName}
+                                                onChange={(e) => setWorshiperLastName(e.target.value)}
+                                                onPressEnter={() => handleSaveWorshiperName()}
+                                                style={{
+                                                    width: isMobile() ? '85px' : '110px',
+                                                    fontSize: '12px',
+                                                    textAlign: 'center',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid #91caff',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                }}
+                                            />
+                                            <Tooltip title="שמור שם מתפלל לעליות הבאות">
+                                                <Button
+                                                    size="small"
+                                                    type="primary"
+                                                    icon={<CheckOutlined />}
+                                                    onClick={() => handleSaveWorshiperName()}
+                                                    style={{
+                                                        backgroundColor: '#52c41a',
+                                                        borderColor: '#52c41a',
+                                                        height: '24px',
+                                                        padding: '0 8px',
+                                                        fontSize: '11px',
+                                                        borderRadius: '6px'
+                                                    }}
+                                                >
+                                                    שמור
+                                                </Button>
+                                            </Tooltip>
                                         </div>
                                     );
                                 })()}
