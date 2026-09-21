@@ -734,8 +734,10 @@ app.post('/api/members/self-register', async (req, res) => {
         }
 
         const nowIso = new Date().toISOString();
+        const rawStatus = req.body.status;
         const newMember = {
             ...req.body,
+            status: rawStatus === 'ישראל' ? '' : (rawStatus || ''),
             id: Date.now(),
             synagogueId: synagogueId,
             letter: req.body.letter || ['א'],

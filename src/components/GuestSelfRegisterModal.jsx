@@ -48,6 +48,7 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
         try {
             const memberData = {
                 ...values,
+                status: values.status === 'ישראל' ? '' : (values.status || ''),
                 synagogueId: synagogueId,
                 letter: ['א'],
                 father_death_date: formatHebrewDateToTextual(values.father_death_date || ''),
@@ -197,7 +198,7 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                                             <Tooltip
                                                 title={
                                                     <div style={{ color: '#006400', direction: 'rtl' }}>
-                                                        בחר כהן, לוי, או השאר ריק
+                                                        בחר כהן, לוי, או ישראל
                                                     </div>
                                                 }
                                                 placement="bottomLeft"
@@ -216,7 +217,6 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                                     }
                                 >
                                     <Select placeholder="בחר מעמד" allowClear>
-                                        <Option value="">ריק</Option>
                                         <Option value="כהן">כהן</Option>
                                         <Option value="לוי">לוי</Option>
                                         <Option value="ישראל">ישראל</Option>
