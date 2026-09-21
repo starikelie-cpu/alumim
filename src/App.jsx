@@ -29,13 +29,15 @@ function App() {
     const [selfRegRefreshKey, setSelfRegRefreshKey] = useState(0);
 
     // Persistent Worshiper Name state for Banner Greeting
-    const [worshiperFirstName, setWorshiperFirstName] = useState(() => localStorage.getItem('last_self_registered_first_name') || '');
-    const [worshiperLastName, setWorshiperLastName] = useState(() => localStorage.getItem('last_self_registered_last_name') || '');
+    const [savedFirstName, setSavedFirstName] = useState(() => localStorage.getItem('last_self_registered_first_name') || '');
+    const [savedLastName, setSavedLastName] = useState(() => localStorage.getItem('last_self_registered_last_name') || '');
+    const [inputFirstName, setInputFirstName] = useState(() => localStorage.getItem('last_self_registered_first_name') || '');
+    const [inputLastName, setInputLastName] = useState(() => localStorage.getItem('last_self_registered_last_name') || '');
     const [isEditingWorshiperName, setIsEditingWorshiperName] = useState(false);
 
     const handleSaveWorshiperName = (fName, lName) => {
-        const cleanF = (fName !== undefined ? fName : worshiperFirstName).trim();
-        const cleanL = (lName !== undefined ? lName : worshiperLastName).trim();
+        const cleanF = (fName !== undefined ? fName : inputFirstName).trim();
+        const cleanL = (lName !== undefined ? lName : inputLastName).trim();
 
         if (cleanF) {
             localStorage.setItem('last_self_registered_first_name', cleanF);
@@ -49,8 +51,10 @@ function App() {
             localStorage.removeItem('last_self_registered_last_name');
         }
 
-        setWorshiperFirstName(cleanF);
-        setWorshiperLastName(cleanL);
+        setSavedFirstName(cleanF);
+        setSavedLastName(cleanL);
+        setInputFirstName(cleanF);
+        setInputLastName(cleanL);
         setIsEditingWorshiperName(false);
         if (cleanF || cleanL) {
             message.success('שם המתפלל עודכן ונשמר לעליות הבאות!');
@@ -699,8 +703,16 @@ function App() {
                             if (synIdToMark) {
                                 localStorage.setItem(`guest_self_registered_${synIdToMark}`, String(existing.id || 'registered'));
                             }
-                            if (existing.firstName) localStorage.setItem('last_self_registered_first_name', existing.firstName);
-                            if (existing.lastName) localStorage.setItem('last_self_registered_last_name', existing.lastName);
+                            if (existing.firstName) {
+                                localStorage.setItem('last_self_registered_first_name', existing.firstName);
+                                setSavedFirstName(existing.firstName);
+                                setInputFirstName(existing.firstName);
+                            }
+                            if (existing.lastName) {
+                                localStorage.setItem('last_self_registered_last_name', existing.lastName);
+                                setSavedLastName(existing.lastName);
+                                setInputLastName(existing.lastName);
+                            }
                         }
                     }
                 }
@@ -1561,8 +1573,8 @@ function App() {
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: 1, minWidth: 0 }}>
                                 {(() => {
                                     const prefix = getGreetingPrefix(new Date(), activeSyn?.cityName || localSynagogueName);
-                                    const savedF = worshiperFirstName || (user ? (user.firstName || user.username || '') : '');
-                                    const savedL = worshiperLastName || (user ? (user.lastName || '') : '');
+                                    const savedF = savedFirstName || (user ? (user.firstName || user.username || '') : '');
+                                    const savedL = savedLastName || (user ? (user.lastName || '') : '');
 
                                     const hasSavedName = Boolean(savedF || savedL);
 
@@ -1583,7 +1595,11 @@ function App() {
                                                 <span>{prefix} {savedF} {savedL}</span>
                                                 <Tooltip title="לחץ לעריכת שם המתפלל">
                                                     <EditOutlined
-                                                        onClick={() => setIsEditingWorshiperName(true)}
+                                                        onClick={() => {
+                                                            setInputFirstName(savedF);
+                                                            setInputLastName(savedL);
+                                                            setIsEditingWorshiperName(true);
+                                                        }}
                                                         style={{ fontSize: '12px', cursor: 'pointer', opacity: 0.85, color: '#e6f7ff' }}
                                                     />
                                                 </Tooltip>
@@ -1606,8 +1622,8 @@ function App() {
                                             <Input
                                                 size="small"
                                                 placeholder="שם פרטי"
-                                                value={worshiperFirstName}
-                                                onChange={(e) => setWorshiperFirstName(e.target.value)}
+                                                value={inputFirstName}
+                                                onChange={(e) => setInputFirstName(e.target.value)}
                                                 onPressEnter={() => handleSaveWorshiperName()}
                                                 style={{
                                                     width: isMobile() ? '85px' : '110px',
@@ -1621,8 +1637,8 @@ function App() {
                                             <Input
                                                 size="small"
                                                 placeholder="שם משפחה"
-                                                value={worshiperLastName}
-                                                onChange={(e) => setWorshiperLastName(e.target.value)}
+                                                value={inputLastName}
+                                                onChange={(e) => setInputLastName(e.target.value)}
                                                 onPressEnter={() => handleSaveWorshiperName()}
                                                 style={{
                                                     width: isMobile() ? '85px' : '110px',
@@ -2190,8 +2206,21 @@ function App() {
                 <GuestSelfRegisterModal
                     visible={isGuestSelfRegModalVisible}
                     onCancel={() => setIsGuestSelfRegModalVisible(false)}
-                    onSuccess={() => {
+                    onSuccess={(registeredMember) => {
                         setIsGuestSelfRegModalVisible(false);
+                        const fName = registeredMember?.firstName || '';
+                        const lName = registeredMember?.lastName || '';
+                        if (fName) {
+                            localStorage.setItem('last_self_registered_first_name', fName);
+                            setSavedFirstName(fName);
+                            setInputFirstName(fName);
+                        }
+                        if (lName) {
+                            localStorage.setItem('last_self_registered_last_name', lName);
+                            setSavedLastName(lName);
+                            setInputLastName(lName);
+                        }
+                        setIsEditingWorshiperName(false);
                         fetchAllData();
                     }}
                     synagogueId={guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id)}
