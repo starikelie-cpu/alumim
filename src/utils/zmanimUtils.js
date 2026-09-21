@@ -286,20 +286,33 @@ export const getGreetingPrefix = (now = new Date(), cityName = '') => {
         const hours = now.getHours();
 
         const z = calculateZmanim(now, cityName);
-        const chatzotTime = z?.chatzot || new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 30, 0);
+        const sunsetTime = z?.sunset || new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 30, 0);
         const minchaTime = z?.minchaGedola || new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13, 0, 0);
 
-        // Motzei Shabbat (Saturday after Mincha time until midnight)
+        // Motzei Shabbat (Saturday after Mincha/Sunset until midnight)
         if (dayOfWeek === 6 && now >= minchaTime && hours < 24) {
             return "שבוע טוב";
         }
 
-        // Before Chatzot HaYom: "בוקר טוב"
-        if (now < chatzotTime) {
+        // Half an hour (30 minutes) before sunset
+        const sunsetMinus30 = new Date(sunsetTime.getTime() - 30 * 60 * 1000);
+
+        // 10:00 PM (22:00) to 5:00 AM: "לילה טוב"
+        if (hours >= 22 || hours < 5) {
+            return "לילה טוב";
+        }
+
+        // 5:00 AM to 11:00 AM: "בוקר טוב"
+        if (hours >= 5 && hours < 11) {
             return "בוקר טוב";
         }
 
-        // After Mincha / Afternoon / Evening: "ערב טוב"
+        // 11:00 AM to 30 minutes before sunset: "צהריים טובים"
+        if (hours >= 11 && now < sunsetMinus30) {
+            return "צהריים טובים";
+        }
+
+        // 30 minutes before sunset to 10:00 PM (22:00): "ערב טוב"
         return "ערב טוב";
     } catch (e) {
         console.error('Error calculating greeting prefix:', e);
