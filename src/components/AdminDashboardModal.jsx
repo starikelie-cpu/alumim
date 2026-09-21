@@ -794,11 +794,33 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
         {
             title: 'משתמש / מעמד',
             key: 'userRole',
-            width: 150,
+            width: 170,
             render: (_, r) => {
-                if (r.userRole === 'super_admin') return <Tag color="gold">מנהל על ({r.username})</Tag>;
-                if (r.userRole === 'synagogue_admin') return <Tag color="blue">מנהל ({r.username})</Tag>;
-                return <Tag color="default">אורח ({r.username || 'צפייה'})</Tag>;
+                const isAdmin = r.userRole === 'super_admin' || r.userRole === 'synagogue_admin';
+                const displayName = r.username || r.bannerName || 'אורח';
+                const hasBannerName = displayName && displayName !== 'אורח' && displayName !== 'צפייה';
+
+                if (isAdmin) {
+                    return (
+                        <span style={{ color: '#1890ff', fontWeight: 'bold', fontSize: '13px' }}>
+                            מנהל ({displayName})
+                        </span>
+                    );
+                }
+
+                if (hasBannerName) {
+                    return (
+                        <span style={{ color: '#000000', fontWeight: 'bold', fontSize: '13px' }}>
+                            {displayName}
+                        </span>
+                    );
+                }
+
+                return (
+                    <span style={{ color: '#000000', fontWeight: 'normal', fontSize: '13px' }}>
+                        אורח
+                    </span>
+                );
             }
         },
         {

@@ -375,8 +375,20 @@ function App() {
 
         const sendLog = () => {
             try {
+                const isAdmin = user && (user.role === 'super_admin' || user.role === 'synagogue_admin');
                 const role = user?.role || 'guest';
-                const username = user?.username || 'אורח';
+
+                const bannerF = savedFirstName || inputFirstName || localStorage.getItem('last_self_registered_first_name') || '';
+                const bannerL = savedLastName || inputLastName || localStorage.getItem('last_self_registered_last_name') || '';
+                const bannerName = `${bannerF} ${bannerL}`.trim();
+
+                let username = 'אורח';
+                if (isAdmin) {
+                    username = user.username || user.firstName || 'מנהל';
+                } else if (bannerName) {
+                    username = bannerName;
+                }
+
                 const platform = getPlatform();
                 const synId = guestSynagogueId || user?.synagogueId || localStorage.getItem('guestSynagogueId');
                 const synName = localSynagogueName || localStorage.getItem('localSynagogueName');
@@ -393,6 +405,7 @@ function App() {
                         screen,
                         userRole: role,
                         username: username,
+                        bannerName: bannerName || null,
                         timestamp: new Date().toISOString()
                     })
                 }).catch(err => console.debug('Guest log silent error:', err));
@@ -405,13 +418,13 @@ function App() {
             return;
         }
 
-        // For guests, wait 30 seconds before logging visit (prevents double logging when guest logs in as manager)
+        // For guests, log after a short delay (and whenever banner name updates)
         const timer = setTimeout(() => {
             sendLog();
-        }, 30000);
+        }, 3000);
 
         return () => clearTimeout(timer);
-    }, [user, guestSynagogueId, localSynagogueName]);
+    }, [user, guestSynagogueId, localSynagogueName, savedFirstName, savedLastName, inputFirstName, inputLastName]);
 
     // Keep-alive ping to prevent server idling while app is open (every 10 minutes)
     useEffect(() => {
