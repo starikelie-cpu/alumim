@@ -1488,7 +1488,7 @@ function App() {
                             )}
                             {isAdmin && (
                                 <Button size="small" onClick={() => setIsAdminCredentialsVisible(true)}>
-                                    שינוי שם משתמש/סיסמה
+                                    עדכון והוספת מנהל
                                 </Button>
                             )}
                             {canSeeAdminDashboard && (
@@ -2185,7 +2185,7 @@ function App() {
                 </Modal>
 
                 <Modal
-                    title="עדכון פרטי מנהל"
+                    title="עדכון והוספה של מנהל"
                     open={isAdminCredentialsVisible}
                     onCancel={() => {
                         setIsAdminCredentialsVisible(false);
