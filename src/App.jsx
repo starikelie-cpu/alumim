@@ -29,13 +29,15 @@ function App() {
     const [selfRegRefreshKey, setSelfRegRefreshKey] = useState(0);
 
     // Persistent Worshiper Name state for Banner Greeting
-    const [worshiperFirstName, setWorshiperFirstName] = useState(() => localStorage.getItem('last_self_registered_first_name') || '');
-    const [worshiperLastName, setWorshiperLastName] = useState(() => localStorage.getItem('last_self_registered_last_name') || '');
+    const [savedFirstName, setSavedFirstName] = useState(() => localStorage.getItem('last_self_registered_first_name') || '');
+    const [savedLastName, setSavedLastName] = useState(() => localStorage.getItem('last_self_registered_last_name') || '');
+    const [inputFirstName, setInputFirstName] = useState(() => localStorage.getItem('last_self_registered_first_name') || '');
+    const [inputLastName, setInputLastName] = useState(() => localStorage.getItem('last_self_registered_last_name') || '');
     const [isEditingWorshiperName, setIsEditingWorshiperName] = useState(false);
 
     const handleSaveWorshiperName = (fName, lName) => {
-        const cleanF = (fName !== undefined ? fName : worshiperFirstName).trim();
-        const cleanL = (lName !== undefined ? lName : worshiperLastName).trim();
+        const cleanF = (fName !== undefined ? fName : inputFirstName).trim();
+        const cleanL = (lName !== undefined ? lName : inputLastName).trim();
 
         if (cleanF) {
             localStorage.setItem('last_self_registered_first_name', cleanF);
@@ -49,8 +51,10 @@ function App() {
             localStorage.removeItem('last_self_registered_last_name');
         }
 
-        setWorshiperFirstName(cleanF);
-        setWorshiperLastName(cleanL);
+        setSavedFirstName(cleanF);
+        setSavedLastName(cleanL);
+        setInputFirstName(cleanF);
+        setInputLastName(cleanL);
         setIsEditingWorshiperName(false);
         if (cleanF || cleanL) {
             message.success('שם המתפלל עודכן ונשמר לעליות הבאות!');
@@ -699,8 +703,16 @@ function App() {
                             if (synIdToMark) {
                                 localStorage.setItem(`guest_self_registered_${synIdToMark}`, String(existing.id || 'registered'));
                             }
-                            if (existing.firstName) localStorage.setItem('last_self_registered_first_name', existing.firstName);
-                            if (existing.lastName) localStorage.setItem('last_self_registered_last_name', existing.lastName);
+                            if (existing.firstName) {
+                                localStorage.setItem('last_self_registered_first_name', existing.firstName);
+                                setSavedFirstName(existing.firstName);
+                                setInputFirstName(existing.firstName);
+                            }
+                            if (existing.lastName) {
+                                localStorage.setItem('last_self_registered_last_name', existing.lastName);
+                                setSavedLastName(existing.lastName);
+                                setInputLastName(existing.lastName);
+                            }
                         }
                     }
                 }
@@ -2190,8 +2202,21 @@ function App() {
                 <GuestSelfRegisterModal
                     visible={isGuestSelfRegModalVisible}
                     onCancel={() => setIsGuestSelfRegModalVisible(false)}
-                    onSuccess={() => {
+                    onSuccess={(registeredMember) => {
                         setIsGuestSelfRegModalVisible(false);
+                        const fName = registeredMember?.firstName || '';
+                        const lName = registeredMember?.lastName || '';
+                        if (fName) {
+                            localStorage.setItem('last_self_registered_first_name', fName);
+                            setSavedFirstName(fName);
+                            setInputFirstName(fName);
+                        }
+                        if (lName) {
+                            localStorage.setItem('last_self_registered_last_name', lName);
+                            setSavedLastName(lName);
+                            setInputLastName(lName);
+                        }
+                        setIsEditingWorshiperName(false);
                         fetchAllData();
                     }}
                     synagogueId={guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id)}
