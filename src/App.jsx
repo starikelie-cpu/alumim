@@ -28,16 +28,20 @@ function App() {
     const [archiveRefreshKey, setArchiveRefreshKey] = useState(0);
     const [selfRegRefreshKey, setSelfRegRefreshKey] = useState(0);
 
-    // Persistent Worshiper Name state for Banner Greeting
+    // Persistent Worshiper Name and Phone state for Banner Greeting & WhatsApp
     const [savedFirstName, setSavedFirstName] = useState(() => localStorage.getItem('last_self_registered_first_name') || '');
     const [savedLastName, setSavedLastName] = useState(() => localStorage.getItem('last_self_registered_last_name') || '');
+    const [savedPhone, setSavedPhone] = useState(() => localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '');
+
     const [inputFirstName, setInputFirstName] = useState(() => localStorage.getItem('last_self_registered_first_name') || '');
     const [inputLastName, setInputLastName] = useState(() => localStorage.getItem('last_self_registered_last_name') || '');
+    const [inputPhone, setInputPhone] = useState(() => localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '');
     const [isEditingWorshiperName, setIsEditingWorshiperName] = useState(false);
 
-    const handleSaveWorshiperName = (fName, lName) => {
+    const handleSaveWorshiperName = (fName, lName, phone) => {
         const cleanF = (fName !== undefined ? fName : inputFirstName).trim();
         const cleanL = (lName !== undefined ? lName : inputLastName).trim();
+        const cleanP = (phone !== undefined ? phone : inputPhone).trim();
 
         if (cleanF) {
             localStorage.setItem('last_self_registered_first_name', cleanF);
@@ -51,13 +55,21 @@ function App() {
             localStorage.removeItem('last_self_registered_last_name');
         }
 
+        if (cleanP) {
+            localStorage.setItem('user_mobile_phone', cleanP);
+        } else {
+            localStorage.removeItem('user_mobile_phone');
+        }
+
         setSavedFirstName(cleanF);
         setSavedLastName(cleanL);
+        setSavedPhone(cleanP);
         setInputFirstName(cleanF);
         setInputLastName(cleanL);
+        setInputPhone(cleanP);
         setIsEditingWorshiperName(false);
-        if (cleanF || cleanL) {
-            message.success('שם המתפלל עודכן ונשמר לעליות הבאות!');
+        if (cleanF || cleanL || cleanP) {
+            message.success('פרטי המתפלל נשמרו בהצלחה!');
         }
     };
 
@@ -72,6 +84,12 @@ function App() {
             localStorage.setItem('last_self_registered_last_name', inputLastName);
         }
     }, [inputLastName]);
+
+    useEffect(() => {
+        if (inputPhone) {
+            localStorage.setItem('user_mobile_phone', inputPhone);
+        }
+    }, [inputPhone]);
 
     // Niftarim state
     const [niftarim, setNiftarim] = useState([]);
@@ -183,13 +201,12 @@ function App() {
         if (bannerName) {
             signatureParts.push(`שולח: ${bannerName}`);
         }
-        if (isMobile()) {
-            const userPhone = user?.phone || user?.mobile || localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '';
-            if (userPhone) {
-                signatureParts.push(`מספר נייד: ${userPhone} (נשלח ממכשיר נייד)`);
-            } else {
-                signatureParts.push(`נשלח ממכשיר נייד`);
-            }
+
+        const userPhone = savedPhone || inputPhone || user?.phone || user?.mobile || localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '';
+        if (userPhone) {
+            signatureParts.push(`מספר נייד: ${userPhone}${isMobile() ? ' (נשלח ממכשיר נייד)' : ''}`);
+        } else if (isMobile()) {
+            signatureParts.push(`נשלח ממכשיר נייד`);
         }
 
         if (signatureParts.length > 0) {
@@ -197,7 +214,7 @@ function App() {
         }
 
         return `https://wa.me/${recipientPhone}?text=${encodeURIComponent(text)}`;
-    }, [savedFirstName, savedLastName, inputFirstName, inputLastName, user]);
+    }, [savedFirstName, savedLastName, savedPhone, inputFirstName, inputLastName, inputPhone, user]);
 
     const compressImage = (file, maxWidth = 400, maxHeight = 400) => {
         return new Promise((resolve, reject) => {
