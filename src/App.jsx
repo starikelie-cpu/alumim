@@ -1742,15 +1742,14 @@ function App() {
                                         <div style={{
                                             display: 'inline-flex',
                                             alignItems: 'center',
-                                            gap: isMobile() ? '3px' : '6px',
+                                            gap: isMobile() ? '4px' : '6px',
                                             justifyContent: 'center',
                                             marginBottom: '4px',
                                             flexWrap: 'nowrap',
                                             whiteSpace: 'nowrap',
-                                            maxWidth: '100%',
-                                            overflowX: 'auto'
+                                            maxWidth: '100%'
                                         }}>
-                                            <span style={{ fontSize: isMobile() ? '11px' : '13px', fontWeight: '600', color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.2)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                            <span style={{ fontSize: isMobile() ? '12px' : '13px', fontWeight: '600', color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.2)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                                 {prefix}
                                             </span>
                                             <Input
@@ -1760,8 +1759,8 @@ function App() {
                                                 onChange={(e) => setInputFirstName(e.target.value)}
                                                 onPressEnter={() => handleSaveWorshiperName()}
                                                 style={{
-                                                    width: isMobile() ? '75px' : '100px',
-                                                    fontSize: '11px',
+                                                    width: isMobile() ? '80px' : '105px',
+                                                    fontSize: '12px',
                                                     textAlign: 'center',
                                                     borderRadius: '6px',
                                                     border: '1px solid #91caff',
@@ -1777,8 +1776,8 @@ function App() {
                                                 onChange={(e) => setInputLastName(e.target.value)}
                                                 onPressEnter={() => handleSaveWorshiperName()}
                                                 style={{
-                                                    width: isMobile() ? '75px' : '100px',
-                                                    fontSize: '11px',
+                                                    width: isMobile() ? '80px' : '105px',
+                                                    fontSize: '12px',
                                                     textAlign: 'center',
                                                     borderRadius: '6px',
                                                     border: '1px solid #91caff',
@@ -1797,7 +1796,7 @@ function App() {
                                                         backgroundColor: '#52c41a',
                                                         borderColor: '#52c41a',
                                                         height: '24px',
-                                                        padding: '0 6px',
+                                                        padding: '0 8px',
                                                         fontSize: '11px',
                                                         borderRadius: '6px',
                                                         flexShrink: 0
@@ -1806,17 +1805,6 @@ function App() {
                                                     שמור
                                                 </Button>
                                             </Tooltip>
-                                            <span style={{
-                                                fontSize: isMobile() ? '10px' : '11px',
-                                                color: '#e6f7ff',
-                                                opacity: 0.9,
-                                                whiteSpace: 'nowrap',
-                                                fontWeight: '500',
-                                                flexShrink: 0,
-                                                marginLeft: '2px'
-                                            }}>
-                                                (הרשם לפעמים הבאות)
-                                            </span>
                                         </div>
                                     );
                                 })()}
@@ -1877,7 +1865,28 @@ function App() {
 
                             {/* שמאל / סוף הבאנר: תמונת בית הכנסת ללא רקע */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0, width: imgSize }}>
-                                <img 
+                                {(!savedFirstName && !savedLastName || isEditingWorshiperName) && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: isMobile() ? '-18px' : '-22px',
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        border: '1.5px solid #ff4d4f',
+                                        backgroundColor: '#fff1f0',
+                                        color: '#cf1322',
+                                        fontSize: isMobile() ? '9.5px' : '11px',
+                                        fontWeight: 'bold',
+                                        padding: '1px 7px',
+                                        borderRadius: '12px',
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                                        zIndex: 5,
+                                        pointerEvents: 'none'
+                                    }}>
+                                        הרשם לפעמים הבאות
+                                    </div>
+                                )}
+                                <img  
                                     src={getSynagogueLogo(activeSyn?.id)} 
                                     alt="סמל בית כנסת" 
                                     onClick={canChangeOnDevice ? handleLogoClick : undefined}
