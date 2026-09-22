@@ -137,7 +137,9 @@ export const calculateZmanim = (targetDate = new Date(), cityName = '') => {
             minchaGedola,
             minchaKetanaStart,
             minchaKetanaEnd,
-            arvitStart
+            arvitStart,
+            sunset,
+            tzeit: zman.tzeit()
         };
     } catch (e) {
         console.error('Error calculating Zmanim in zmanimUtils:', e);
@@ -287,33 +289,39 @@ export const getGreetingPrefix = (now = new Date(), cityName = '') => {
 
         const z = calculateZmanim(now, cityName);
         const sunsetTime = z?.sunset || new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 30, 0);
-        const minchaTime = z?.minchaGedola || new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13, 0, 0);
-
-        // Motzei Shabbat (Saturday after Mincha/Sunset until midnight)
-        if (dayOfWeek === 6 && now >= minchaTime && hours < 24) {
-            return "שבוע טוב";
-        }
+        const tzeitTime = z?.tzeit || new Date(sunsetTime.getTime() + 35 * 60 * 1000);
 
         // Half an hour (30 minutes) before sunset
         const sunsetMinus30 = new Date(sunsetTime.getTime() - 30 * 60 * 1000);
 
-        // 10:00 PM (22:00) to 5:00 AM: "לילה טוב"
+        // Determine base greeting by time of day
+        let baseGreeting = "בוקר טוב";
         if (hours >= 22 || hours < 5) {
-            return "לילה טוב";
+            baseGreeting = "לילה טוב";
+        } else if (hours >= 5 && hours < 11) {
+            baseGreeting = "בוקר טוב";
+        } else if (hours >= 11 && now < sunsetMinus30) {
+            baseGreeting = "צהריים טובים";
+        } else {
+            baseGreeting = "ערב טוב";
         }
 
-        // 5:00 AM to 11:00 AM: "בוקר טוב"
-        if (hours >= 5 && hours < 11) {
-            return "בוקר טוב";
+        let suffix = "";
+
+        // Motzei Shabbat: Saturday after Tzeit Shabbat until midnight (24:00)
+        if (dayOfWeek === 6 && now >= tzeitTime && hours < 24) {
+            suffix += " ושבוע טוב";
         }
 
-        // 11:00 AM to 30 minutes before sunset: "צהריים טובים"
-        if (hours >= 11 && now < sunsetMinus30) {
-            return "צהריים טובים";
+        // Chol HaMoed Sukkot or Pesach
+        const hd = new HDate(now);
+        const events = HebrewCalendar.calendar({ start: hd, end: hd, il: true });
+        const isCholHaMoed = events.some(e => Boolean(e.getFlags() & flags.CHOL_HAMOED));
+        if (isCholHaMoed) {
+            suffix += " ומועדים לשמחה";
         }
 
-        // 30 minutes before sunset to 10:00 PM (22:00): "ערב טוב"
-        return "ערב טוב";
+        return baseGreeting + suffix;
     } catch (e) {
         console.error('Error calculating greeting prefix:', e);
         return "בוקר טוב";
