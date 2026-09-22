@@ -1717,9 +1717,13 @@ function App() {
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
                                                 gap: '6px',
-                                                justifyContent: 'center'
+                                                justifyContent: 'center',
+                                                whiteSpace: 'nowrap',
+                                                maxWidth: '100%',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis'
                                             }}>
-                                                <span>{prefix} {savedF} {savedL}</span>
+                                                <span style={{ whiteSpace: 'nowrap' }}>{prefix} {savedF} {savedL}</span>
                                                 <Tooltip title="לחץ לעריכת שם המתפלל">
                                                     <EditOutlined
                                                         onClick={() => {
@@ -1727,7 +1731,7 @@ function App() {
                                                             setInputLastName(savedL);
                                                             setIsEditingWorshiperName(true);
                                                         }}
-                                                        style={{ fontSize: '12px', cursor: 'pointer', opacity: 0.85, color: '#e6f7ff' }}
+                                                        style={{ fontSize: '12px', cursor: 'pointer', opacity: 0.85, color: '#e6f7ff', flexShrink: 0 }}
                                                     />
                                                 </Tooltip>
                                             </div>
@@ -1738,12 +1742,15 @@ function App() {
                                         <div style={{
                                             display: 'inline-flex',
                                             alignItems: 'center',
-                                            gap: isMobile() ? '4px' : '6px',
+                                            gap: isMobile() ? '3px' : '6px',
                                             justifyContent: 'center',
                                             marginBottom: '4px',
-                                            flexWrap: 'wrap'
+                                            flexWrap: 'nowrap',
+                                            whiteSpace: 'nowrap',
+                                            maxWidth: '100%',
+                                            overflowX: 'auto'
                                         }}>
-                                            <span style={{ fontSize: isMobile() ? '12px' : '13px', fontWeight: '600', color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
+                                            <span style={{ fontSize: isMobile() ? '11px' : '13px', fontWeight: '600', color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.2)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                                 {prefix}
                                             </span>
                                             <Input
@@ -1753,12 +1760,14 @@ function App() {
                                                 onChange={(e) => setInputFirstName(e.target.value)}
                                                 onPressEnter={() => handleSaveWorshiperName()}
                                                 style={{
-                                                    width: isMobile() ? '85px' : '110px',
-                                                    fontSize: '12px',
+                                                    width: isMobile() ? '75px' : '100px',
+                                                    fontSize: '11px',
                                                     textAlign: 'center',
                                                     borderRadius: '6px',
                                                     border: '1px solid #91caff',
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                    padding: '0 4px',
+                                                    flexShrink: 0
                                                 }}
                                             />
                                             <Input
@@ -1768,12 +1777,14 @@ function App() {
                                                 onChange={(e) => setInputLastName(e.target.value)}
                                                 onPressEnter={() => handleSaveWorshiperName()}
                                                 style={{
-                                                    width: isMobile() ? '85px' : '110px',
-                                                    fontSize: '12px',
+                                                    width: isMobile() ? '75px' : '100px',
+                                                    fontSize: '11px',
                                                     textAlign: 'center',
                                                     borderRadius: '6px',
                                                     border: '1px solid #91caff',
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                    padding: '0 4px',
+                                                    flexShrink: 0
                                                 }}
                                             />
                                             <Tooltip title="שמור שם מתפלל לעליות הבאות">
@@ -1786,14 +1797,26 @@ function App() {
                                                         backgroundColor: '#52c41a',
                                                         borderColor: '#52c41a',
                                                         height: '24px',
-                                                        padding: '0 8px',
+                                                        padding: '0 6px',
                                                         fontSize: '11px',
-                                                        borderRadius: '6px'
+                                                        borderRadius: '6px',
+                                                        flexShrink: 0
                                                     }}
                                                 >
                                                     שמור
                                                 </Button>
                                             </Tooltip>
+                                            <span style={{
+                                                fontSize: isMobile() ? '10px' : '11px',
+                                                color: '#e6f7ff',
+                                                opacity: 0.9,
+                                                whiteSpace: 'nowrap',
+                                                fontWeight: '500',
+                                                flexShrink: 0,
+                                                marginLeft: '2px'
+                                            }}>
+                                                (הרשם לפעמים הבאות)
+                                            </span>
                                         </div>
                                     );
                                 })()}
