@@ -172,6 +172,33 @@ function App() {
         window.open(targetUrl, '_blank');
     }, [user, guestSynagogueId, synagogues]);
 
+    const getWhatsAppUrl = useCallback((recipientPhone = '972523375529') => {
+        const savedF = savedFirstName || (user ? (user.firstName || user.username || '') : '');
+        const savedL = savedLastName || (user ? (user.lastName || '') : '');
+        const bannerName = `${savedF} ${savedL}`.trim() || (user?.username || inputFirstName || inputLastName || '');
+
+        let text = "שלום אלי, פנייה מתוך מערכת ניהול בית כנסת";
+
+        const signatureParts = [];
+        if (bannerName) {
+            signatureParts.push(`שולח: ${bannerName}`);
+        }
+        if (isMobile()) {
+            const userPhone = user?.phone || user?.mobile || localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '';
+            if (userPhone) {
+                signatureParts.push(`מספר נייד: ${userPhone} (נשלח ממכשיר נייד)`);
+            } else {
+                signatureParts.push(`נשלח ממכשיר נייד`);
+            }
+        }
+
+        if (signatureParts.length > 0) {
+            text += `\n\n${signatureParts.join('\n')}`;
+        }
+
+        return `https://wa.me/${recipientPhone}?text=${encodeURIComponent(text)}`;
+    }, [savedFirstName, savedLastName, inputFirstName, inputLastName, user]);
+
     const compressImage = (file, maxWidth = 400, maxHeight = 400) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -1465,7 +1492,7 @@ function App() {
                                     <PhoneOutlined style={{ fontSize: '10px' }} /> אלי סטריק - 052-3375529
                                 </a>
                                 <a 
-                                    href="https://wa.me/972523375529?text=%D7%A9%D7%9C%D7%95%D7%9D%20%D7%90%D7%9C%D7%99%2C%20%D7%A4%D7%A0%D7%99%D7%99%D7%94%20%D7%9E%D7%AA%D7%95%D7%9A%20%D7%9E%D7%A2%D7%A8%D7%9B%D7%AA%20%D7%A0%D7%99%D7%94%D7%95%D7%9C%20%D7%91%D7%99%D7%AA%20%D7%9B%D7%A0%D7%A1%D7%AA" 
+                                    href={getWhatsAppUrl()} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     style={{
@@ -2550,7 +2577,7 @@ function App() {
                         <PhoneOutlined /> 052-3375529
                     </a>
                     <a 
-                        href="https://wa.me/972523375529?text=%D7%A9%D7%9C%D7%95%D7%9D%20%D7%90%D7%9C%D7%99%2C%20%D7%A4%D7%A0%D7%99%D7%99%D7%94%20%D7%9E%D7%AA%D7%95%D7%9A%20%D7%9E%D7%A2%D7%A8%D7%9B%D7%AA%20%D7%A0%D7%99%D7%94%D7%95%D7%9C%20%D7%91%D7%99%D7%AA%20%D7%9B%D7%A0%D7%A1%D7%AA" 
+                        href={getWhatsAppUrl()} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         style={{
