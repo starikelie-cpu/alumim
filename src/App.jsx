@@ -38,6 +38,20 @@ function App() {
     const [inputPhone, setInputPhone] = useState(() => localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '');
     const [isEditingWorshiperName, setIsEditingWorshiperName] = useState(false);
 
+    // WhatsApp modal state
+    const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+    const [whatsAppNote, setWhatsAppNote] = useState('');
+    const [whatsAppPhone, setWhatsAppPhone] = useState(() => localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '');
+    const [whatsAppRecipient, setWhatsAppRecipient] = useState('972523375529');
+
+    const handleOpenWhatsApp = useCallback((recipientPhone = '972523375529') => {
+        setWhatsAppRecipient(recipientPhone);
+        const currentPhone = savedPhone || inputPhone || user?.phone || user?.mobile || localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '';
+        setWhatsAppPhone(currentPhone);
+        setWhatsAppNote('');
+        setIsWhatsAppModalOpen(true);
+    }, [savedPhone, inputPhone, user]);
+
     const handleSaveWorshiperName = (fName, lName, phone) => {
         const cleanF = (fName !== undefined ? fName : inputFirstName).trim();
         const cleanL = (lName !== undefined ? lName : inputLastName).trim();
@@ -189,80 +203,6 @@ function App() {
         
         window.open(targetUrl, '_blank');
     }, [user, guestSynagogueId, synagogues]);
-
-    const handleOpenWhatsApp = useCallback((recipientPhone = '972523375529') => {
-        let currentPhone = savedPhone || inputPhone || user?.phone || user?.mobile || localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '';
-
-        const launchWithPhone = (phoneNum) => {
-            const savedF = savedFirstName || (user ? (user.firstName || user.username || '') : '');
-            const savedL = savedLastName || (user ? (user.lastName || '') : '');
-            const bannerName = `${savedF} ${savedL}`.trim() || (user?.username || inputFirstName || inputLastName || '');
-
-            let text = "שלום אלי, פנייה מתוך מערכת ניהול בית כנסת";
-
-            const signatureParts = [];
-            if (bannerName) {
-                signatureParts.push(`שולח: ${bannerName}`);
-            }
-
-            if (phoneNum) {
-                signatureParts.push(`מספר נייד: ${phoneNum}${isMobile() ? ' (נשלח ממכשיר נייד)' : ''}`);
-            } else if (isMobile()) {
-                signatureParts.push(`נשלח ממכשיר נייד`);
-            }
-
-            if (signatureParts.length > 0) {
-                text += `\n\n${signatureParts.join('\n')}`;
-            }
-
-            const url = `https://wa.me/${recipientPhone}?text=${encodeURIComponent(text)}`;
-            window.open(url, '_blank', 'noopener,noreferrer');
-        };
-
-        if (!currentPhone) {
-            let tempVal = '';
-            Modal.confirm({
-                title: 'הזנת מספר נייד לחתימה בוואטסאפ',
-                content: (
-                    <div style={{ marginTop: '10px' }}>
-                        <div style={{ fontSize: '13px', marginBottom: '8px', color: '#333' }}>
-                            כדי שמספר הנייד שלך יופיע בחתימת הוואטסאפ, אנא הזן את מספר הנייד שלך:
-                        </div>
-                        <Input
-                            placeholder="הכנס מספר נייד (למשל: 052-1234567)"
-                            onChange={(e) => {
-                                tempVal = e.target.value.trim();
-                            }}
-                            onPressEnter={() => {
-                                Modal.destroyAll();
-                                if (tempVal) {
-                                    localStorage.setItem('user_mobile_phone', tempVal);
-                                    setSavedPhone(tempVal);
-                                    setInputPhone(tempVal);
-                                }
-                                launchWithPhone(tempVal);
-                            }}
-                        />
-                    </div>
-                ),
-                okText: 'המשך לוואטסאפ',
-                cancelText: 'שלח ללא נייד',
-                onOk() {
-                    if (tempVal) {
-                        localStorage.setItem('user_mobile_phone', tempVal);
-                        setSavedPhone(tempVal);
-                        setInputPhone(tempVal);
-                    }
-                    launchWithPhone(tempVal);
-                },
-                onCancel() {
-                    launchWithPhone('');
-                }
-            });
-        } else {
-            launchWithPhone(currentPhone);
-        }
-    }, [savedFirstName, savedLastName, savedPhone, inputFirstName, inputLastName, inputPhone, user]);
 
     const getWhatsAppUrl = useCallback((recipientPhone = '972523375529') => {
         const savedF = savedFirstName || (user ? (user.firstName || user.username || '') : '');
@@ -1883,13 +1823,13 @@ function App() {
                                                 onChange={(e) => setInputFirstName(e.target.value)}
                                                 onPressEnter={() => handleSaveWorshiperName()}
                                                 style={{
-                                                    width: isMobile() ? '65px' : '85px',
-                                                    fontSize: '11px',
+                                                    width: isMobile() ? '80px' : '105px',
+                                                    fontSize: '12px',
                                                     textAlign: 'center',
                                                     borderRadius: '6px',
                                                     border: '1px solid #91caff',
                                                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                    padding: '0 3px',
+                                                    padding: '0 4px',
                                                     flexShrink: 0
                                                 }}
                                             />
@@ -1900,34 +1840,17 @@ function App() {
                                                 onChange={(e) => setInputLastName(e.target.value)}
                                                 onPressEnter={() => handleSaveWorshiperName()}
                                                 style={{
-                                                    width: isMobile() ? '65px' : '85px',
-                                                    fontSize: '11px',
+                                                    width: isMobile() ? '80px' : '105px',
+                                                    fontSize: '12px',
                                                     textAlign: 'center',
                                                     borderRadius: '6px',
                                                     border: '1px solid #91caff',
                                                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                    padding: '0 3px',
+                                                    padding: '0 4px',
                                                     flexShrink: 0
                                                 }}
                                             />
-                                            <Input
-                                                size="small"
-                                                placeholder="מספר נייד"
-                                                value={inputPhone}
-                                                onChange={(e) => setInputPhone(e.target.value)}
-                                                onPressEnter={() => handleSaveWorshiperName()}
-                                                style={{
-                                                    width: isMobile() ? '75px' : '95px',
-                                                    fontSize: '11px',
-                                                    textAlign: 'center',
-                                                    borderRadius: '6px',
-                                                    border: '1px solid #91caff',
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                    padding: '0 3px',
-                                                    flexShrink: 0
-                                                }}
-                                            />
-                                            <Tooltip title="שמור שם ונייד לעליות ולפניות בוואטסאפ">
+                                            <Tooltip title="שמור שם מתפלל לעליות הבאות">
                                                 <Button
                                                     size="small"
                                                     type="primary"
@@ -1937,7 +1860,7 @@ function App() {
                                                         backgroundColor: '#52c41a',
                                                         borderColor: '#52c41a',
                                                         height: '24px',
-                                                        padding: '0 6px',
+                                                        padding: '0 8px',
                                                         fontSize: '11px',
                                                         borderRadius: '6px',
                                                         flexShrink: 0
@@ -2683,6 +2606,122 @@ function App() {
                     synagogueId={guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id)}
                     synagogueName={localSynagogueName || synagogues.find(s => s.id === (guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id)))?.name || ''}
                 />
+
+                {/* WhatsApp Message Modal */}
+                <Modal
+                    title={
+                        <Space>
+                            <WhatsAppOutlined style={{ color: '#25D366', fontSize: '22px' }} />
+                            <span style={{ fontWeight: 'bold', fontSize: '17px', color: '#002766' }}>שליחת פנייה בוואטסאפ</span>
+                        </Space>
+                    }
+                    open={isWhatsAppModalOpen}
+                    onCancel={() => setIsWhatsAppModalOpen(false)}
+                    footer={null}
+                    width={480}
+                    destroyOnClose
+                >
+                    <div style={{ padding: '6px 0' }}>
+                        <div style={{ marginBottom: '16px', fontSize: '13px', color: '#555', background: '#e6f7ff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #91caff' }}>
+                            💡 ניתן להוסיף תוכן הודעה/הערה קצרה ולהזין מספר נייד (רשות):
+                        </div>
+
+                        <div style={{ marginBottom: '14px' }}>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px', fontSize: '13px', color: '#002766' }}>
+                                שם השולח:
+                            </label>
+                            <Input
+                                value={savedFirstName || savedLastName ? `${savedFirstName} ${savedLastName}`.trim() : (user?.firstName || user?.username || inputFirstName || 'אורח')}
+                                disabled
+                                style={{ backgroundColor: '#f5f5f5', color: '#333', fontWeight: 'bold' }}
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: '14px' }}>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px', fontSize: '13px', color: '#002766' }}>
+                                מספר נייד לחתימה (רשות / אם רוצים):
+                            </label>
+                            <Input
+                                placeholder="לדוגמה: 052-1234567 (אם רוצים שיופיע בחתימה)"
+                                value={whatsAppPhone}
+                                onChange={(e) => setWhatsAppPhone(e.target.value)}
+                                allowClear
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px', fontSize: '13px', color: '#002766' }}>
+                                תוכן ההודעה / רישום קצר:
+                            </label>
+                            <Input.TextArea
+                                placeholder="הקלד כאן תוכן הודעה, שאלה או פנייה קצרה..."
+                                value={whatsAppNote}
+                                onChange={(e) => setWhatsAppNote(e.target.value)}
+                                rows={3}
+                                maxLength={500}
+                                showCount
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <Button onClick={() => setIsWhatsAppModalOpen(false)}>
+                                ביטול
+                            </Button>
+                            <Button
+                                type="primary"
+                                icon={<WhatsAppOutlined />}
+                                onClick={() => {
+                                    const cleanPhone = whatsAppPhone.trim();
+                                    if (cleanPhone) {
+                                        localStorage.setItem('user_mobile_phone', cleanPhone);
+                                        setSavedPhone(cleanPhone);
+                                        setInputPhone(cleanPhone);
+                                    } else {
+                                        localStorage.removeItem('user_mobile_phone');
+                                        setSavedPhone('');
+                                        setInputPhone('');
+                                    }
+
+                                    const savedF = savedFirstName || (user ? (user.firstName || user.username || '') : '');
+                                    const savedL = savedLastName || (user ? (user.lastName || '') : '');
+                                    const bannerName = `${savedF} ${savedL}`.trim() || (user?.username || inputFirstName || inputLastName || '');
+
+                                    let text = "שלום אלי, פנייה מתוך מערכת ניהול בית כנסת";
+
+                                    const cleanNote = whatsAppNote.trim();
+                                    if (cleanNote) {
+                                        text += `\n\nתוכן ההודעה:\n${cleanNote}`;
+                                    }
+
+                                    const signatureParts = [];
+                                    if (bannerName) {
+                                        signatureParts.push(`שולח: ${bannerName}`);
+                                    }
+                                    if (cleanPhone) {
+                                        signatureParts.push(`מספר נייד: ${cleanPhone}${isMobile() ? ' (נשלח ממכשיר נייד)' : ''}`);
+                                    } else if (isMobile()) {
+                                        signatureParts.push(`נשלח ממכשיר נייד`);
+                                    }
+
+                                    if (signatureParts.length > 0) {
+                                        text += `\n\n${signatureParts.join('\n')}`;
+                                    }
+
+                                    const url = `https://wa.me/${whatsAppRecipient}?text=${encodeURIComponent(text)}`;
+                                    setIsWhatsAppModalOpen(false);
+                                    window.open(url, '_blank', 'noopener,noreferrer');
+                                }}
+                                style={{
+                                    backgroundColor: '#25D366',
+                                    borderColor: '#25D366',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                שלח הודעה בוואטסאפ
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
 
                 {/* Footer with contact info */}
                 <div style={{ textAlign: 'center', padding: '16px 8px', fontSize: '12px', color: '#888', borderTop: '1px solid #e8e8e8', width: '100%', marginTop: '36px', background: '#fafafa', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
