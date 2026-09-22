@@ -190,6 +190,80 @@ function App() {
         window.open(targetUrl, '_blank');
     }, [user, guestSynagogueId, synagogues]);
 
+    const handleOpenWhatsApp = useCallback((recipientPhone = '972523375529') => {
+        let currentPhone = savedPhone || inputPhone || user?.phone || user?.mobile || localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '';
+
+        const launchWithPhone = (phoneNum) => {
+            const savedF = savedFirstName || (user ? (user.firstName || user.username || '') : '');
+            const savedL = savedLastName || (user ? (user.lastName || '') : '');
+            const bannerName = `${savedF} ${savedL}`.trim() || (user?.username || inputFirstName || inputLastName || '');
+
+            let text = "שלום אלי, פנייה מתוך מערכת ניהול בית כנסת";
+
+            const signatureParts = [];
+            if (bannerName) {
+                signatureParts.push(`שולח: ${bannerName}`);
+            }
+
+            if (phoneNum) {
+                signatureParts.push(`מספר נייד: ${phoneNum}${isMobile() ? ' (נשלח ממכשיר נייד)' : ''}`);
+            } else if (isMobile()) {
+                signatureParts.push(`נשלח ממכשיר נייד`);
+            }
+
+            if (signatureParts.length > 0) {
+                text += `\n\n${signatureParts.join('\n')}`;
+            }
+
+            const url = `https://wa.me/${recipientPhone}?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank', 'noopener,noreferrer');
+        };
+
+        if (!currentPhone) {
+            let tempVal = '';
+            Modal.confirm({
+                title: 'הזנת מספר נייד לחתימה בוואטסאפ',
+                content: (
+                    <div style={{ marginTop: '10px' }}>
+                        <div style={{ fontSize: '13px', marginBottom: '8px', color: '#333' }}>
+                            כדי שמספר הנייד שלך יופיע בחתימת הוואטסאפ, אנא הזן את מספר הנייד שלך:
+                        </div>
+                        <Input
+                            placeholder="הכנס מספר נייד (למשל: 052-1234567)"
+                            onChange={(e) => {
+                                tempVal = e.target.value.trim();
+                            }}
+                            onPressEnter={() => {
+                                Modal.destroyAll();
+                                if (tempVal) {
+                                    localStorage.setItem('user_mobile_phone', tempVal);
+                                    setSavedPhone(tempVal);
+                                    setInputPhone(tempVal);
+                                }
+                                launchWithPhone(tempVal);
+                            }}
+                        />
+                    </div>
+                ),
+                okText: 'המשך לוואטסאפ',
+                cancelText: 'שלח ללא נייד',
+                onOk() {
+                    if (tempVal) {
+                        localStorage.setItem('user_mobile_phone', tempVal);
+                        setSavedPhone(tempVal);
+                        setInputPhone(tempVal);
+                    }
+                    launchWithPhone(tempVal);
+                },
+                onCancel() {
+                    launchWithPhone('');
+                }
+            });
+        } else {
+            launchWithPhone(currentPhone);
+        }
+    }, [savedFirstName, savedLastName, savedPhone, inputFirstName, inputLastName, inputPhone, user]);
+
     const getWhatsAppUrl = useCallback((recipientPhone = '972523375529') => {
         const savedF = savedFirstName || (user ? (user.firstName || user.username || '') : '');
         const savedL = savedLastName || (user ? (user.lastName || '') : '');
@@ -1510,6 +1584,10 @@ function App() {
                                 </a>
                                 <a 
                                     href={getWhatsAppUrl()} 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        handleOpenWhatsApp();
+                                    }}
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     style={{
@@ -1522,7 +1600,8 @@ function App() {
                                         fontWeight: 'bold',
                                         display: 'inline-flex',
                                         alignItems: 'center',
-                                        gap: '3px'
+                                        gap: '3px',
+                                        cursor: 'pointer'
                                     }}
                                     title="פתיחת שיחת וואטסאפ עם אלי סטריק"
                                 >
@@ -1768,11 +1847,12 @@ function App() {
                                                 textOverflow: 'ellipsis'
                                             }}>
                                                 <span style={{ whiteSpace: 'nowrap' }}>{prefix} {savedF} {savedL}</span>
-                                                <Tooltip title="לחץ לעריכת שם המתפלל">
+                                                <Tooltip title="לחץ לעריכת שם וטלפון נייד">
                                                     <EditOutlined
                                                         onClick={() => {
                                                             setInputFirstName(savedF);
                                                             setInputLastName(savedL);
+                                                            setInputPhone(savedPhone);
                                                             setIsEditingWorshiperName(true);
                                                         }}
                                                         style={{ fontSize: '12px', cursor: 'pointer', opacity: 0.85, color: '#e6f7ff', flexShrink: 0 }}
@@ -1786,14 +1866,14 @@ function App() {
                                         <div style={{
                                             display: 'inline-flex',
                                             alignItems: 'center',
-                                            gap: isMobile() ? '4px' : '6px',
+                                            gap: isMobile() ? '3px' : '5px',
                                             justifyContent: 'center',
                                             marginBottom: '4px',
                                             flexWrap: 'nowrap',
                                             whiteSpace: 'nowrap',
                                             maxWidth: '100%'
                                         }}>
-                                            <span style={{ fontSize: isMobile() ? '12px' : '13px', fontWeight: '600', color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.2)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                            <span style={{ fontSize: isMobile() ? '11px' : '13px', fontWeight: '600', color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.2)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                                 {prefix}
                                             </span>
                                             <Input
@@ -1803,13 +1883,13 @@ function App() {
                                                 onChange={(e) => setInputFirstName(e.target.value)}
                                                 onPressEnter={() => handleSaveWorshiperName()}
                                                 style={{
-                                                    width: isMobile() ? '80px' : '105px',
-                                                    fontSize: '12px',
+                                                    width: isMobile() ? '65px' : '85px',
+                                                    fontSize: '11px',
                                                     textAlign: 'center',
                                                     borderRadius: '6px',
                                                     border: '1px solid #91caff',
                                                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                    padding: '0 4px',
+                                                    padding: '0 3px',
                                                     flexShrink: 0
                                                 }}
                                             />
@@ -1820,17 +1900,34 @@ function App() {
                                                 onChange={(e) => setInputLastName(e.target.value)}
                                                 onPressEnter={() => handleSaveWorshiperName()}
                                                 style={{
-                                                    width: isMobile() ? '80px' : '105px',
-                                                    fontSize: '12px',
+                                                    width: isMobile() ? '65px' : '85px',
+                                                    fontSize: '11px',
                                                     textAlign: 'center',
                                                     borderRadius: '6px',
                                                     border: '1px solid #91caff',
                                                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                    padding: '0 4px',
+                                                    padding: '0 3px',
                                                     flexShrink: 0
                                                 }}
                                             />
-                                            <Tooltip title="שמור שם מתפלל לעליות הבאות">
+                                            <Input
+                                                size="small"
+                                                placeholder="מספר נייד"
+                                                value={inputPhone}
+                                                onChange={(e) => setInputPhone(e.target.value)}
+                                                onPressEnter={() => handleSaveWorshiperName()}
+                                                style={{
+                                                    width: isMobile() ? '75px' : '95px',
+                                                    fontSize: '11px',
+                                                    textAlign: 'center',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid #91caff',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                    padding: '0 3px',
+                                                    flexShrink: 0
+                                                }}
+                                            />
+                                            <Tooltip title="שמור שם ונייד לעליות ולפניות בוואטסאפ">
                                                 <Button
                                                     size="small"
                                                     type="primary"
@@ -1840,7 +1937,7 @@ function App() {
                                                         backgroundColor: '#52c41a',
                                                         borderColor: '#52c41a',
                                                         height: '24px',
-                                                        padding: '0 8px',
+                                                        padding: '0 6px',
                                                         fontSize: '11px',
                                                         borderRadius: '6px',
                                                         flexShrink: 0
@@ -2595,6 +2692,10 @@ function App() {
                     </a>
                     <a 
                         href={getWhatsAppUrl()} 
+                        onClick={(e) => {
+                            e.preventDefault();
+                            handleOpenWhatsApp();
+                        }}
                         target="_blank" 
                         rel="noopener noreferrer"
                         style={{
@@ -2608,7 +2709,8 @@ function App() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
-                            boxShadow: '0 1px 3px rgba(37, 211, 102, 0.3)'
+                            boxShadow: '0 1px 3px rgba(37, 211, 102, 0.3)',
+                            cursor: 'pointer'
                         }}
                         title="שלח הודעה בוואטסאפ"
                     >
