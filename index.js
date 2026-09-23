@@ -740,7 +740,7 @@ app.post('/api/members/self-register', async (req, res) => {
             status: rawStatus === 'ישראל' ? '' : (rawStatus || ''),
             id: Date.now(),
             synagogueId: synagogueId,
-            letter: req.body.letter || ['א'],
+            letter: req.body.letter !== undefined ? req.body.letter : [],
             isSelfRegistered: true,
             registeredAt: req.body.registeredAt || nowIso,
             createdAt: req.body.createdAt || nowIso

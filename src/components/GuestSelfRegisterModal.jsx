@@ -26,6 +26,7 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
 
             const current = form.getFieldsValue();
             const updates = {};
+            if (!current.memberType) updates.memberType = 'חבר';
             if (!current.firstName && savedF) updates.firstName = savedF;
             if (!current.lastName && savedL) updates.lastName = savedL;
 
@@ -62,12 +63,13 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                 ...values,
                 status: values.status === 'ישראל' ? '' : (values.status || ''),
                 synagogueId: synagogueId,
-                letter: ['א'],
+                letter: values.memberType === 'אורח' ? ['א'] : [],
                 father_death_date: formatHebrewDateToTextual(values.father_death_date || ''),
                 mother_death_date: formatHebrewDateToTextual(values.mother_death_date || ''),
                 isSelfRegistered: true,
                 registeredAt: new Date().toISOString()
             };
+            delete memberData.memberType;
 
             const response = await fetch(`${API_BASE}/api/members/self-register`, {
                 method: 'POST',
@@ -200,10 +202,44 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                     onFinish={handleFinish}
                     direction="rtl"
                     style={{ color: '#002766' }}
+                    initialValues={{ memberType: 'חבר' }}
                 >
                     <div className="premium-card">
                         <Row gutter={[16, 12]}>
-                            <Col xs={24} sm={12}>
+                            <Col xs={24} sm={8}>
+                                <Form.Item
+                                    name="memberType"
+                                    label={
+                                        <span>
+                                            חבר/אורח{' '}
+                                            <Tooltip
+                                                title={
+                                                    <div style={{ color: '#006400', direction: 'rtl' }}>
+                                                        בחר חבר או אורח
+                                                    </div>
+                                                }
+                                                placement="bottomLeft"
+                                                zIndex={1100}
+                                                overlayInnerStyle={{
+                                                    backgroundColor: '#ffffcc',
+                                                    border: '1px solid #d9d9d9',
+                                                    borderRadius: '8px',
+                                                    padding: '8px',
+                                                    maxWidth: '350px'
+                                                }}
+                                            >
+                                                <QuestionCircleOutlined style={{ color: '#1890ff', cursor: 'help', fontSize: '14px' }} />
+                                            </Tooltip>
+                                        </span>
+                                    }
+                                >
+                                    <Select placeholder="בחר חבר או אורח">
+                                        <Option value="חבר">חבר</Option>
+                                        <Option value="אורח">אורח</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col xs={24} sm={8}>
                                 <Form.Item
                                     name="status"
                                     label={
@@ -237,7 +273,7 @@ const GuestSelfRegisterModal = ({ visible, onCancel, onSuccess, synagogueId, syn
                                     </Select>
                                 </Form.Item>
                             </Col>
-                            <Col xs={24} sm={12}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item
                                     name="title"
                                     label={
