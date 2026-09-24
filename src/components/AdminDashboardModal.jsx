@@ -13,6 +13,7 @@ import {
 import { API_BASE } from '../config';
 import { normalizeRole } from '../../accessControl';
 import alteSynagogueIcon from '../assets/alte_synagogue_icon.png';
+import { isNewlyRegistered } from '../utils/hebrewDateUtils';
 
 const { Text, Title } = Typography;
 
@@ -97,6 +98,10 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
     };
 
     const isSuperAdmin = currentUser?.role === 'super_admin';
+
+    const newMembers3DaysCount = useMemo(() => {
+        return (members || []).filter(m => isNewlyRegistered(m, 3)).length;
+    }, [members]);
 
     const fetchSelfRegConfig = async () => {
         try {
@@ -1102,6 +1107,11 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
                         <Col span={8}>
                             <Card>
                                 <Statistic title="סה״כ מתפללים" value={members.length} prefix={<TeamOutlined />} valueStyle={{ color: '#52c41a' }} />
+                                {newMembers3DaysCount > 0 && (
+                                    <Tag color="green" style={{ marginTop: 6, fontWeight: 'bold' }}>
+                                        🌿 {newMembers3DaysCount} נרשמו ב-3 ימים אחרונים
+                                    </Tag>
+                                )}
                             </Card>
                         </Col>
                         <Col span={8}>

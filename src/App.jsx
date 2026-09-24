@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { getParashaForDate } from './utils/hebrewDateUtils';
-import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip, Tag, Popconfirm, Tabs, List, Card, Space, Divider } from 'antd';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { getParashaForDate, isNewlyRegistered } from './utils/hebrewDateUtils';
+import { Button, ConfigProvider, theme, message, Modal, Input, Form, Select, Tooltip, Tag, Popconfirm, Tabs, List, Card, Space, Divider, Badge } from 'antd';
 import { DownloadOutlined, UploadOutlined, PoweroffOutlined, WhatsAppOutlined, PhoneOutlined, UserAddOutlined, SafetyOutlined, ReloadOutlined, CheckCircleOutlined, EditOutlined, CheckOutlined, UserOutlined, KeyOutlined, DeleteOutlined, TeamOutlined } from '@ant-design/icons';
 import heIL from 'antd/locale/he_IL';
 import AddMemberModal from './components/AddMemberModal';
@@ -19,6 +19,9 @@ import alteSynagogueIcon from './assets/alte_synagogue_icon.png';
 
 function App() {
     const [members, setMembers] = useState([]);
+    const newlyRegistered3DaysCount = useMemo(() => {
+        return (members || []).filter(m => isNewlyRegistered(m, 3)).length;
+    }, [members]);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isListVisible, setIsListVisible] = useState(false);
     const [isArchiveVisible, setIsArchiveVisible] = useState(false);
@@ -1634,7 +1637,11 @@ function App() {
                                 </Button>
                             )}
                             {canSeeAdminDashboard && (
-                                <Button type="default" onClick={() => setIsUserMgmtVisible(true)}>
+                                <Button type="default" onClick={() => setIsUserMgmtVisible(true)} icon={
+                                    <Badge count={newlyRegistered3DaysCount} overflowCount={99} size="small" style={{ backgroundColor: '#52c41a' }} offset={[3, -3]}>
+                                        <UserOutlined />
+                                    </Badge>
+                                }>
                                     {isSuperAdmin ? 'לוח בקרה ניהולי' : 'ניהול מנהלים ומשתמשים'}
                                 </Button>
                             )}
@@ -2165,10 +2172,13 @@ function App() {
                     <Button
                         size="large"
                         block={isMobile()}
-                        style={{ fontSize: '18px', fontWeight: 'bold' }}
+                        style={{ fontSize: '18px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                         onClick={() => setIsListVisible(true)}
                     >
-                        הצג רשימת מתפללים
+                        <Badge count={newlyRegistered3DaysCount} overflowCount={99} style={{ backgroundColor: '#52c41a', fontWeight: 'bold' }} offset={[4, -4]}>
+                            <TeamOutlined style={{ fontSize: '22px' }} />
+                        </Badge>
+                        <span>הצג רשימת מתפללים</span>
                     </Button>
                     <Button
                         size="large"

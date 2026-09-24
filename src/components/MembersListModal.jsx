@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Modal, Table, Button, Popconfirm, Input, Tooltip, Select, Tag } from 'antd';
-import { EditOutlined, DeleteOutlined, SearchOutlined, HistoryOutlined, PrinterOutlined, DownloadOutlined, UploadOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { Modal, Table, Button, Popconfirm, Input, Tooltip, Select, Tag, Badge } from 'antd';
+import { EditOutlined, DeleteOutlined, SearchOutlined, HistoryOutlined, PrinterOutlined, DownloadOutlined, UploadOutlined, QuestionCircleOutlined, TeamOutlined } from '@ant-design/icons';
 import { getDaysSinceAliyah, getYahrzeitIfInCurrentWeek, getYahrzeitIfWithin30Days, getUpcomingShabbatInfo, parseHebrewDate, getHebrewMonthNumber, getShmitaYearStatus, getAbsDate, isNewlyRegistered } from '../utils/hebrewDateUtils';
 import { HDate } from '@hebcal/core';
 import { saveJsonFile, loadJsonFile } from '../utils/fileUtils';
@@ -952,8 +952,16 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                             fontSize: '22px',
                             fontWeight: 'bold',
                             color: '#00008B',
-                            whiteSpace: 'nowrap'
-                        }}>רשימת עליות</span>
+                            whiteSpace: 'nowrap',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}>
+                            <Badge count={newlyRegisteredCount} overflowCount={99} style={{ backgroundColor: '#52c41a', fontWeight: 'bold' }} offset={[4, -2]}>
+                                <TeamOutlined style={{ fontSize: '24px', color: '#00008B' }} />
+                            </Badge>
+                            <span>רשימת עליות</span>
+                        </span>
                     </div>
 
                     {/* Left-aligned buttons (Export & Import) */}
