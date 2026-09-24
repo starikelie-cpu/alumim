@@ -31,6 +31,11 @@ function App() {
     const [archiveRefreshKey, setArchiveRefreshKey] = useState(0);
     const [selfRegRefreshKey, setSelfRegRefreshKey] = useState(0);
 
+    // WhatsApp Popup Modal state
+    const [isWhatsAppModalVisible, setIsWhatsAppModalVisible] = useState(false);
+    const [whatsAppNote, setWhatsAppNote] = useState('');
+    const [whatsAppReplyPhone, setWhatsAppReplyPhone] = useState('');
+
     // Persistent Worshiper Name and Phone state for Banner Greeting & WhatsApp
     const [savedFirstName, setSavedFirstName] = useState(() => localStorage.getItem('last_self_registered_first_name') || '');
     const [savedLastName, setSavedLastName] = useState(() => localStorage.getItem('last_self_registered_last_name') || '');
@@ -218,6 +223,45 @@ function App() {
 
         return `https://wa.me/${recipientPhone}?text=${encodeURIComponent(text)}`;
     }, [savedFirstName, savedLastName, savedPhone, inputFirstName, inputLastName, inputPhone, user]);
+
+    const handleOpenWhatsAppModal = (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const defaultPhone = savedPhone || inputPhone || user?.phone || localStorage.getItem('user_mobile_phone') || localStorage.getItem('last_self_registered_phone') || '';
+        setWhatsAppReplyPhone(defaultPhone);
+        setWhatsAppNote('');
+        setIsWhatsAppModalVisible(true);
+    };
+
+    const handleSendWhatsApp = () => {
+        let text = "שלום אלי, פנייה מתוך מערכת ניהול בית כנסת";
+
+        const cleanNote = whatsAppNote.trim().slice(0, 20);
+        if (cleanNote) {
+            text += `\nתוכן הפנייה: ${cleanNote}`;
+        }
+
+        const savedF = savedFirstName || (user ? (user.firstName || user.username || '') : '');
+        const savedL = savedLastName || (user ? (user.lastName || '') : '');
+        const bannerName = `${savedF} ${savedL}`.trim() || (user?.username || inputFirstName || inputLastName || '');
+
+        if (bannerName) {
+            text += `\nשולח: ${bannerName}`;
+        }
+
+        const phoneToUse = whatsAppReplyPhone.trim() || savedPhone || inputPhone || localStorage.getItem('user_mobile_phone') || '';
+        if (phoneToUse) {
+            text += `\nמספר נייד לתגובה: ${phoneToUse}${isMobile() ? ' (נשלח ממכשיר נייד)' : ''}`;
+            localStorage.setItem('user_mobile_phone', phoneToUse);
+            setSavedPhone(phoneToUse);
+            setInputPhone(phoneToUse);
+        } else if (isMobile()) {
+            text += `\nנשלח ממכשיר נייד`;
+        }
+
+        const url = `https://wa.me/972523375529?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+        setIsWhatsAppModalVisible(false);
+    };
 
     const compressImage = (file, maxWidth = 400, maxHeight = 400) => {
         return new Promise((resolve, reject) => {
@@ -1512,9 +1556,8 @@ function App() {
                                     <PhoneOutlined style={{ fontSize: '10px' }} /> אלי סטריק - 052-3375529
                                 </a>
                                 <a 
-                                    href={getWhatsAppUrl()} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
+                                    href="#"
+                                    onClick={handleOpenWhatsAppModal}
                                     style={{
                                         color: '#fff',
                                         background: '#25D366',
@@ -1525,11 +1568,15 @@ function App() {
                                         fontWeight: 'bold',
                                         display: 'inline-flex',
                                         alignItems: 'center',
-                                        gap: '3px'
+                                        gap: '3px',
+                                        cursor: 'pointer'
                                     }}
                                     title="פתיחת שיחת וואטסאפ עם אלי סטריק"
                                 >
-                                    <WhatsAppOutlined style={{ fontSize: '12px' }} /> וואטסאפ
+                                    <Badge count={newlyRegistered3DaysCount} overflowCount={99} size="small" style={{ backgroundColor: '#52c41a' }} offset={[3, -3]}>
+                                        <WhatsAppOutlined style={{ fontSize: '12px', color: '#fff' }} />
+                                    </Badge>
+                                    <span>וואטסאפ</span>
                                 </a>
                             </div>
                         </div>
@@ -1937,26 +1984,28 @@ function App() {
                                         הרשם לפעמים הבאות
                                     </div>
                                 )}
-                                <img  
-                                    src={getSynagogueLogo(activeSyn?.id)} 
-                                    alt="סמל בית כנסת" 
-                                    onClick={canChangeOnDevice ? handleLogoClick : undefined}
-                                    title={canChangeOnDevice ? "לחץ לבחירת תמונה מהמחשב (מנהל בלבד במחשב)" : undefined}
-                                    style={{
-                                        height: imgSize,
-                                        width: imgSize,
-                                        objectFit: 'contain',
-                                        cursor: canChangeOnDevice ? 'pointer' : 'default',
-                                        borderRadius: '4px',
-                                        background: 'transparent',
-                                        padding: 0,
-                                        boxSizing: 'border-box',
-                                        border: 'none',
-                                        transition: 'transform 0.2s ease'
-                                    }}
-                                    onMouseEnter={(e) => { if (canChangeOnDevice) e.currentTarget.style.transform = 'scale(1.05)'; }}
-                                    onMouseLeave={(e) => { if (canChangeOnDevice) e.currentTarget.style.transform = 'scale(1)'; }}
-                                />
+                                <Badge count={newlyRegistered3DaysCount} overflowCount={99} style={{ backgroundColor: '#52c41a', fontWeight: 'bold' }} offset={[-4, 4]}>
+                                    <img  
+                                        src={getSynagogueLogo(activeSyn?.id)} 
+                                        alt="סמל בית כנסת" 
+                                        onClick={canChangeOnDevice ? handleLogoClick : undefined}
+                                        title={canChangeOnDevice ? "לחץ לבחירת תמונה מהמחשב (מנהל בלבד במחשב)" : undefined}
+                                        style={{
+                                            height: imgSize,
+                                            width: imgSize,
+                                            objectFit: 'contain',
+                                            cursor: canChangeOnDevice ? 'pointer' : 'default',
+                                            borderRadius: '4px',
+                                            background: 'transparent',
+                                            padding: 0,
+                                            boxSizing: 'border-box',
+                                            border: 'none',
+                                            transition: 'transform 0.2s ease'
+                                        }}
+                                        onMouseEnter={(e) => { if (canChangeOnDevice) e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                        onMouseLeave={(e) => { if (canChangeOnDevice) e.currentTarget.style.transform = 'scale(1)'; }}
+                                    />
+                                </Badge>
                                 {canChangeOnDevice && (
                                     <span 
                                         title="לחץ לבחירת תמונה מהמחשב (מנהל בלבד במחשב)"
@@ -2134,7 +2183,11 @@ function App() {
                                             borderColor: '#389e0d',
                                             boxShadow: '0 4px 12px rgba(82, 196, 26, 0.35)'
                                         }}
-                                        icon={<UserAddOutlined />}
+                                        icon={
+                                            <Badge count={newlyRegistered3DaysCount} overflowCount={99} style={{ backgroundColor: '#52c41a' }} offset={[3, -3]}>
+                                                <UserAddOutlined />
+                                            </Badge>
+                                        }
                                         onClick={() => setIsGuestSelfRegModalVisible(true)}
                                     >
                                         ➕ הרשמה עצמית כמתפלל
@@ -2597,6 +2650,50 @@ function App() {
                     synagogueName={localSynagogueName || synagogues.find(s => s.id === (guestSynagogueId || (synagogues.find(s => s.name === localSynagogueName)?.id)))?.name || ''}
                 />
 
+                {/* WhatsApp Message Popup Modal */}
+                <Modal
+                    title={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#25D366', fontWeight: 'bold', fontSize: '18px' }}>
+                            <WhatsAppOutlined style={{ fontSize: '22px' }} />
+                            <span>פנייה בוואטסאפ לאלי סטריק</span>
+                        </div>
+                    }
+                    open={isWhatsAppModalVisible}
+                    onCancel={() => setIsWhatsAppModalVisible(false)}
+                    onOk={handleSendWhatsApp}
+                    okText="שלח בוואטסאפ"
+                    cancelText="ביטול"
+                    okButtonProps={{ style: { backgroundColor: '#25D366', borderColor: '#25D366', fontWeight: 'bold' } }}
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px' }}>
+                        <div>
+                            <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px', fontSize: '13px', color: '#002766' }}>
+                                תוכן הפנייה / הערה (עד 20 אותיות):
+                            </label>
+                            <Input
+                                maxLength={20}
+                                showCount
+                                placeholder="הזן פנייה (עד 20 תווים)"
+                                value={whatsAppNote}
+                                onChange={(e) => setWhatsAppNote(e.target.value.slice(0, 20))}
+                                style={{ fontSize: '14px' }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px', fontSize: '13px', color: '#002766' }}>
+                                מספר טלפון לתגובה:
+                            </label>
+                            <Input
+                                placeholder="הזן מספר טלפון לתשובה (למשל: 052-3375529)"
+                                value={whatsAppReplyPhone}
+                                onChange={(e) => setWhatsAppReplyPhone(e.target.value)}
+                                prefix={<PhoneOutlined style={{ color: '#1890ff' }} />}
+                                style={{ fontSize: '14px' }}
+                            />
+                        </div>
+                    </div>
+                </Modal>
+
                 {/* Footer with contact info */}
                 <div style={{ textAlign: 'center', padding: '16px 8px', fontSize: '12px', color: '#888', borderTop: '1px solid #e8e8e8', width: '100%', marginTop: '36px', background: '#fafafa', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                     <span>בית כנסת - ניהול מתפללים | פיתוח והתקשרות: אלי סטריק</span>
@@ -2604,9 +2701,8 @@ function App() {
                         <PhoneOutlined /> 052-3375529
                     </a>
                     <a 
-                        href={getWhatsAppUrl()} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
+                        href="#"
+                        onClick={handleOpenWhatsAppModal}
                         style={{
                             color: '#fff',
                             background: '#25D366',
@@ -2618,11 +2714,15 @@ function App() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
-                            boxShadow: '0 1px 3px rgba(37, 211, 102, 0.3)'
+                            boxShadow: '0 1px 3px rgba(37, 211, 102, 0.3)',
+                            cursor: 'pointer'
                         }}
                         title="שלח הודעה בוואטסאפ"
                     >
-                        <WhatsAppOutlined /> שלח הודעה בוואטסאפ
+                        <Badge count={newlyRegistered3DaysCount} overflowCount={99} size="small" style={{ backgroundColor: '#52c41a' }} offset={[3, -3]}>
+                            <WhatsAppOutlined style={{ color: '#fff' }} />
+                        </Badge>
+                        <span>שלח הודעה בוואטסאפ</span>
                     </a>
                 </div>
             </div>
