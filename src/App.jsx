@@ -17,11 +17,17 @@ import { API_BASE, isMobile, isElectron, getPlatform } from './config';
 import { getGreetingPrefix } from './utils/zmanimUtils';
 import alteSynagogueIcon from './assets/alte_synagogue_icon.png';
 
+import { updateAppBadge } from './utils/platformUtils';
+
 function App() {
     const [members, setMembers] = useState([]);
     const newlyRegistered3DaysCount = useMemo(() => {
         return (members || []).filter(m => isNewlyRegistered(m, 3)).length;
     }, [members]);
+
+    useEffect(() => {
+        updateAppBadge(newlyRegistered3DaysCount);
+    }, [newlyRegistered3DaysCount]);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isListVisible, setIsListVisible] = useState(false);
     const [isArchiveVisible, setIsArchiveVisible] = useState(false);
