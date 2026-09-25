@@ -857,9 +857,9 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
+                            gap: '12px',
                             background: '#f5f5f5',
-                            padding: '4px 10px',
+                            padding: '4px 12px',
                             borderRadius: '8px',
                             border: '1px solid #d9d9d9'
                         }}>
@@ -867,13 +867,13 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#444' }}>ימים:</span>
                                 <Select
                                     variant="borderless"
-                                    style={{ width: '55px', fontWeight: 'bold', fontSize: '14px' }}
+                                    style={{ width: '90px', minWidth: '90px', fontWeight: 'bold', fontSize: '14px' }}
                                     value={daysLimit || 7}
                                     onChange={(val) => {
                                         setDaysLimit(val);
                                         localStorage.setItem('printDaysLimit', val);
                                     }}
-                                    options={dayOptions.map(d => ({ label: d, value: d }))}
+                                    options={dayOptions.map(d => ({ label: `${d} ימים`, value: d }))}
                                 />
                                 <Tooltip
                                     title={<div style={{ color: '#006400' }}>מספר הימים הרצוי להדפסה מאז עליה אחרונה</div>}
@@ -896,13 +896,13 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#444' }}>זמן א':</span>
                                 <Select
                                     variant="borderless"
-                                    style={{ width: '55px', fontWeight: 'bold', fontSize: '14px' }}
+                                    style={{ width: '90px', minWidth: '90px', fontWeight: 'bold', fontSize: '14px' }}
                                     value={timeAlefLimit || 7}
                                     onChange={(val) => {
                                         setTimeAlefLimit(val);
                                         localStorage.setItem('printTimeAlefLimit', val);
                                     }}
-                                    options={dayOptions.map(d => ({ label: d, value: d }))}
+                                    options={dayOptions.map(d => ({ label: `${d} ימים`, value: d }))}
                                 />
                                 <Tooltip
                                     title={<div style={{ color: '#006400' }}>אורחים שעלו לפני מספר זה</div>}

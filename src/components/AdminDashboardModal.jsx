@@ -785,7 +785,11 @@ const AdminDashboardModal = ({ visible, onCancel, token, currentUser, members = 
             render: (p) => {
                 switch (p) {
                     case 'android':
-                        return <Tag color="green" icon={<MobileOutlined />}>Android</Tag>;
+                        return (
+                            <Badge count={newMembers3DaysCount} overflowCount={99} size="small" style={{ backgroundColor: '#52c41a' }} offset={[4, -2]}>
+                                <Tag color="green" icon={<MobileOutlined />}>Android</Tag>
+                            </Badge>
+                        );
                     case 'ios':
                         return <Tag color="cyan" icon={<AppleOutlined />}>iOS</Tag>;
                     case 'electron':

@@ -1065,6 +1065,12 @@ export function getHolidayInfo(hdate) {
     const options = { start: hdate, end: hdate, il: true };
     const events = HebrewCalendar.calendar(options);
 
+    // Filter out Chol HaMoed on weekdays (Sunday through Friday) - do not print Chol HaMoed pages midweek
+    const isCholHaMoed = events.some(e => (e.getFlags() & flags.CHOL_HAMOED) || e.getDesc().includes('Chol HaMoed'));
+    if (isCholHaMoed && hdate.getDay() !== 6) {
+        return null;
+    }
+
     // Look for major holidays (CHAG)
     // We filter out Chanukah because it's usually not a "Chag" requiring a separate aliyah list in the same way,
     // though this is configurable. The user's focus is on major days like Pesach, Shavuot, Sukkot, RH.

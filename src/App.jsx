@@ -1573,9 +1573,7 @@ function App() {
                                     }}
                                     title="פתיחת שיחת וואטסאפ עם אלי סטריק"
                                 >
-                                    <Badge count={newlyRegistered3DaysCount} overflowCount={99} size="small" style={{ backgroundColor: '#52c41a' }} offset={[3, -3]}>
-                                        <WhatsAppOutlined style={{ fontSize: '12px', color: '#fff' }} />
-                                    </Badge>
+                                    <WhatsAppOutlined style={{ fontSize: '12px', color: '#fff' }} />
                                     <span>וואטסאפ</span>
                                 </a>
                             </div>
@@ -1984,7 +1982,6 @@ function App() {
                                         הרשם לפעמים הבאות
                                     </div>
                                 )}
-                                <Badge count={newlyRegistered3DaysCount} overflowCount={99} style={{ backgroundColor: '#52c41a', fontWeight: 'bold' }} offset={[-4, 4]}>
                                     <img  
                                         src={getSynagogueLogo(activeSyn?.id)} 
                                         alt="סמל בית כנסת" 
@@ -2005,7 +2002,6 @@ function App() {
                                         onMouseEnter={(e) => { if (canChangeOnDevice) e.currentTarget.style.transform = 'scale(1.05)'; }}
                                         onMouseLeave={(e) => { if (canChangeOnDevice) e.currentTarget.style.transform = 'scale(1)'; }}
                                     />
-                                </Badge>
                                 {canChangeOnDevice && (
                                     <span 
                                         title="לחץ לבחירת תמונה מהמחשב (מנהל בלבד במחשב)"
@@ -2719,9 +2715,7 @@ function App() {
                         }}
                         title="שלח הודעה בוואטסאפ"
                     >
-                        <Badge count={newlyRegistered3DaysCount} overflowCount={99} size="small" style={{ backgroundColor: '#52c41a' }} offset={[3, -3]}>
-                            <WhatsAppOutlined style={{ color: '#fff' }} />
-                        </Badge>
+                        <WhatsAppOutlined style={{ color: '#fff' }} />
                         <span>שלח הודעה בוואטסאפ</span>
                     </a>
                 </div>
