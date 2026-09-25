@@ -2168,26 +2168,24 @@ function App() {
                         if (isOpenForThisSyn) {
                             return (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: isMobile() ? '10px' : '12px', flexWrap: 'wrap', justifyContent: 'center', width: isMobile() ? '100%' : 'auto' }}>
-                                    <Button
-                                        type="primary"
-                                        size="large"
-                                        block={isMobile()}
-                                        style={{
-                                            fontSize: '17px',
-                                            fontWeight: 'bold',
-                                            background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
-                                            borderColor: '#389e0d',
-                                            boxShadow: '0 4px 12px rgba(82, 196, 26, 0.35)'
-                                        }}
-                                        icon={
-                                            <Badge count={newlyRegistered3DaysCount} overflowCount={99} style={{ backgroundColor: '#52c41a' }} offset={[3, -3]}>
-                                                <UserAddOutlined />
-                                            </Badge>
-                                        }
-                                        onClick={() => setIsGuestSelfRegModalVisible(true)}
-                                    >
-                                        ➕ הרשמה עצמית כמתפלל
-                                    </Button>
+                                    <Badge count={newlyRegistered3DaysCount} overflowCount={99} style={{ backgroundColor: '#52c41a', fontWeight: 'bold' }} offset={[-4, 4]}>
+                                        <Button
+                                            type="primary"
+                                            size="large"
+                                            block={isMobile()}
+                                            style={{
+                                                fontSize: '17px',
+                                                fontWeight: 'bold',
+                                                background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                                                borderColor: '#389e0d',
+                                                boxShadow: '0 4px 12px rgba(82, 196, 26, 0.35)'
+                                            }}
+                                            icon={<UserAddOutlined />}
+                                            onClick={() => setIsGuestSelfRegModalVisible(true)}
+                                        >
+                                            ➕ הרשמה עצמית כמתפלל
+                                        </Button>
+                                    </Badge>
                                     <Popconfirm
                                         title="אישור הרשמה קודמת"
                                         description="האם כבר נרשמת בעבר כמתפלל בבית כנסת זה?"
@@ -2218,17 +2216,17 @@ function App() {
 
                         return null;
                     })()}
-                    <Button
-                        size="large"
-                        block={isMobile()}
-                        style={{ fontSize: '18px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                        onClick={() => setIsListVisible(true)}
-                    >
-                        <Badge count={newlyRegistered3DaysCount} overflowCount={99} style={{ backgroundColor: '#52c41a', fontWeight: 'bold' }} offset={[4, -4]}>
+                    <Badge count={newlyRegistered3DaysCount} overflowCount={99} style={{ backgroundColor: '#52c41a', fontWeight: 'bold' }} offset={[-4, 4]}>
+                        <Button
+                            size="large"
+                            block={isMobile()}
+                            style={{ fontSize: '18px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                            onClick={() => setIsListVisible(true)}
+                        >
                             <TeamOutlined style={{ fontSize: '22px' }} />
-                        </Badge>
-                        <span>הצג רשימת מתפללים</span>
-                    </Button>
+                            <span>הצג רשימת מתפללים</span>
+                        </Button>
+                    </Badge>
                     <Button
                         size="large"
                         block={isMobile()}

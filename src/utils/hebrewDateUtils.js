@@ -1314,6 +1314,28 @@ export function getParashaForDate(dateString) {
     return info && info.parasha ? info.parasha : '';
 }
 
+function parseAnyDate(val) {
+    if (!val) return null;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+        if (!isNaN(Number(val)) && Number(val) > 1600000000000) return Number(val);
+        if (val.includes('/')) {
+            const parts = val.trim().split(/[\s/:]+/);
+            if (parts.length >= 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10);
+                const year = parseInt(parts[2], 10);
+                if (day > 0 && month > 0 && year > 2000) {
+                    return new Date(year, month - 1, day, parseInt(parts[3] || 0, 10), parseInt(parts[4] || 0, 10)).getTime();
+                }
+            }
+        }
+        const t = new Date(val).getTime();
+        if (!isNaN(t)) return t;
+    }
+    return null;
+}
+
 /**
  * Check if a record (member / user) was registered within the specified number of days (default 3 days).
  * Checks registeredAt, createdAt, or millisecond timestamp ID.
@@ -1323,13 +1345,22 @@ export function isNewlyRegistered(record, days = 3) {
     let regTime = null;
 
     if (record.registeredAt) {
-        regTime = new Date(record.registeredAt).getTime();
-    } else if (record.createdAt) {
-        regTime = new Date(record.createdAt).getTime();
-    } else if (typeof record.id === 'number' && record.id > 1600000000000 && record.id < 2500000000000) {
-        regTime = record.id;
-    } else if (typeof record.id === 'string' && !isNaN(Number(record.id)) && Number(record.id) > 1600000000000 && Number(record.id) < 2500000000000) {
-        regTime = Number(record.id);
+        regTime = parseAnyDate(record.registeredAt);
+    }
+    if (!regTime && record.createdAt) {
+        regTime = parseAnyDate(record.createdAt);
+    }
+    if (!regTime && record.created_at) {
+        regTime = parseAnyDate(record.created_at);
+    }
+    if (!regTime && record.date) {
+        regTime = parseAnyDate(record.date);
+    }
+    if (!regTime && (typeof record.id === 'number' || typeof record.id === 'string')) {
+        const numId = Number(record.id);
+        if (!isNaN(numId) && numId > 1600000000000 && numId < 2500000000000) {
+            regTime = numId;
+        }
     }
 
     if (!regTime || isNaN(regTime)) return false;
