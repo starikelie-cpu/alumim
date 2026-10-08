@@ -828,32 +828,25 @@ export function getMevarchimInfo(saturdayHDate) {
     const events = HebrewCalendar.calendar(options);
     const rcEvents = events.filter(e => e.getFlags() & flags.ROSH_CHODESH);
 
-    if (rcEvents.length > 0) {
-        const HEBREW_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-        const mainEvent = rcEvents[rcEvents.length - 1];
-        let desc = normalizeHebrewString(mainEvent.render('he'));
-        let month = desc.replace(/^ראש חודש\s+/, '').trim();
-        month = normalizeHebrewString(month);
-
-        let mevarchimText = '';
         if (rcEvents.length === 2) {
+            const HEBREW_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+            const mainEvent = rcEvents[1];
+            let desc = normalizeHebrewString(mainEvent.render('he'));
+            let month = desc.replace(/^ראש חודש\s+/, '').trim();
+            month = normalizeHebrewString(month);
+
             const day1 = rcEvents[0].getDate();
             const day2 = rcEvents[1].getDate();
             const day1Name = HEBREW_DAYS[day1.getDay()];
             const day2Name = HEBREW_DAYS[day2.getDay()];
-            mevarchimText = `ראש חודש ${month} יהיה ביום ${day1Name} ולמחרתו ביום ${day2Name}`;
-        } else {
-            const day = rcEvents[0].getDate();
-            const dayName = HEBREW_DAYS[day.getDay()];
-            mevarchimText = `ראש חודש ${month} יהיה ביום ${dayName}`;
-        }
+            const mevarchimText = `ראש חודש ${month} יהיה ביום ${day1Name} ולמחרתו ביום ${day2Name}`;
 
-        return { 
-            isMevarchim: true, 
-            month: month,
-            mevarchimText: mevarchimText
-        };
-    }
+            return { 
+                isMevarchim: true, 
+                month: month,
+                mevarchimText: mevarchimText
+            };
+        }
     return { isMevarchim: false };
 }
 
