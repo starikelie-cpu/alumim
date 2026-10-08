@@ -826,16 +826,33 @@ export function getMevarchimInfo(saturdayHDate) {
     };
 
     const events = HebrewCalendar.calendar(options);
-    const rcEvent = events.find(e => e.getFlags() & flags.ROSH_CHODESH);
+    const rcEvents = events.filter(e => e.getFlags() & flags.ROSH_CHODESH);
 
-    if (rcEvent) {
-        // Description is usually "Rosh Chodesh Adar I" or "Rosh Chodesh Nisan"
-        // We want to extract the month name and clean vowels
-        let desc = rcEvent.render('he');
-        let month = desc.replace('ראש חודש ', '').replace("א' ", '').replace("ב' ", '').trim();
-        // Remove vowels (niqqud)
+    if (rcEvents.length > 0) {
+        const HEBREW_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+        const mainEvent = rcEvents[rcEvents.length - 1];
+        let desc = normalizeHebrewString(mainEvent.render('he'));
+        let month = desc.replace(/^ראש חודש\s+/, '').trim();
         month = normalizeHebrewString(month);
-        return { isMevarchim: true, month: month };
+
+        let mevarchimText = '';
+        if (rcEvents.length === 2) {
+            const day1 = rcEvents[0].getDate();
+            const day2 = rcEvents[1].getDate();
+            const day1Name = HEBREW_DAYS[day1.getDay()];
+            const day2Name = HEBREW_DAYS[day2.getDay()];
+            mevarchimText = `ראש חודש ${month} יהיה ביום ${day1Name} ולמחרתו ביום ${day2Name}`;
+        } else {
+            const day = rcEvents[0].getDate();
+            const dayName = HEBREW_DAYS[day.getDay()];
+            mevarchimText = `ראש חודש ${month} יהיה ביום ${dayName}`;
+        }
+
+        return { 
+            isMevarchim: true, 
+            month: month,
+            mevarchimText: mevarchimText
+        };
     }
     return { isMevarchim: false };
 }

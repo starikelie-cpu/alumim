@@ -1,32 +1,14 @@
-import { HDate, HebrewCalendar, flags } from '@hebcal/core';
+import { HDate } from '@hebcal/core';
+import { getMevarchimInfo } from './src/utils/hebrewDateUtils.js';
 
-function getMevarchimInfo(saturdayHDate) {
-    // Check next 6 days for Rosh Chodesh
-    const start = saturdayHDate.next();
-    const end = saturdayHDate.add(6, 'd');
+// Test 2-day Rosh Chodesh (e.g. 27 Shevat 5786 / Feb 14 2026 -> Rosh Chodesh Adar on Tue & Wed)
+const saturday2Days = new HDate(new Date('2026-02-14'));
+console.log('Result for 2026-02-14 (2-day RC):', getMevarchimInfo(saturday2Days));
 
-    const options = {
-        start: start,
-        end: end,
-        roshChodesh: true,
-        il: true
-    };
+// Test 1-day Rosh Chodesh (e.g. 25 Adar 5786 / Mar 14 2026 -> Rosh Chodesh Nisan on Thu)
+const saturday1Day = new HDate(new Date('2026-03-14'));
+console.log('Result for 2026-03-14 (1-day RC):', getMevarchimInfo(saturday1Day));
 
-    const events = HebrewCalendar.calendar(options);
-    const rcEvent = events.find(e => e.getFlags() & flags.ROSH_CHODESH);
-
-    if (rcEvent) {
-        // Description is usually "Rosh Chodesh Adar I" or "Rosh Chodesh Nisan"
-        // We want to extract the month name.
-        let desc = rcEvent.render('he');
-        let month = desc.replace('ראש חודש ', '').replace('א\' ', '').replace('ב\' ', '').trim();
-        return { isMevarchim: true, month: month };
-    }
-    return { isMevarchim: false };
-}
-
-const testSaturday = new HDate(new Date('2026-02-14'));
-console.log('Result for 2026-02-14:', getMevarchimInfo(testSaturday));
-
+// Test normal Saturday with no upcoming Rosh Chodesh
 const normalSaturday = new HDate(new Date('2026-02-07'));
-console.log('Result for 2026-02-07:', getMevarchimInfo(normalSaturday));
+console.log('Result for 2026-02-07 (No RC):', getMevarchimInfo(normalSaturday));

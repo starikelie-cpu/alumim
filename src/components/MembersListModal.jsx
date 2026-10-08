@@ -375,7 +375,7 @@ const MembersListModal = ({ visible, onCancel, members, onEdit, onDelete, onView
                                 ${dayInfo.isBiurMaaserot ? `<div style="color: #0000ff; font-size: 17px; font-weight: bold; margin-bottom: 3px;">ביעור מעשרות</div>` : ''}
                                 ${dayInfo.haftarah ? `<div style="color: #000; font-size: 11pt; margin-bottom: 3px;">הפטרת השבוע: ${dayInfo.haftarah}</div>` : ''}
                                 ${dayInfo.specialShabbatType ? `<div style="color: #0066cc; font-size: 18px; font-weight: bold; margin-bottom: 3px;">${dayInfo.specialShabbatType}</div>` : ''}
-                                ${info.isMevarchim ? `<div style="color: #ff0000; font-size: 17px; font-weight: bold; margin-top: 2px;">שבת מברכים ${info.month}</div>` : ''}
+                                ${info.isMevarchim ? `<div style="color: #ff0000; font-size: 17px; font-weight: bold; margin-top: 2px;">${info.mevarchimText || `ראש חודש ${info.month}`}</div>` : ''}
                                 ${specialEventsHtml}
                             </div>
                         </div>
