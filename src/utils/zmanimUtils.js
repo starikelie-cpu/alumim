@@ -111,6 +111,11 @@ export const calculateZmanim = (targetDate = new Date(), cityName = '') => {
         const shaahZmanitMs = dayMs / 12;
         const shaahZmanitMinutes = Math.round(shaahZmanitMs / 60000);
 
+        const totalDayMinutes = Math.round(dayMs / 60000);
+        const dayHours = Math.floor(totalDayMinutes / 60);
+        const dayMinutes = totalDayMinutes % 60;
+        const dayLengthHoursAndMinutes = `${dayHours} שעות ו-${dayMinutes} דקות`;
+
         const totalSeconds = Math.round(shaahZmanitMs / 1000);
         const shaahMin = Math.floor(totalSeconds / 60);
         const shaahSec = totalSeconds % 60;
@@ -128,6 +133,7 @@ export const calculateZmanim = (targetDate = new Date(), cityName = '') => {
 
         return {
             cityName: location.locationName || cityName || 'ירושלים',
+            dayLengthHoursAndMinutes,
             shaahZmanitMinutes,
             shaahZmanitMinutesAndSeconds,
             sunriseFormatted: formatTime(sunrise),
@@ -163,7 +169,8 @@ export const getZmanimPrintHtml = (targetDate = new Date(), cityName = '') => {
 
         return `
             <div style="font-size: 9.5px; line-height: 1.25; text-align: right; direction: rtl; color: #222; font-weight: 500;">
-                <div><strong>שעה זמנית:</strong> ${z.shaahZmanitMinutes} דקות</div>
+                <div><strong>אורך היום:</strong> ${z.dayLengthHoursAndMinutes}</div>
+                <div><strong>שעה זמנית:</strong> ${z.shaahZmanitMinutesAndSeconds}</div>
                 <div><strong>זמן זריחה:</strong> ${z.sunriseFormatted}</div>
                 <div><strong>זמן שחרית:</strong> ${z.shacharitStartFormatted} - ${z.shacharitEndFormatted}</div>
                 <div><strong>חצות היום:</strong> ${z.chatzotFormatted}</div>
@@ -171,7 +178,6 @@ export const getZmanimPrintHtml = (targetDate = new Date(), cityName = '') => {
                 <div><strong>מנחה קטנה:</strong> ${z.minchaKetanaStartFormatted} - ${z.minchaKetanaEndFormatted}</div>
                 <div><strong>זמן ערבית:</strong> משקיעת החמה (${z.arvitStartFormatted})</div>
                 <div><strong>זמן שקיעה:</strong> ${z.sunsetFormatted}</div>
-                <div><strong>אורך היום:</strong> ${z.shaahZmanitMinutesAndSeconds}</div>
             </div>
         `;
     } catch (e) {
