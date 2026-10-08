@@ -224,10 +224,11 @@ export const getSpecialDaysAndFastsInfo = (shabbatDateInput = new Date(), cityNa
             const rawTitle = e.render('he');
             const title = rawTitle.replace(/[\u0591-\u05C7]/g, '').trim();
 
-            if (f & (flags.DAF_YOMI | flags.OMER_COUNT | flags.HEBREW_DATE | flags.MOLAD | flags.PARSHA_HASHAVUA | flags.CHOL_HAMOED)) return;
+            if (f & (flags.DAF_YOMI | flags.OMER_COUNT | flags.HEBREW_DATE | flags.MOLAD | flags.PARSHA_HASHAVUA | flags.CHOL_HAMOED | flags.ROSH_CHODESH)) return;
             if (rawTitle.includes('Candle lighting') || rawTitle.includes('Havdalah')) return;
             if (title.includes('ערב')) return; // Filter out holiday eves (ערבי חג)
             if (title.includes('חוה״מ') || title.includes('חוה"מ') || title.includes('חול המועד') || title.includes('CH\'\'M') || title.includes('Chmoed')) return; // Filter out Chol HaMoed events
+            if (title.includes('ראש חודש')) return; // Filter out Rosh Chodesh events (handled separately in Mevarchim header)
 
             const evDate = e.getDate();
             const dayOfWeek = evDate.getDay();
